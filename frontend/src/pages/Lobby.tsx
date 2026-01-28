@@ -7,11 +7,16 @@ import {
   Logout as LogoutIcon,
 } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext'
+import { createRoom, listGames } from '../lib/api'
+import type { Game } from '../lib/types'
 
 export default function Lobby() {
   const navigate = useNavigate()
   const { isAuthenticated, isLoading, user, logout } = useAuth()
   const [joinCode, setJoinCode] = useState('')
+  const [games, setGames] = useState<Game[]>([])
+  const [gamesLoading, setGamesLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -19,11 +24,39 @@ export default function Lobby() {
     }
   }, [isAuthenticated, isLoading, navigate])
 
-  function handleCreateRoom() {
-    // TODO: Criar sala via API e redirecionar
-    // Por enquanto, gera código fake
-    const fakeCode = Math.random().toString(36).substring(2, 8).toUpperCase()
-    navigate(`/host/${fakeCode}`)
+  useEffect(() => {
+    let active = true
+    async function fetchGames() {
+      try {
+        const data = await listGames()
+        if (!active) return
+        setGames(data)
+      } catch (err) {
+        if (!active) return
+        setError(err instanceof Error ? err.message : 'Erro ao carregar jogos.')
+      } finally {
+        if (!active) return
+        setGamesLoading(false)
+      }
+    }
+    fetchGames()
+    return () => {
+      active = false
+    }
+  }, [])
+
+  async function handleCreateRoom() {
+    if (!games.length) {
+      setError('Nenhum jogo disponível para criar sala.')
+      return
+    }
+    setError('')
+    try {
+      const room = await createRoom({ game_id: games[0].id, host_name: user?.nickname })
+      navigate(`/host/${room.code}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao criar sala.')
+    }
   }
 
   function handleJoinRoom() {
@@ -68,7 +101,7 @@ export default function Lobby() {
         `,
       }}
     >
-      <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+        <Box sx={{ maxWidth: 800, mx: 'auto' }}>
         {/* Header */}
         <Box
           sx={{
@@ -182,15 +215,21 @@ export default function Lobby() {
             <Typography sx={{ mb: 4, color: 'var(--text-secondary)' }}>
               Seja o host! Crie uma sala, escolha os jogos e convide seus amigos.
             </Typography>
+            {error && (
+              <Typography sx={{ color: 'var(--accent-red)', mb: 2, fontSize: '0.9rem' }}>
+                {error}
+              </Typography>
+            )}
             <Button
               fullWidth
               variant="contained"
               color="primary"
               size="large"
               onClick={handleCreateRoom}
+              disabled={gamesLoading}
               sx={{ py: 2 }}
             >
-              CRIAR NOVA SALA
+              {gamesLoading ? 'CARREGANDO...' : 'CRIAR NOVA SALA'}
             </Button>
           </Box>
 

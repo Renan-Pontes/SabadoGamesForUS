@@ -21,81 +21,6 @@ export function isAuthenticated() {
   return Boolean(getToken())
 }
 
-const mockGames: Game[] = [
-  {
-    id: 1,
-    slug: 'read-my-mind',
-    name: 'Read My Mind',
-    description: 'Ordene cartas em silêncio: coopere ou elimine no versus.',
-    min_players: 2,
-    max_players: 10,
-    is_active: true,
-  },
-  {
-    id: 2,
-    slug: 'confinamento-solitario',
-    name: 'Confinamento Solitario: Valete de Copas',
-    description: 'Descubra o próprio naipe vendo o dos outros. Errou, sai.',
-    min_players: 3,
-    max_players: 12,
-    is_active: true,
-  },
-  {
-    id: 3,
-    slug: 'concurso-de-beleza',
-    name: 'Concurso de Beleza: Rei de Ouros',
-    description: 'Escolha um número. O alvo é a média * 0.8. Quem chegar mais perto vence.',
-    min_players: 3,
-    max_players: 12,
-    is_active: true,
-  },
-  {
-    id: 4,
-    slug: 'future-sugoroku',
-    name: 'Future Sugoroku',
-    description: 'Role os dados, avance pelas salas e encontre a saída em 15 turnos.',
-    min_players: 2,
-    max_players: 16,
-    is_active: true,
-  },
-  {
-    id: 5,
-    slug: 'leilao-de-cem-votos',
-    name: 'Leilão de Cem Votos',
-    description: 'Aposte pontos para ganhar o pote da rodada. Excedente aumenta o pote seguinte.',
-    min_players: 2,
-    max_players: 12,
-    is_active: true,
-  },
-  {
-    id: 6,
-    slug: 'sabado-quiz',
-    name: 'Sábado Quiz',
-    description: 'Perguntas rápidas para aquecer a galera antes do jogo principal.',
-    min_players: 2,
-    max_players: 12,
-    is_active: true,
-  },
-  {
-    id: 7,
-    slug: 'corrida-de-cliques',
-    name: 'Corrida de Cliques',
-    description: 'Velocidade no celular decide o campeão da rodada.',
-    min_players: 2,
-    max_players: 8,
-    is_active: true,
-  },
-  {
-    id: 8,
-    slug: 'desafio-mimica',
-    name: 'Desafio Mímica',
-    description: 'Jogadores recebem pistas e a TV mostra o tempo rolando.',
-    min_players: 3,
-    max_players: 10,
-    is_active: true,
-  },
-]
-
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = getToken()
   const response = await fetch(`${BASE_URL}${path}`, {
@@ -145,12 +70,7 @@ export async function updateProfile(payload: { nickname: string }): Promise<{ pr
 }
 
 export async function listGames(): Promise<Game[]> {
-  try {
-    return await request<Game[]>('/games/')
-  } catch (error) {
-    console.warn('API offline, usando jogos de demonstração.', error)
-    return mockGames
-  }
+  return request<Game[]>('/games/')
 }
 
 export async function createRoom(params: {
@@ -168,6 +88,10 @@ export async function getRoom(code: string): Promise<Room> {
   return request<Room>(`/rooms/${code}/`)
 }
 
+export async function listRoomPlayers(code: string): Promise<{ players: Player[] }> {
+  return request<{ players: Player[] }>(`/rooms/${code}/players/`)
+}
+
 export async function joinRoom(code: string, payload: { name?: string; device_id?: string }): Promise<{ player: Player }> {
   return request<{ player: Player }>(`/rooms/${code}/join/`, {
     method: 'POST',
@@ -182,9 +106,10 @@ export async function sendHeartbeat(code: string, playerId: number): Promise<{ o
   })
 }
 
-export async function startRoom(code: string): Promise<Room> {
+export async function startRoom(code: string, payload?: { mode?: 'coop' | 'versus' }): Promise<Room> {
   return request<Room>(`/rooms/${code}/start/`, {
     method: 'POST',
+    body: payload ? JSON.stringify(payload) : undefined,
   })
 }
 
@@ -215,6 +140,17 @@ export async function updatePlayerState(
   return request<{ player_id: number; state: Record<string, unknown> }>(`/rooms/${code}/state/`, {
     method: 'POST',
     body: JSON.stringify({ state }),
+  })
+}
+
+export async function tvPing(code: string, payload?: { device_id?: string }): Promise<{
+  ok: boolean
+  tv_connected: boolean
+  tv_last_seen_at: string
+}> {
+  return request(`/rooms/${code}/tv_ping/`, {
+    method: 'POST',
+    body: JSON.stringify(payload ?? {}),
   })
 }
 

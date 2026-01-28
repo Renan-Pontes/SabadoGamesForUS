@@ -951,7 +951,7 @@ def _apply_play(room: Room, player, card: int) -> dict:
 
 
 class GameViewSet(viewsets.ModelViewSet):
-    queryset = Game.objects.all()
+    queryset = Game.objects.filter(is_active=True)
     serializer_class = GameSerializer
     http_method_names = ["get", "post", "head", "options"]
 
@@ -1065,6 +1065,19 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
         room = serializer.save()
         detail = RoomDetailSerializer(room, context=self.get_serializer_context())
         return Response(detail.data, status=status.HTTP_201_CREATED)
+
+    def retrieve(self, request, *args, **kwargs):
+        room = self.get_object()
+        if request.user.is_authenticated:
+            try:
+                player = room.players.get(user=request.user)
+            except Player.DoesNotExist:
+                player = None
+            if player:
+                player.last_seen_at = timezone.now()
+                player.save(update_fields=["last_seen_at"])
+        serializer = RoomDetailSerializer(room, context=self.get_serializer_context())
+        return Response(serializer.data)
 
     @action(detail=True, methods=["post"])
     def join(self, request, code=None):

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -22,89 +22,41 @@ import {
 } from '@mui/icons-material'
 import anime from 'animejs'
 import { useAuth } from '../context/AuthContext'
+import { changeRoomGame, endRoom, getRoom, listGames, setReady, startRoom } from '../lib/api'
+import type { Game, Player, Room } from '../lib/types'
 
-// Mock de jogos disponíveis
-const AVAILABLE_GAMES = [
-  {
-    id: 1,
-    slug: 'read-my-mind',
-    name: 'Read My Mind',
-    description: 'Ordene cartas em silêncio. Co-op ou Versus.',
-    minPlayers: 2,
-    maxPlayers: 10,
-    icon: '🧠',
-    color: '#22d3ee',
-  },
-  {
-    id: 2,
-    slug: 'confinamento-solitario',
-    name: 'Confinamento Solitário',
-    description: 'Descubra seu próprio naipe olhando o dos outros.',
-    minPlayers: 3,
-    maxPlayers: 12,
-    icon: '♠️',
-    color: '#a855f7',
-  },
-  {
-    id: 3,
-    slug: 'concurso-de-beleza',
-    name: 'Concurso de Beleza',
-    description: 'Escolha um número. O alvo é a média × 0.8.',
-    minPlayers: 3,
-    maxPlayers: 12,
-    icon: '👑',
-    color: '#d4a520',
-  },
-  {
-    id: 4,
-    slug: 'future-sugoroku',
-    name: 'Future Sugoroku',
-    description: 'Role dados, escolha portas, encontre a saída.',
-    minPlayers: 2,
-    maxPlayers: 16,
-    icon: '🎲',
-    color: '#22c55e',
-  },
-  {
-    id: 5,
-    slug: 'leilao-de-cem-votos',
-    name: 'Leilão de Cem Votos',
-    description: 'Aposte pontos para ganhar o pote da rodada.',
-    minPlayers: 2,
-    maxPlayers: 12,
-    icon: '💰',
-    color: '#ef4444',
-  },
-  {
-    id: 6,
-    slug: 'sabado-quiz',
-    name: 'Sábado Quiz',
-    description: 'Perguntas rápidas para aquecer a galera.',
-    minPlayers: 2,
-    maxPlayers: 20,
-    icon: '❓',
-    color: '#f97316',
-  },
-]
+type GameCard = Game & { icon: string; color: string }
 
-// Mock de jogadores
-const MOCK_PLAYERS = [
-  { id: 1, name: 'Host', isHost: true, ready: true, online: true },
-  { id: 2, name: 'Player2', isHost: false, ready: true, online: true },
-  { id: 3, name: 'Player3', isHost: false, ready: false, online: true },
-  { id: 4, name: 'Player4', isHost: false, ready: true, online: false },
-]
+const GAME_STYLES: Record<string, { icon: string; color: string }> = {
+  'read-my-mind': { icon: '🧠', color: '#22d3ee' },
+  'confinamento-solitario': { icon: '♠️', color: '#a855f7' },
+  'concurso-de-beleza': { icon: '👑', color: '#d4a520' },
+  'future-sugoroku': { icon: '🎲', color: '#22c55e' },
+  'leilao-de-cem-votos': { icon: '💰', color: '#ef4444' },
+  'sabado-quiz': { icon: '❓', color: '#f97316' },
+}
+
+function decorateGame(game: Game): GameCard {
+  const style = GAME_STYLES[game.slug] ?? { icon: '🎮', color: '#64748b' }
+  return { ...game, ...style }
+}
 
 export default function HostRoom() {
   const { code } = useParams()
   const navigate = useNavigate()
   const { isAuthenticated, isLoading, user } = useAuth()
 
-  const [selectedGame, setSelectedGame] = useState<typeof AVAILABLE_GAMES[0] | null>(null)
-  const [players, setPlayers] = useState(MOCK_PLAYERS)
+  const [room, setRoom] = useState<Room | null>(null)
+  const [games, setGames] = useState<GameCard[]>([])
+  const [selectedGame, setSelectedGame] = useState<GameCard | null>(null)
+  const [players, setPlayers] = useState<Player[]>([])
   const [copied, setCopied] = useState(false)
   const [rulesOpen, setRulesOpen] = useState(false)
   const [tvConnected, setTvConnected] = useState(false)
+  const [error, setError] = useState('')
+  const [startError, setStartError] = useState('')
+  const [readyLoading, setReadyLoading] = useState(false)
+  const [loadingRoom, setLoadingRoom] = useState(true)
 
   // Verificar autenticação
   useEffect(() => {
@@ -113,8 +65,68 @@ export default function HostRoom() {
     }
   }, [isAuthenticated, isLoading, navigate])
 
+  useEffect(() => {
+    let active = true
+    if (!code) return
+
+    async function loadInitial() {
+      setLoadingRoom(true)
+      setError('')
+      try {
+        const [gamesResponse, roomResponse] = await Promise.all([listGames(), getRoom(code)])
+        if (!active) return
+        const decorated = gamesResponse.map(decorateGame)
+        setGames(decorated)
+        setRoom(roomResponse)
+        setPlayers(roomResponse.players ?? [])
+        setTvConnected(Boolean(roomResponse.tv_connected))
+        const current = decorated.find((game) => game.id === roomResponse.game.id || game.slug === roomResponse.game.slug)
+        setSelectedGame(current ?? decorated[0] ?? null)
+      } catch (err) {
+        if (!active) return
+        setError(err instanceof Error ? err.message : 'Erro ao carregar sala.')
+      } finally {
+        if (!active) return
+        setLoadingRoom(false)
+      }
+    }
+
+    loadInitial()
+    return () => {
+      active = false
+    }
+  }, [code])
+
+  useEffect(() => {
+    if (!code) return
+    let active = true
+    const interval = window.setInterval(async () => {
+      try {
+        const data = await getRoom(code)
+        if (!active) return
+        setRoom(data)
+        setPlayers(data.players ?? [])
+        setTvConnected(Boolean(data.tv_connected))
+      } catch (err) {
+        if (!active) return
+        setError(err instanceof Error ? err.message : 'Erro ao atualizar sala.')
+      }
+    }, 5000)
+    return () => {
+      active = false
+      window.clearInterval(interval)
+    }
+  }, [code])
+
+  useEffect(() => {
+    if (!room || !games.length) return
+    const match = games.find((game) => game.id === room.game.id || game.slug === room.game.slug)
+    if (match) setSelectedGame(match)
+  }, [room, games])
+
   // Animação de entrada dos cards
   useEffect(() => {
+    if (!games.length) return
     anime({
       targets: '.game-card',
       opacity: [0, 1],
@@ -123,13 +135,7 @@ export default function HostRoom() {
       easing: 'easeOutExpo',
       duration: 600,
     })
-  }, [])
-
-  // Simular TV conectando
-  useEffect(() => {
-    const timer = setTimeout(() => setTvConnected(true), 2000)
-    return () => clearTimeout(timer)
-  }, [])
+  }, [games])
 
   function handleCopyCode() {
     navigator.clipboard.writeText(code?.toUpperCase() || '')
@@ -137,9 +143,22 @@ export default function HostRoom() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  function handleSelectGame(game: typeof AVAILABLE_GAMES[0]) {
+  async function handleSelectGame(game: GameCard) {
+    if (!code) return
     setSelectedGame(game)
-    
+    setStartError('')
+    if (room?.status === 'live') {
+      setStartError('Partida em andamento. Encerre a sala para trocar o jogo.')
+      return
+    }
+    try {
+      const updated = await changeRoomGame(code, { game_id: game.id })
+      setRoom(updated)
+      setPlayers(updated.players ?? [])
+    } catch (err) {
+      setStartError(err instanceof Error ? err.message : 'Erro ao trocar o jogo.')
+    }
+
     // Animação de seleção
     anime({
       targets: `.game-card[data-id="${game.id}"]`,
@@ -155,22 +174,72 @@ export default function HostRoom() {
     }
   }
 
-  function handleForceStart() {
-    // Marca todos como ready e inicia
-    setPlayers(players.map(p => ({ ...p, ready: true })))
-    handleStartGame()
+  async function handleConfirmStart() {
+    if (!code || !selectedGame) return
+    setStartError('')
+    try {
+      const payload =
+        selectedGame.slug === 'read-my-mind'
+          ? { mode: 'coop' as const }
+          : undefined
+      await startRoom(code, payload)
+      setRulesOpen(false)
+      navigate(`/game/${code}`)
+    } catch (err) {
+      setStartError(err instanceof Error ? err.message : 'Erro ao iniciar a partida.')
+    }
   }
 
-  function handleLeaveRoom() {
+  async function handleLeaveRoom() {
+    if (!code) return
+    try {
+      await endRoom(code)
+    } catch (err) {
+      // Ignora erro de encerramento e volta ao lobby
+    }
     navigate('/lobby')
   }
 
-  const readyCount = players.filter(p => p.ready && p.online).length
-  const onlineCount = players.filter(p => p.online).length
-  const allReady = players.filter(p => p.online).every(p => p.ready)
-  const canStart = selectedGame && allReady && onlineCount >= (selectedGame.minPlayers || 2)
+  const readyCount = useMemo(
+    () => players.filter((p) => (p.online ?? true) && p.ready).length,
+    [players],
+  )
+  const onlineCount = useMemo(
+    () => players.filter((p) => p.online ?? true).length,
+    [players],
+  )
+  const allReady = useMemo(
+    () => players.filter((p) => p.online ?? true).every((p) => p.ready),
+    [players],
+  )
+  const canStart = Boolean(
+    selectedGame && allReady && onlineCount >= (selectedGame.min_players || 2),
+  )
+  const hostPlayer = useMemo(() => {
+    if (!user?.id) return null
+    return players.find((player) => player.user?.id === user.id) ?? null
+  }, [players, user?.id])
 
-  if (isLoading) {
+  async function handleHostReadyToggle() {
+    if (!code) return
+    if (!hostPlayer) return
+    setReadyLoading(true)
+    setError('')
+    try {
+      const result = await setReady(code, !hostPlayer.ready)
+      setPlayers((current) =>
+        current.map((player) =>
+          player.id === result.player_id ? { ...player, ready: result.ready } : player,
+        ),
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao atualizar ready do host.')
+    } finally {
+      setReadyLoading(false)
+    }
+  }
+
+  if (isLoading || loadingRoom) {
     return (
       <Box
         sx={{
@@ -263,6 +332,22 @@ export default function HostRoom() {
           </Box>
         </Box>
 
+        {error && (
+          <Box
+            sx={{
+              width: '100%',
+              mb: 2,
+              p: 2,
+              borderRadius: 'var(--radius-md)',
+              background: 'rgba(220, 38, 38, 0.15)',
+              border: '1px solid rgba(220, 38, 38, 0.4)',
+            }}
+          >
+            <Typography sx={{ color: 'var(--accent-red)', fontSize: '0.9rem' }}>
+              {error}
+            </Typography>
+          </Box>
+        )}
         <Box
           sx={{
             display: 'flex',
@@ -302,7 +387,7 @@ export default function HostRoom() {
                 gap: 2,
               }}
             >
-              {AVAILABLE_GAMES.map((game) => (
+              {games.map((game) => (
                 <Box
                   key={game.id}
                   className="game-card"
@@ -351,7 +436,7 @@ export default function HostRoom() {
                         {game.name}
                       </Typography>
                       <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                        {game.minPlayers}-{game.maxPlayers} jogadores
+                        {game.min_players}-{game.max_players} jogadores
                       </Typography>
                     </Box>
                   </Box>
@@ -365,6 +450,33 @@ export default function HostRoom() {
 
           {/* Coluna da Direita - Jogadores e Ações */}
           <Box sx={{ flex: 1, minWidth: { lg: 320 } }}>
+            {/* Ready do Host */}
+            <Box
+              sx={{
+                background: 'var(--bg-card)',
+                borderRadius: 'var(--radius-lg)',
+                border: '2px solid var(--border-subtle)',
+                p: 2,
+                mb: 2,
+              }}
+            >
+              <Typography sx={{ fontWeight: 600, color: 'var(--text-primary)', mb: 1 }}>
+                Seu status
+              </Typography>
+              <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.85rem', mb: 2 }}>
+                {hostPlayer?.ready ? 'Você está pronto para iniciar.' : 'Marque ready para a partida.'}
+              </Typography>
+              <Button
+                fullWidth
+                variant="contained"
+                color={hostPlayer?.ready ? 'success' : 'warning'}
+                disabled={!hostPlayer || readyLoading}
+                onClick={handleHostReadyToggle}
+                sx={{ py: 1.2 }}
+              >
+                {hostPlayer?.ready ? 'PRONTO ✓' : 'MARCAR READY'}
+              </Button>
+            </Box>
             {/* Status da TV */}
             <Box
               sx={{
@@ -434,7 +546,7 @@ export default function HostRoom() {
                       p: 1.5,
                       borderRadius: 'var(--radius-md)',
                       background: 'var(--bg-surface)',
-                      opacity: player.online ? 1 : 0.5,
+                      opacity: player.online ?? true ? 1 : 0.5,
                     }}
                   >
                     <Avatar
@@ -442,7 +554,7 @@ export default function HostRoom() {
                         width: 36,
                         height: 36,
                         fontSize: '0.9rem',
-                        bgcolor: player.isHost ? 'var(--accent-red)' : 'var(--accent-gold)',
+                        bgcolor: player.is_host ? 'var(--accent-red)' : 'var(--accent-gold)',
                       }}
                     >
                       {player.name.charAt(0).toUpperCase()}
@@ -450,7 +562,7 @@ export default function HostRoom() {
                     <Box sx={{ flex: 1 }}>
                       <Typography sx={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
                         {player.name}
-                        {player.isHost && (
+                        {player.is_host && (
                           <Chip
                             label="HOST"
                             size="small"
@@ -465,7 +577,7 @@ export default function HostRoom() {
                         )}
                       </Typography>
                       <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        {!player.online ? 'Offline' : player.ready ? 'Pronto' : 'Aguardando...'}
+                        {player.online === false ? 'Offline' : player.ready ? 'Pronto' : 'Aguardando...'}
                       </Typography>
                     </Box>
                     <Box
@@ -473,7 +585,7 @@ export default function HostRoom() {
                         width: 10,
                         height: 10,
                         borderRadius: '50%',
-                        bgcolor: !player.online
+                        bgcolor: player.online === false
                           ? 'var(--status-offline)'
                           : player.ready
                             ? 'var(--status-ready)'
@@ -510,16 +622,10 @@ export default function HostRoom() {
                     : 'INICIAR JOGO'}
               </Button>
 
-              {selectedGame && !allReady && (
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  color="warning"
-                  onClick={handleForceStart}
-                  sx={{ borderWidth: 2 }}
-                >
-                  Forçar Início
-                </Button>
+              {startError && (
+                <Typography sx={{ color: 'var(--accent-red)', fontSize: '0.85rem' }}>
+                  {startError}
+                </Typography>
               )}
 
               <Button
@@ -594,11 +700,7 @@ export default function HostRoom() {
           </Button>
           <Button
             variant="contained"
-            onClick={() => {
-              setRulesOpen(false)
-              // TODO: Navegar para o jogo
-              navigate(`/game/${code}`)
-            }}
+            onClick={handleConfirmStart}
             sx={{
               bgcolor: selectedGame?.color,
               '&:hover': { bgcolor: selectedGame?.color, filter: 'brightness(1.1)' },

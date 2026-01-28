@@ -1,9 +1,51 @@
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Box, Typography, Button } from '@mui/material'
+import { Box, Typography, Button, Avatar, Chip } from '@mui/material'
+import { getRoom, tvPing } from '../lib/api'
+import type { Room } from '../lib/types'
 
 export default function TvDisplay() {
   const { code } = useParams()
   const navigate = useNavigate()
+  const [room, setRoom] = useState<Room | null>(null)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  const deviceId = useMemo(() => {
+    const key = 'sabado_tv_device'
+    const stored = window.localStorage.getItem(key)
+    if (stored) return stored
+    const generated = `tv-${Math.random().toString(36).slice(2, 8)}`
+    window.localStorage.setItem(key, generated)
+    return generated
+  }, [])
+
+  useEffect(() => {
+    if (!code) return
+    let active = true
+
+    async function poll() {
+      try {
+        await tvPing(code, { device_id: deviceId })
+        const data = await getRoom(code)
+        if (!active) return
+        setRoom(data)
+      } catch (err) {
+        if (!active) return
+        setError(err instanceof Error ? err.message : 'Erro ao carregar sala.')
+      } finally {
+        if (!active) return
+        setLoading(false)
+      }
+    }
+
+    poll()
+    const interval = window.setInterval(poll, 5000)
+    return () => {
+      active = false
+      window.clearInterval(interval)
+    }
+  }, [code, deviceId])
 
   return (
     <Box
@@ -54,18 +96,84 @@ export default function TvDisplay() {
           {code?.toUpperCase()}
         </Typography>
         <Typography sx={{ color: 'var(--text-secondary)', mt: 3 }}>
-          Aguardando jogadores entrarem...
+          {room?.status === 'live'
+            ? 'Partida em andamento'
+            : room?.status === 'ended'
+              ? 'Partida encerrada'
+              : 'Aguardando jogadores entrarem...'}
         </Typography>
       </Box>
 
       {/* Placeholder */}
       <Box sx={{ mt: 6, textAlign: 'center' }}>
         <Typography variant="h4" sx={{ mb: 2 }}>
-          📺 Tela da TV
+          {room?.game ? room.game.name : '📺 Tela da TV'}
         </Typography>
         <Typography sx={{ color: 'var(--text-muted)', mb: 4 }}>
-          Aqui aparecerá o estado do jogo, placar e timer.
+          {room?.game
+            ? room.game.description
+            : 'Aqui aparecerá o estado do jogo, placar e timer.'}
         </Typography>
+
+        {error && (
+          <Typography sx={{ color: 'var(--accent-red)', mb: 3 }}>
+            {error}
+          </Typography>
+        )}
+
+        {!loading && room?.players?.length ? (
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+              gap: 2,
+              mb: 4,
+            }}
+          >
+            {room.players.map((player) => (
+              <Box
+                key={player.id}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  background: 'var(--bg-card)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid var(--border-subtle)',
+                  px: 2,
+                  py: 1.5,
+                }}
+              >
+                <Avatar
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    bgcolor: player.is_host ? 'var(--accent-red)' : 'var(--accent-gold)',
+                  }}
+                >
+                  {player.name.charAt(0).toUpperCase()}
+                </Avatar>
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontWeight: 600 }}>{player.name}</Typography>
+                  <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    {player.ready ? 'Pronto' : 'Aguardando'}
+                  </Typography>
+                </Box>
+                <Chip
+                  size="small"
+                  label={player.ready ? 'READY' : 'LOBBY'}
+                  sx={{
+                    bgcolor: player.ready ? 'var(--status-ready)' : 'var(--status-waiting)',
+                    color: '#000',
+                    fontWeight: 600,
+                  }}
+                />
+              </Box>
+            ))}
+          </Box>
+        ) : (
+          !loading && <Typography sx={{ color: 'var(--text-muted)', mb: 4 }}>Sem jogadores ainda.</Typography>
+        )}
         <Button variant="outlined" onClick={() => navigate('/')}>
           Voltar ao Início
         </Button>

@@ -15,10 +15,11 @@ import {
   Person as PersonIcon,
 } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext'
+import { updateProfile } from '../lib/api'
 
 export default function Profile() {
   const navigate = useNavigate()
-  const { isAuthenticated, isLoading, user, logout } = useAuth()
+  const { isAuthenticated, isLoading, user, logout, refreshUser } = useAuth()
   
   const [nickname, setNickname] = useState('')
   const [saving, setSaving] = useState(false)
@@ -48,12 +49,8 @@ export default function Profile() {
     setSuccess(false)
 
     try {
-      // TODO: Chamar API para atualizar nickname
-      // await updateProfile({ nickname })
-      
-      // Simular delay da API
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
+      await updateProfile({ nickname })
+      await refreshUser()
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
     } catch (err) {

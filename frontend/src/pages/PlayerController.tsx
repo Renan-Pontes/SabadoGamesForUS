@@ -2,12 +2,17 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Box, Typography, Button } from '@mui/material'
 import { useAuth } from '../context/AuthContext'
+import { getRoom, joinRoom, sendHeartbeat, setReady } from '../lib/api'
+import type { Player, Room } from '../lib/types'
 
 export default function PlayerController() {
   const { code } = useParams()
   const navigate = useNavigate()
   const { isAuthenticated, isLoading, user } = useAuth()
   const [isReady, setIsReady] = useState(false)
+  const [player, setPlayer] = useState<Player | null>(null)
+  const [room, setRoom] = useState<Room | null>(null)
+  const [error, setError] = useState('')
 
   // Verificar autenticação
   useEffect(() => {
@@ -16,8 +21,71 @@ export default function PlayerController() {
     }
   }, [isAuthenticated, isLoading, navigate])
 
-  function handleReadyToggle() {
-    setIsReady(!isReady)
+  useEffect(() => {
+    if (!code || !isAuthenticated) return
+    let active = true
+    async function join() {
+      try {
+        const result = await joinRoom(code, {})
+        if (!active) return
+        setPlayer(result.player)
+        setIsReady(result.player.ready)
+      } catch (err) {
+        if (!active) return
+        setError(err instanceof Error ? err.message : 'Erro ao entrar na sala.')
+      }
+    }
+    join()
+    return () => {
+      active = false
+    }
+  }, [code, isAuthenticated])
+
+  useEffect(() => {
+    if (!code) return
+    let active = true
+    async function pollRoom() {
+      try {
+        const data = await getRoom(code)
+        if (!active) return
+        setRoom(data)
+        if (data.status === 'live') {
+          navigate(`/game/${code}`)
+        }
+      } catch (err) {
+        if (!active) return
+        setError(err instanceof Error ? err.message : 'Erro ao atualizar sala.')
+      }
+    }
+    pollRoom()
+    const interval = window.setInterval(pollRoom, 5000)
+    return () => {
+      active = false
+      window.clearInterval(interval)
+    }
+  }, [code, navigate])
+
+  useEffect(() => {
+    if (!code || !player) return
+    const interval = window.setInterval(() => {
+      sendHeartbeat(code, player.id).catch(() => {
+        // Sem bloquear a UI se o heartbeat falhar
+      })
+    }, 10000)
+    return () => {
+      window.clearInterval(interval)
+    }
+  }, [code, player])
+
+  async function handleReadyToggle() {
+    if (!code) return
+    try {
+      const nextReady = !isReady
+      const result = await setReady(code, nextReady)
+      setIsReady(result.ready)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao atualizar ready.')
+    }
   }
 
   function handleLeaveRoom() {
@@ -41,11 +109,11 @@ export default function PlayerController() {
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
         background: `
           radial-gradient(ellipse at bottom, rgba(212, 165, 32, 0.1) 0%, transparent 50%),
           var(--bg-void)
@@ -69,6 +137,11 @@ export default function PlayerController() {
           <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
             Sala: {code?.toUpperCase()}
           </Typography>
+          {room?.game && (
+            <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+              Jogo: {room.game.name}
+            </Typography>
+          )}
         </Box>
         <Box
           sx={{
@@ -104,13 +177,21 @@ export default function PlayerController() {
           📱 Controle do Jogador
         </Typography>
         <Typography sx={{ color: 'var(--text-muted)', mb: 4 }}>
-          Aguardando o host iniciar o jogo...
+          {room?.status === 'live'
+            ? 'Partida em andamento...'
+            : 'Aguardando o host iniciar o jogo...'}
         </Typography>
+        {error && (
+          <Typography sx={{ color: 'var(--accent-red)', mb: 2, fontSize: '0.9rem' }}>
+            {error}
+          </Typography>
+        )}
         <Button
           variant="contained"
           color={isReady ? 'success' : 'warning'}
           size="large"
           onClick={handleReadyToggle}
+          disabled={!player}
           sx={{
             mb: 2,
             py: 2,
