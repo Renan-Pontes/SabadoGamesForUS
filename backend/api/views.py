@@ -14,6 +14,7 @@ from .serializers import (
     RegisterSerializer,
     HeartbeatSerializer,
     JoinRoomSerializer,
+    PlayerSerializer,
     PlayerStateSerializer,
     ProfileUpdateSerializer,
     ReadMyMindModeSerializer,
@@ -1005,6 +1006,7 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             "sugoroku_roll",
             "sugoroku_tick",
             "leilao_tick",
+            "tv_ping",
         }
         if self.action in open_actions:
             return [permissions.AllowAny()]
@@ -1154,6 +1156,26 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
         serializer.is_valid(raise_exception=True)
         player = serializer.save()
         return Response({"player_id": player.id, "state": player.state})
+
+    @action(detail=True, methods=["get"])
+    def players(self, request, code=None):
+        room = self.get_object()
+        players = room.players.all()
+        data = PlayerSerializer(players, many=True, context=self.get_serializer_context()).data
+        return Response({"players": data})
+
+    @action(detail=True, methods=["post"])
+    def tv_ping(self, request, code=None):
+        room = self.get_object()
+        device_id = (request.data.get("device_id") or "").strip()
+        now = timezone.now()
+        room.tv_last_seen_at = now
+        update_fields = ["tv_last_seen_at"]
+        if device_id:
+            room.tv_device_id = device_id
+            update_fields.append("tv_device_id")
+        room.save(update_fields=update_fields)
+        return Response({"ok": True, "tv_connected": True, "tv_last_seen_at": room.tv_last_seen_at})
 
     @action(detail=True, methods=["post"])
     def read_my_mind_mode(self, request, code=None):

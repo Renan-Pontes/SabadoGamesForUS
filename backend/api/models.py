@@ -36,6 +36,8 @@ class Room(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_LOBBY)
     created_at = models.DateTimeField(default=timezone.now)
     last_activity_at = models.DateTimeField(default=timezone.now)
+    tv_last_seen_at = models.DateTimeField(null=True, blank=True)
+    tv_device_id = models.CharField(max_length=120, blank=True)
     state = models.JSONField(default=dict, blank=True)
 
     class Meta:

@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from datetime import timedelta
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
@@ -78,11 +79,28 @@ class GameSerializer(serializers.ModelSerializer):
 
 class PlayerSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
+    online = serializers.SerializerMethodField()
 
     class Meta:
         model = Player
-        fields = ["id", "name", "user", "device_id", "is_host", "ready", "joined_at", "last_seen_at", "state"]
+        fields = [
+            "id",
+            "name",
+            "user",
+            "device_id",
+            "is_host",
+            "ready",
+            "online",
+            "joined_at",
+            "last_seen_at",
+            "state",
+        ]
         read_only_fields = ["id", "joined_at", "last_seen_at"]
+
+    def get_online(self, instance):
+        if not instance.last_seen_at:
+            return False
+        return timezone.now() - instance.last_seen_at <= timedelta(seconds=30)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -109,11 +127,35 @@ class PlayerSerializer(serializers.ModelSerializer):
 
 class RoomSerializer(serializers.ModelSerializer):
     game = GameSerializer(read_only=True)
+    tv_connected = serializers.SerializerMethodField()
 
     class Meta:
         model = Room
-        fields = ["id", "code", "game", "status", "created_at", "last_activity_at", "state"]
-        read_only_fields = ["id", "code", "created_at", "last_activity_at", "state"]
+        fields = [
+            "id",
+            "code",
+            "game",
+            "status",
+            "created_at",
+            "last_activity_at",
+            "tv_last_seen_at",
+            "tv_connected",
+            "state",
+        ]
+        read_only_fields = [
+            "id",
+            "code",
+            "created_at",
+            "last_activity_at",
+            "tv_last_seen_at",
+            "tv_connected",
+            "state",
+        ]
+
+    def get_tv_connected(self, instance):
+        if not instance.tv_last_seen_at:
+            return False
+        return timezone.now() - instance.tv_last_seen_at <= timedelta(seconds=20)
 
 
 class RoomDetailSerializer(RoomSerializer):
@@ -183,7 +225,11 @@ class JoinRoomSerializer(serializers.Serializer):
         )
         if not created and player.name != display_name:
             player.name = display_name
-            player.save(update_fields=["name"])
+            player.last_seen_at = timezone.now()
+            player.save(update_fields=["name", "last_seen_at"])
+        else:
+            player.last_seen_at = timezone.now()
+            player.save(update_fields=["last_seen_at"])
         room.last_activity_at = timezone.now()
         room.save(update_fields=["last_activity_at"])
         return player
@@ -234,7 +280,8 @@ class ReadySerializer(serializers.Serializer):
         request = self.context["request"]
         player = Player.objects.get(room=room, user=request.user)
         player.ready = validated_data["ready"]
-        player.save(update_fields=["ready"])
+        player.last_seen_at = timezone.now()
+        player.save(update_fields=["ready", "last_seen_at"])
         room.touch()
         return player
 
@@ -247,7 +294,8 @@ class PlayerStateSerializer(serializers.Serializer):
         request = self.context["request"]
         player = Player.objects.get(room=room, user=request.user)
         player.state = validated_data["state"]
-        player.save(update_fields=["state"])
+        player.last_seen_at = timezone.now()
+        player.save(update_fields=["state", "last_seen_at"])
         room.touch()
         return player
 
