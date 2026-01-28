@@ -22,3 +22,39 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+#python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.cover
+.coverage
+htmlcov/
+.tox/
+
+# react native
+.expo/
+.expo-shared/
+*.expo
+# misc
+*.pem
+.env
+.env.test
+.env.local
+.env.production
+.env.staging
+.env.*.local
+
+# NPM package files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+# Yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+node_modules/
+.pnp.*
+
