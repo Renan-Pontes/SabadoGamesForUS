@@ -85,7 +85,6 @@ export default function Lobby() {
     )
   }
 
-  // Gerar cor do avatar baseado no nickname
   const avatarColor = user?.nickname
     ? `hsl(${user.nickname.charCodeAt(0) * 10}, 70%, 50%)`
     : 'var(--accent-gold)'
@@ -101,7 +100,7 @@ export default function Lobby() {
         `,
       }}
     >
-        <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+      <Box sx={{ maxWidth: 800, mx: 'auto' }}>
         {/* Header */}
         <Box
           sx={{
@@ -216,9 +215,7 @@ export default function Lobby() {
               Seja o host! Crie uma sala, escolha os jogos e convide seus amigos.
             </Typography>
             {error && (
-              <Typography sx={{ color: 'var(--accent-red)', mb: 2, fontSize: '0.9rem' }}>
-                {error}
-              </Typography>
+              <Typography sx={{ color: 'var(--accent-red)', mb: 2, fontSize: '0.9rem' }}>{error}</Typography>
             )}
             <Button
               fullWidth
@@ -241,65 +238,36 @@ export default function Lobby() {
               borderRadius: 'var(--radius-xl)',
               border: '2px solid var(--border-subtle)',
               p: 4,
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                borderColor: 'var(--accent-gold)',
-                boxShadow: '0 0 30px var(--accent-gold-glow)',
-              },
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
               <JoinIcon sx={{ fontSize: 32, color: 'var(--accent-gold)' }} />
               <Typography variant="h4" sx={{ color: 'var(--accent-gold)' }}>
-                Entrar em Sala
+                Entrar
               </Typography>
             </Box>
             <Typography sx={{ mb: 3, color: 'var(--text-secondary)' }}>
-              Tem um código? Entre em uma sala existente para jogar.
+              Já tem um código? Entre em uma sala existente.
             </Typography>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField
-                fullWidth
-                placeholder="CÓDIGO"
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                inputProps={{
-                  maxLength: 6,
-                  style: { textAlign: 'center', fontSize: '1.2rem' },
-                }}
-                onKeyDown={(e) => e.key === 'Enter' && handleJoinRoom()}
-              />
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={handleJoinRoom}
-                disabled={!joinCode.trim()}
-                sx={{ minWidth: 100 }}
-              >
-                ENTRAR
-              </Button>
-            </Box>
+            <TextField
+              fullWidth
+              placeholder="Código da sala"
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+            <Button
+              fullWidth
+              variant="outlined"
+              color="secondary"
+              size="large"
+              onClick={handleJoinRoom}
+              disabled={!joinCode.trim()}
+              sx={{ py: 2 }}
+            >
+              ENTRAR NA SALA
+            </Button>
           </Box>
-        </Box>
-
-        {/* Info */}
-        <Box
-          sx={{
-            mt: 4,
-            p: 3,
-            background: 'var(--bg-surface)',
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--border-subtle)',
-          }}
-        >
-          <Typography variant="h6" sx={{ mb: 1, color: 'var(--text-primary)' }}>
-            💡 Como funciona
-          </Typography>
-          <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-            O <strong>host</strong> cria a sala e controla o jogo pelo computador ou tablet.
-            Os <strong>jogadores</strong> entram pelo celular usando o código da sala.
-            A <strong>TV</strong> exibe o placar e o estado do jogo para todos verem.
-          </Typography>
         </Box>
       </Box>
     </Box>

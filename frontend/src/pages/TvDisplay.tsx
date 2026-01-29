@@ -30,6 +30,9 @@ export default function TvDisplay() {
         const data = await getRoom(code)
         if (!active) return
         setRoom(data)
+        if (data.status === 'live' && data.game?.slug === 'read-my-mind') {
+          navigate(`/game/${code}/read-my-mind?view=tv`)
+        }
       } catch (err) {
         if (!active) return
         setError(err instanceof Error ? err.message : 'Erro ao carregar sala.')
@@ -104,21 +107,16 @@ export default function TvDisplay() {
         </Typography>
       </Box>
 
-      {/* Placeholder */}
       <Box sx={{ mt: 6, textAlign: 'center' }}>
         <Typography variant="h4" sx={{ mb: 2 }}>
           {room?.game ? room.game.name : '📺 Tela da TV'}
         </Typography>
         <Typography sx={{ color: 'var(--text-muted)', mb: 4 }}>
-          {room?.game
-            ? room.game.description
-            : 'Aqui aparecerá o estado do jogo, placar e timer.'}
+          {room?.game ? room.game.description : 'Aqui aparecerá o estado do jogo, placar e timer.'}
         </Typography>
 
         {error && (
-          <Typography sx={{ color: 'var(--accent-red)', mb: 3 }}>
-            {error}
-          </Typography>
+          <Typography sx={{ color: 'var(--accent-red)', mb: 3 }}>{error}</Typography>
         )}
 
         {!loading && room?.players?.length ? (
@@ -174,9 +172,7 @@ export default function TvDisplay() {
         ) : (
           !loading && <Typography sx={{ color: 'var(--text-muted)', mb: 4 }}>Sem jogadores ainda.</Typography>
         )}
-        <Button variant="outlined" onClick={() => navigate('/')}>
-          Voltar ao Início
-        </Button>
+        <Button variant="outlined" onClick={() => navigate('/')}>Voltar ao Início</Button>
       </Box>
     </Box>
   )

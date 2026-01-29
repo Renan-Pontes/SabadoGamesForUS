@@ -121,6 +121,11 @@ class PlayerSerializer(serializers.ModelSerializer):
                 state.pop("submitted", None)
                 if not request or not request.user.is_authenticated or instance.user_id != request.user.id:
                     state.pop("points", None)
+            if instance.room.game.slug == "blef-jack":
+                if not request or not request.user.is_authenticated or instance.user_id != request.user.id:
+                    state.pop("points", None)
+                    state.pop("cards", None)
+                    state.pop("guess_winner_id", None)
             data["state"] = state
         return data
 
@@ -326,6 +331,28 @@ class ProfileUpdateSerializer(serializers.Serializer):
         return profile
 
 
+class PasswordChangeSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True, min_length=6)
+    confirm_password = serializers.CharField(write_only=True, min_length=6)
+
+    def validate(self, attrs):
+        if attrs["new_password"] != attrs["confirm_password"]:
+            raise serializers.ValidationError("New passwords do not match.")
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            raise serializers.ValidationError("Authentication required.")
+        if not request.user.check_password(attrs["current_password"]):
+            raise serializers.ValidationError("Invalid current password.")
+        return attrs
+
+    def create(self, validated_data):
+        request = self.context["request"]
+        request.user.set_password(validated_data["new_password"])
+        request.user.save(update_fields=["password"])
+        return request.user
+
+
 class ReadMyMindModeSerializer(serializers.Serializer):
     mode = serializers.ChoiceField(choices=["coop", "versus"])
 
@@ -357,3 +384,15 @@ class FutureSugorokuPenaltyChoiceSerializer(serializers.Serializer):
 
 class LeilaoBidSerializer(serializers.Serializer):
     bid = serializers.IntegerField(min_value=0)
+
+
+class BlefJackBetSerializer(serializers.Serializer):
+    bet = serializers.IntegerField(min_value=0)
+
+
+class BlefJackDeclareSerializer(serializers.Serializer):
+    declared_value = serializers.IntegerField(min_value=0, max_value=21)
+
+
+class BlefJackGuessSerializer(serializers.Serializer):
+    winner_player_id = serializers.IntegerField()

@@ -16,6 +16,7 @@ from .serializers import (
     JoinRoomSerializer,
     PlayerSerializer,
     PlayerStateSerializer,
+    PasswordChangeSerializer,
     ProfileUpdateSerializer,
     ReadMyMindModeSerializer,
     ReadMyMindPlaySerializer,
@@ -25,6 +26,9 @@ from .serializers import (
     FutureSugorokuUnlockSerializer,
     FutureSugorokuPenaltyChoiceSerializer,
     LeilaoBidSerializer,
+    BlefJackBetSerializer,
+    BlefJackDeclareSerializer,
+    BlefJackGuessSerializer,
     ReadySerializer,
     RoomCreateSerializer,
     RoomDetailSerializer,
@@ -61,6 +65,11 @@ LEILAO_ROUNDS = 10
 LEILAO_BASE_POT = 100
 LEILAO_BID_SECONDS = 15
 
+BLEF_JACK_SLUG = "blef-jack"
+BLEF_JACK_START_POINTS = 100
+BLEF_JACK_BASE_BET = 10
+BLEF_JACK_PENALTY = 10
+
 
 def _room_state(room: Room) -> dict:
     return room.state or {}
@@ -72,8 +81,16 @@ def _set_room_state(room: Room, state: dict) -> None:
     room.save(update_fields=["state", "last_activity_at"])
 
 
+def _fresh_room(room: Room) -> Room:
+    return Room.objects.select_related("game").prefetch_related("players").get(pk=room.pk)
+
+
+def _all_players(room: Room):
+    return list(Player.objects.filter(room=room))
+
+
 def _active_players(room: Room):
-    players = list(room.players.all())
+    players = _all_players(room)
     return [player for player in players if not player.state.get("eliminated")]
 
 
@@ -102,6 +119,9 @@ def _initialize_read_my_mind(room: Room, mode: str) -> None:
         "round": 1,
         "lives": READ_MY_MIND_LIVES if mode == "coop" else None,
         "played": [],
+        "last_cut_player_id": None,
+        "last_cutter_player_id": None,
+        "phase": "playing",
         "deadline_ts": (now + timedelta(seconds=READ_MY_MIND_TURN_SECONDS)).timestamp(),
         "last_play_ts": None,
     }
@@ -232,13 +252,144 @@ def _tick_beleza(room: Room) -> dict:
 
 
 def _active_sugoroku_players(room: Room):
-    players = list(room.players.all())
+    players = _all_players(room)
     return [player for player in players if not player.state.get("eliminated") and not player.state.get("cleared")]
 
 
 def _active_generic_players(room: Room):
-    players = list(room.players.all())
+    players = _all_players(room)
     return [player for player in players if not player.state.get("eliminated")]
+
+
+def _blef_hand_value(cards):
+    total = 0
+    aces = 0
+    for value in cards:
+        if value == 1:
+            aces += 1
+            total += 11
+        elif value >= 10:
+            total += 10
+        else:
+            total += value
+    while total > 21 and aces:
+        total -= 10
+        aces -= 1
+    return total
+
+
+def _deal_blef_cards(players):
+    rng = secrets.SystemRandom()
+    for player in players:
+        player_state = player.state or {}
+        cards = [rng.randint(1, 13), rng.randint(1, 13)]
+        player_state["cards"] = cards
+        player_state["declared_value"] = None
+        player_state["guess_winner_id"] = None
+        player_state["bet"] = BLEF_JACK_BASE_BET
+        player.state = player_state
+        player.save(update_fields=["state"])
+
+
+def _initialize_blef_jack(room: Room) -> None:
+    players = _active_generic_players(room)
+    pot = 0
+    for player in players:
+        player_state = player.state or {}
+        player_state["eliminated"] = False
+        player_state["points"] = player_state.get("points", BLEF_JACK_START_POINTS)
+        if player_state["points"] < BLEF_JACK_BASE_BET:
+            player_state["eliminated"] = True
+        else:
+            player_state["points"] -= BLEF_JACK_BASE_BET
+            pot += BLEF_JACK_BASE_BET
+        player.state = player_state
+        player.save(update_fields=["state"])
+    _deal_blef_cards(_active_generic_players(room))
+    state = {
+        "game": BLEF_JACK_SLUG,
+        "round": 1,
+        "phase": "declare",
+        "pot": pot,
+        "base_bet": BLEF_JACK_BASE_BET,
+        "winners": [],
+    }
+    _set_room_state(room, state)
+
+
+def _blef_all_declared(players):
+    return all(player.state.get("declared_value") is not None for player in players)
+
+
+def _blef_all_guessed(players):
+    return all(player.state.get("guess_winner_id") is not None for player in players)
+
+
+def _blef_start_next_round(room: Room, state: dict) -> dict:
+    active_players = _active_generic_players(room)
+    pot = state.get("pot", 0)
+    for player in active_players:
+        player_state = player.state or {}
+        if player_state.get("points", 0) < BLEF_JACK_BASE_BET:
+            player_state["eliminated"] = True
+        else:
+            player_state["points"] = player_state.get("points", 0) - BLEF_JACK_BASE_BET
+            pot += BLEF_JACK_BASE_BET
+        player.state = player_state
+        player.save(update_fields=["state"])
+    state["pot"] = pot
+    state["round"] = (state.get("round") or 1) + 1
+    state["phase"] = "declare"
+    state["winners"] = []
+    _deal_blef_cards(_active_generic_players(room))
+    return state
+
+
+def _blef_resolve_round(room: Room, state: dict) -> dict:
+    players = _active_generic_players(room)
+    if not players:
+        room.status = Room.STATUS_ENDED
+        room.save(update_fields=["status"])
+        return state
+    values = {}
+    max_value = None
+    for player in players:
+        cards = player.state.get("cards") or []
+        value = _blef_hand_value(cards)
+        values[player.id] = value
+        if max_value is None or value > max_value:
+            max_value = value
+    winners = [pid for pid, val in values.items() if val == max_value]
+    state["winners"] = winners
+    pot = state.get("pot", 0)
+    guessers = [p for p in players if p.state.get("guess_winner_id") in winners]
+    if guessers:
+        share = pot // len(guessers)
+        remainder = pot % len(guessers)
+        for idx, player in enumerate(guessers):
+            player_state = player.state or {}
+            player_state["points"] = player_state.get("points", 0) + share + (1 if idx < remainder else 0)
+            player.state = player_state
+            player.save(update_fields=["state"])
+        pot = 0
+    state["pot"] = pot
+    # Winner penalty if lied
+    for player in players:
+        if player.id not in winners:
+            continue
+        declared = player.state.get("declared_value")
+        actual = values.get(player.id)
+        if declared is None:
+            continue
+        if declared != actual:
+            player_state = player.state or {}
+            penalty = min(BLEF_JACK_PENALTY, player_state.get("points", 0))
+            player_state["points"] = player_state.get("points", 0) - penalty
+            player.state = player_state
+            player.save(update_fields=["state"])
+            pot += penalty
+    state["pot"] = pot
+    return _blef_start_next_round(room, state)
 
 
 def _coord_key(coord):
@@ -837,6 +988,26 @@ def _resolve_beleza(room: Room, force: bool = False) -> dict:
 
 def _apply_timeout(room: Room) -> dict:
     state = _room_state(room)
+    phase = state.get("phase", "playing")
+    if phase == "round_break":
+        next_round_ts = state.get("next_round_ts")
+        if not next_round_ts or timezone.now().timestamp() <= next_round_ts:
+            return state
+        round_number = (state.get("round") or 1) + 1
+        if round_number > READ_MY_MIND_ROUND_TARGET:
+            room.status = Room.STATUS_ENDED
+            room.save(update_fields=["status"])
+            state["phase"] = "game_over"
+            return state
+        state["round"] = round_number
+        state["phase"] = "playing"
+        state["played"] = []
+        state["last_cut_player_id"] = None
+        state["last_cutter_player_id"] = None
+        _deal_cards(_active_players(room), round_number)
+        state["deadline_ts"] = (timezone.now() + timedelta(seconds=READ_MY_MIND_TURN_SECONDS)).timestamp()
+        return state
+
     mode = state.get("mode")
     now = timezone.now()
     deadline_ts = state.get("deadline_ts")
@@ -875,6 +1046,8 @@ def _apply_play(room: Room, player, card: int) -> dict:
     mode = state.get("mode")
     if mode not in {"coop", "versus"}:
         raise ValueError("Mode not set.")
+    if state.get("phase") == "round_break":
+        raise ValueError("Round is starting.")
 
     player_state = player.state or {}
     if player_state.get("eliminated"):
@@ -897,26 +1070,43 @@ def _apply_play(room: Room, player, card: int) -> dict:
     hand.remove(card)
 
     state.setdefault("played", []).append({"player_id": player.id, "card": card, "ts": timezone.now().timestamp()})
+    state["last_cutter_player_id"] = player.id if is_cut else None
+    state["last_cut_player_id"] = None
 
     if is_cut:
+        victim = None
+        victim_min = None
+        for candidate in players:
+            if candidate.id == player.id:
+                continue
+            candidate_hand = candidate.state.get("hand", [])
+            for value in candidate_hand:
+                if value < card and (victim_min is None or value < victim_min):
+                    victim_min = value
+                    victim = candidate
         if mode == "coop":
-            # Wrong card returns to the player's hand in co-op.
-            hand.append(card)
+            # Wrong card returns to the target's hand in co-op (fallback to own hand).
+            if victim:
+                victim_state = victim.state or {}
+                victim_hand = victim_state.get("hand", [])
+                victim_hand.append(card)
+                victim_state["hand"] = victim_hand
+                victim.state = victim_state
+                victim.save(update_fields=["state"])
+            else:
+                hand.append(card)
             lives = state.get("lives", READ_MY_MIND_LIVES) - 1
             state["lives"] = max(lives, 0)
             if lives <= 0:
                 room.status = Room.STATUS_ENDED
                 room.save(update_fields=["status"])
+            state["last_cut_player_id"] = victim.id if victim else None
         else:
             players_active = _active_players(room)
-            victim = None
-            for candidate in players_active:
-                if min_card in candidate.state.get("hand", []):
-                    victim = candidate
-                    break
+            state["last_cut_player_id"] = victim.id if victim else None
             players_left = len(players_active)
             to_eliminate = [player]
-            if players_left > 2 and victim:
+            if players_left > 2 and victim and victim.id != player.id:
                 to_eliminate.append(victim)
             for eliminated in to_eliminate:
                 eliminated_state = eliminated.state or {}
@@ -937,13 +1127,11 @@ def _apply_play(room: Room, player, card: int) -> dict:
         players_remaining_cards.extend(entry.state.get("hand", []))
 
     if not players_remaining_cards and room.status == Room.STATUS_LIVE:
-        round_number = state.get("round", 1) + 1
-        if round_number > READ_MY_MIND_ROUND_TARGET:
-            room.status = Room.STATUS_ENDED
-            room.save(update_fields=["status"])
-        else:
-            state["round"] = round_number
-            _deal_cards(_active_players(room), round_number)
+        state["phase"] = "round_break"
+        state["next_round_ts"] = (timezone.now() + timedelta(seconds=15)).timestamp()
+        state["played"] = []
+        state["last_cut_player_id"] = None
+        state["last_cutter_player_id"] = None
 
     state["deadline_ts"] = (timezone.now() + timedelta(seconds=READ_MY_MIND_TURN_SECONDS)).timestamp()
     state["last_play_ts"] = timezone.now().timestamp()
@@ -987,6 +1175,13 @@ class AuthViewSet(viewsets.ViewSet):
         profile = serializer.save()
         return Response({"profile": {"nickname": profile.nickname}})
 
+    @action(detail=False, methods=["put"], permission_classes=[permissions.IsAuthenticated])
+    def password(self, request):
+        serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"ok": True})
+
 
 class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     queryset = Room.objects.select_related("game").prefetch_related("players")
@@ -1022,6 +1217,9 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             "sugoroku_unlock",
             "sugoroku_penalty_choice",
             "leilao_bid",
+            "blef_jack_bet",
+            "blef_jack_declare",
+            "blef_jack_guess",
         }:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
@@ -1057,6 +1255,12 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             return FutureSugorokuPenaltyChoiceSerializer
         if self.action == "leilao_bid":
             return LeilaoBidSerializer
+        if self.action == "blef_jack_bet":
+            return BlefJackBetSerializer
+        if self.action == "blef_jack_declare":
+            return BlefJackDeclareSerializer
+        if self.action == "blef_jack_guess":
+            return BlefJackGuessSerializer
         return RoomSerializer
 
     def create(self, request, *args, **kwargs):
@@ -1130,8 +1334,11 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             _initialize_sugoroku(room)
         if room.game.slug == LEILAO_SLUG:
             _initialize_leilao(room)
+        if room.game.slug == BLEF_JACK_SLUG:
+            _initialize_blef_jack(room)
         room.status = Room.STATUS_LIVE
         room.save(update_fields=["status"])
+        room = _fresh_room(room)
         return Response(RoomDetailSerializer(room, context=self.get_serializer_context()).data)
 
     @action(detail=True, methods=["post"])
@@ -1151,7 +1358,23 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
         room.status = Room.STATUS_LOBBY
         room.state = {}
         room.save(update_fields=["game", "status", "state"])
-        room.players.update(ready=False, state={})
+        room.players.update(ready=True, state={})
+        return Response(RoomDetailSerializer(room, context=self.get_serializer_context()).data)
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
+    def restart(self, request, code=None):
+        room = self.get_object()
+        try:
+            player = room.players.get(user=request.user)
+        except Player.DoesNotExist:
+            return Response({"detail": "Player not in room."}, status=status.HTTP_400_BAD_REQUEST)
+        if not player.is_host:
+            return Response({"detail": "Only host can restart."}, status=status.HTTP_403_FORBIDDEN)
+        room.status = Room.STATUS_LOBBY
+        room.state = {}
+        room.save(update_fields=["status", "state"])
+        room.players.update(ready=True, state={})
+        room = _fresh_room(room)
         return Response(RoomDetailSerializer(room, context=self.get_serializer_context()).data)
 
     @action(detail=True, methods=["post"])
@@ -1224,6 +1447,7 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         _set_room_state(room, state)
+        room = _fresh_room(room)
         return Response(RoomDetailSerializer(room, context=self.get_serializer_context()).data)
 
     @action(detail=True, methods=["post"])
@@ -1233,6 +1457,7 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
         state = _apply_timeout(room)
         _set_room_state(room, state)
+        room = _fresh_room(room)
         return Response(RoomDetailSerializer(room, context=self.get_serializer_context()).data)
 
     @action(detail=True, methods=["post"])
@@ -1458,4 +1683,94 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
         state = _tick_leilao(room)
         _set_room_state(room, state)
+        return Response(RoomDetailSerializer(room, context=self.get_serializer_context()).data)
+
+    @action(detail=True, methods=["post"])
+    def blef_jack_bet(self, request, code=None):
+        room = self.get_object()
+        if room.game.slug != BLEF_JACK_SLUG:
+            return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            player = room.players.get(user=request.user)
+        except Player.DoesNotExist:
+            return Response({"detail": "Player not in room."}, status=status.HTTP_400_BAD_REQUEST)
+        state = _room_state(room)
+        if state.get("phase") != "declare":
+            return Response({"detail": "Betting closed."}, status=status.HTTP_400_BAD_REQUEST)
+        player_state = player.state or {}
+        if player_state.get("eliminated"):
+            return Response({"detail": "Player eliminated."}, status=status.HTTP_400_BAD_REQUEST)
+        new_bet = serializer.validated_data["bet"]
+        current_bet = player_state.get("bet", BLEF_JACK_BASE_BET)
+        if new_bet < current_bet:
+            return Response({"detail": "Bet can only increase."}, status=status.HTTP_400_BAD_REQUEST)
+        diff = new_bet - current_bet
+        if diff > 0:
+            if player_state.get("points", 0) < diff:
+                return Response({"detail": "Not enough points."}, status=status.HTTP_400_BAD_REQUEST)
+            player_state["points"] -= diff
+            player_state["bet"] = new_bet
+            state["pot"] = state.get("pot", 0) + diff
+            player.state = player_state
+            player.save(update_fields=["state"])
+        _set_room_state(room, state)
+        room = _fresh_room(room)
+        return Response(RoomDetailSerializer(room, context=self.get_serializer_context()).data)
+
+    @action(detail=True, methods=["post"])
+    def blef_jack_declare(self, request, code=None):
+        room = self.get_object()
+        if room.game.slug != BLEF_JACK_SLUG:
+            return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            player = room.players.get(user=request.user)
+        except Player.DoesNotExist:
+            return Response({"detail": "Player not in room."}, status=status.HTTP_400_BAD_REQUEST)
+        state = _room_state(room)
+        if state.get("phase") not in {"declare", "guess"}:
+            return Response({"detail": "Not in declare phase."}, status=status.HTTP_400_BAD_REQUEST)
+        player_state = player.state or {}
+        if player_state.get("eliminated"):
+            return Response({"detail": "Player eliminated."}, status=status.HTTP_400_BAD_REQUEST)
+        player_state["declared_value"] = serializer.validated_data["declared_value"]
+        player.state = player_state
+        player.save(update_fields=["state"])
+        if state.get("phase") == "declare":
+            active_players = _active_generic_players(room)
+            if _blef_all_declared(active_players):
+                state["phase"] = "guess"
+        _set_room_state(room, state)
+        room = _fresh_room(room)
+        return Response(RoomDetailSerializer(room, context=self.get_serializer_context()).data)
+
+    @action(detail=True, methods=["post"])
+    def blef_jack_guess(self, request, code=None):
+        room = self.get_object()
+        if room.game.slug != BLEF_JACK_SLUG:
+            return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            player = room.players.get(user=request.user)
+        except Player.DoesNotExist:
+            return Response({"detail": "Player not in room."}, status=status.HTTP_400_BAD_REQUEST)
+        state = _room_state(room)
+        if state.get("phase") != "guess":
+            return Response({"detail": "Not in guess phase."}, status=status.HTTP_400_BAD_REQUEST)
+        player_state = player.state or {}
+        if player_state.get("eliminated"):
+            return Response({"detail": "Player eliminated."}, status=status.HTTP_400_BAD_REQUEST)
+        winner_id = serializer.validated_data["winner_player_id"]
+        player_state["guess_winner_id"] = winner_id
+        player.state = player_state
+        player.save(update_fields=["state"])
+        active_players = _active_generic_players(room)
+        if _blef_all_guessed(active_players):
+            state = _blef_resolve_round(room, state)
+        _set_room_state(room, state)
+        room = _fresh_room(room)
         return Response(RoomDetailSerializer(room, context=self.get_serializer_context()).data)

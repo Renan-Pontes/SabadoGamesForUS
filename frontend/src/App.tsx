@@ -12,6 +12,9 @@ import PlayerController from './pages/PlayerController'
 import Game from './pages/Game'
 import NotFound from './pages/NotFound'
 
+// Game Pages
+import ReadMyMindGame from './pages/games/ReadMyMindGame'
+
 // Context
 import { AuthProvider } from './context/AuthContext'
 
@@ -163,8 +166,11 @@ function App() {
             {/* Player Controller - Tela do celular */}
             <Route path="/play/:code" element={<PlayerController />} />
             
-            {/* Game - Jogo em andamento */}
+            {/* Game - Jogo genérico em andamento */}
             <Route path="/game/:code" element={<Game />} />
+            
+            {/* Read My Mind - Jogo específico */}
+            <Route path="/game/:code/read-my-mind" element={<ReadMyMindGame />} />
             
             {/* 404 */}
             <Route path="*" element={<NotFound />} />

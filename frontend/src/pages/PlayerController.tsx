@@ -50,7 +50,11 @@ export default function PlayerController() {
         if (!active) return
         setRoom(data)
         if (data.status === 'live') {
-          navigate(`/game/${code}`)
+          if (data.game?.slug === 'read-my-mind') {
+            navigate(`/game/${code}/read-my-mind?view=player`)
+          } else {
+            navigate(`/game/${code}`)
+          }
         }
       } catch (err) {
         if (!active) return
@@ -69,7 +73,7 @@ export default function PlayerController() {
     if (!code || !player) return
     const interval = window.setInterval(() => {
       sendHeartbeat(code, player.id).catch(() => {
-        // Sem bloquear a UI se o heartbeat falhar
+        // Ignore heartbeat errors
       })
     }, 10000)
     return () => {
@@ -109,11 +113,11 @@ export default function PlayerController() {
   }
 
   return (
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
         background: `
           radial-gradient(ellipse at bottom, rgba(212, 165, 32, 0.1) 0%, transparent 50%),
           var(--bg-void)
@@ -201,12 +205,7 @@ export default function PlayerController() {
         >
           {isReady ? 'PRONTO ✓' : 'MARCAR READY'}
         </Button>
-        <Button
-          variant="text"
-          color="error"
-          size="small"
-          onClick={handleLeaveRoom}
-        >
+        <Button variant="text" color="error" size="small" onClick={handleLeaveRoom}>
           Sair da sala
         </Button>
       </Box>

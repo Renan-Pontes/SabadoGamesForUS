@@ -69,6 +69,17 @@ export async function updateProfile(payload: { nickname: string }): Promise<{ pr
   })
 }
 
+export async function updatePassword(payload: {
+  current_password: string
+  new_password: string
+  confirm_password: string
+}): Promise<{ ok: boolean }> {
+  return request('/auth/password/', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function listGames(): Promise<Game[]> {
   return request<Game[]>('/games/')
 }
@@ -115,6 +126,12 @@ export async function startRoom(code: string, payload?: { mode?: 'coop' | 'versu
 
 export async function endRoom(code: string): Promise<{ status: Room['status'] }> {
   return request<{ status: Room['status'] }>(`/rooms/${code}/end/`, {
+    method: 'POST',
+  })
+}
+
+export async function restartRoom(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/restart/`, {
     method: 'POST',
   })
 }

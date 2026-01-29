@@ -159,7 +159,6 @@ export default function HostRoom() {
       setStartError(err instanceof Error ? err.message : 'Erro ao trocar o jogo.')
     }
 
-    // Animação de seleção
     anime({
       targets: `.game-card[data-id="${game.id}"]`,
       scale: [1, 1.02, 1],
@@ -178,13 +177,14 @@ export default function HostRoom() {
     if (!code || !selectedGame) return
     setStartError('')
     try {
-      const payload =
-        selectedGame.slug === 'read-my-mind'
-          ? { mode: 'coop' as const }
-          : undefined
+      const payload = selectedGame.slug === 'read-my-mind' ? { mode: 'coop' as const } : undefined
       await startRoom(code, payload)
       setRulesOpen(false)
-      navigate(`/game/${code}`)
+      if (selectedGame.slug === 'read-my-mind') {
+        navigate(`/game/${code}/read-my-mind?view=host`)
+      } else {
+        navigate(`/game/${code}`)
+      }
     } catch (err) {
       setStartError(err instanceof Error ? err.message : 'Erro ao iniciar a partida.')
     }
@@ -195,7 +195,7 @@ export default function HostRoom() {
     try {
       await endRoom(code)
     } catch (err) {
-      // Ignora erro de encerramento e volta ao lobby
+      // Ignora erro de encerramento
     }
     navigate('/lobby')
   }
@@ -212,17 +212,15 @@ export default function HostRoom() {
     () => players.filter((p) => p.online ?? true).every((p) => p.ready),
     [players],
   )
-  const canStart = Boolean(
-    selectedGame && allReady && onlineCount >= (selectedGame.min_players || 2),
-  )
+  const canStart = Boolean(selectedGame && allReady && onlineCount >= (selectedGame.min_players || 2))
+
   const hostPlayer = useMemo(() => {
     if (!user?.id) return null
     return players.find((player) => player.user?.id === user.id) ?? null
   }, [players, user?.id])
 
   async function handleHostReadyToggle() {
-    if (!code) return
-    if (!hostPlayer) return
+    if (!code || !hostPlayer) return
     setReadyLoading(true)
     setError('')
     try {
@@ -343,11 +341,10 @@ export default function HostRoom() {
               border: '1px solid rgba(220, 38, 38, 0.4)',
             }}
           >
-            <Typography sx={{ color: 'var(--accent-red)', fontSize: '0.9rem' }}>
-              {error}
-            </Typography>
+            <Typography sx={{ color: 'var(--accent-red)', fontSize: '0.9rem' }}>{error}</Typography>
           </Box>
         )}
+
         <Box
           sx={{
             display: 'flex',
@@ -394,9 +391,10 @@ export default function HostRoom() {
                   data-id={game.id}
                   onClick={() => handleSelectGame(game)}
                   sx={{
-                    background: selectedGame?.id === game.id
-                      ? `linear-gradient(135deg, var(--bg-card) 0%, ${game.color}22 100%)`
-                      : 'var(--bg-card)',
+                    background:
+                      selectedGame?.id === game.id
+                        ? `linear-gradient(135deg, var(--bg-card) 0%, ${game.color}22 100%)`
+                        : 'var(--bg-card)',
                     borderRadius: 'var(--radius-lg)',
                     border: `2px solid ${selectedGame?.id === game.id ? game.color : 'var(--border-subtle)'}`,
                     p: 2.5,
@@ -440,9 +438,7 @@ export default function HostRoom() {
                       </Typography>
                     </Box>
                   </Box>
-                  <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                    {game.description}
-                  </Typography>
+                  <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{game.description}</Typography>
                 </Box>
               ))}
             </Box>
@@ -460,9 +456,7 @@ export default function HostRoom() {
                 mb: 2,
               }}
             >
-              <Typography sx={{ fontWeight: 600, color: 'var(--text-primary)', mb: 1 }}>
-                Seu status
-              </Typography>
+              <Typography sx={{ fontWeight: 600, color: 'var(--text-primary)', mb: 1 }}>Seu status</Typography>
               <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.85rem', mb: 2 }}>
                 {hostPlayer?.ready ? 'Você está pronto para iniciar.' : 'Marque ready para a partida.'}
               </Typography>
@@ -477,6 +471,7 @@ export default function HostRoom() {
                 {hostPlayer?.ready ? 'PRONTO ✓' : 'MARCAR READY'}
               </Button>
             </Box>
+
             {/* Status da TV */}
             <Box
               sx={{
@@ -521,9 +516,7 @@ export default function HostRoom() {
               }}
             >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography sx={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                  Jogadores
-                </Typography>
+                <Typography sx={{ fontWeight: 600, color: 'var(--text-primary)' }}>Jogadores</Typography>
                 <Chip
                   label={`${readyCount}/${onlineCount} prontos`}
                   size="small"
@@ -585,11 +578,12 @@ export default function HostRoom() {
                         width: 10,
                         height: 10,
                         borderRadius: '50%',
-                        bgcolor: player.online === false
-                          ? 'var(--status-offline)'
-                          : player.ready
-                            ? 'var(--status-ready)'
-                            : 'var(--status-waiting)',
+                        bgcolor:
+                          player.online === false
+                            ? 'var(--status-offline)'
+                            : player.ready
+                              ? 'var(--status-ready)'
+                              : 'var(--status-waiting)',
                       }}
                     />
                   </Box>
@@ -610,9 +604,7 @@ export default function HostRoom() {
                 sx={{
                   py: 2,
                   fontSize: '1.1rem',
-                  background: canStart
-                    ? 'linear-gradient(135deg, var(--accent-red) 0%, #b91c1c 100%)'
-                    : undefined,
+                  background: canStart ? 'linear-gradient(135deg, var(--accent-red) 0%, #b91c1c 100%)' : undefined,
                 }}
               >
                 {!selectedGame
@@ -623,9 +615,7 @@ export default function HostRoom() {
               </Button>
 
               {startError && (
-                <Typography sx={{ color: 'var(--accent-red)', fontSize: '0.85rem' }}>
-                  {startError}
-                </Typography>
+                <Typography sx={{ color: 'var(--accent-red)', fontSize: '0.85rem' }}>{startError}</Typography>
               )}
 
               <Button
@@ -669,15 +659,11 @@ export default function HostRoom() {
             <Typography variant="h5" sx={{ color: selectedGame?.color }}>
               {selectedGame?.name}
             </Typography>
-            <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-              Regras do Jogo
-            </Typography>
+            <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Regras do Jogo</Typography>
           </Box>
         </DialogTitle>
         <DialogContent sx={{ pt: 3 }}>
-          <Typography sx={{ color: 'var(--text-secondary)', mb: 2 }}>
-            {selectedGame?.description}
-          </Typography>
+          <Typography sx={{ color: 'var(--text-secondary)', mb: 2 }}>{selectedGame?.description}</Typography>
           <Box
             sx={{
               background: 'var(--bg-surface)',
@@ -685,12 +671,9 @@ export default function HostRoom() {
               p: 2,
             }}
           >
-            <Typography sx={{ fontWeight: 600, mb: 1, color: 'var(--text-primary)' }}>
-              Como Jogar:
-            </Typography>
+            <Typography sx={{ fontWeight: 600, mb: 1, color: 'var(--text-primary)' }}>Como Jogar:</Typography>
             <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
               As regras detalhadas aparecerão aqui quando o jogo for implementado.
-              Por enquanto, este é um placeholder.
             </Typography>
           </Box>
         </DialogContent>

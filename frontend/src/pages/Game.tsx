@@ -1,9 +1,34 @@
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Box, Typography, Button } from '@mui/material'
+import { getRoom } from '../lib/api'
+import type { Room } from '../lib/types'
 
 export default function Game() {
   const { code } = useParams()
   const navigate = useNavigate()
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!code) return
+    let active = true
+    async function redirectIfKnown() {
+      try {
+        const room: Room = await getRoom(code)
+        if (!active) return
+        if (room.game?.slug === 'read-my-mind') {
+          navigate(`/game/${code}/read-my-mind?view=player`, { replace: true })
+        }
+      } catch (err) {
+        if (!active) return
+        setError(err instanceof Error ? err.message : 'Erro ao carregar sala.')
+      }
+    }
+    redirectIfKnown()
+    return () => {
+      active = false
+    }
+  }, [code, navigate])
 
   return (
     <Box
@@ -39,6 +64,11 @@ export default function Game() {
         Aqui será renderizado o minigame selecionado.
         A tela varia de acordo com o dispositivo (TV, Host ou Player).
       </Typography>
+      {error && (
+        <Typography sx={{ color: 'var(--accent-red)', mb: 2 }}>
+          {error}
+        </Typography>
+      )}
 
       <Box
         sx={{

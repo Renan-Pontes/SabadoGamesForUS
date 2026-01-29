@@ -61,6 +61,16 @@ class Command(BaseCommand):
                 "max_players": 12,
                 "is_active": True,
             },
+            {
+                "slug": "blef-jack",
+                "name": "Blef Jack",
+                "description": (
+                    "Receba 2 cartas, blefe o valor e tente adivinhar o vencedor da rodada."
+                ),
+                "min_players": 2,
+                "max_players": 12,
+                "is_active": True,
+            },
         ]
 
         for data in games:

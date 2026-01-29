@@ -15,7 +15,7 @@ import {
   Person as PersonIcon,
 } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext'
-import { updateProfile } from '../lib/api'
+import { updatePassword, updateProfile } from '../lib/api'
 
 export default function Profile() {
   const navigate = useNavigate()
@@ -25,6 +25,12 @@ export default function Profile() {
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+  const [passwordCurrent, setPasswordCurrent] = useState('')
+  const [passwordNext, setPasswordNext] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [passwordSuccess, setPasswordSuccess] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -57,6 +63,38 @@ export default function Profile() {
       setError(err instanceof Error ? err.message : 'Erro ao salvar')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handlePasswordSave() {
+    if (!passwordCurrent || !passwordNext || !passwordConfirm) {
+      setPasswordError('Preencha todos os campos de senha')
+      return
+    }
+    if (passwordNext !== passwordConfirm) {
+      setPasswordError('As novas senhas não conferem')
+      return
+    }
+
+    setPasswordSaving(true)
+    setPasswordError('')
+    setPasswordSuccess(false)
+
+    try {
+      await updatePassword({
+        current_password: passwordCurrent,
+        new_password: passwordNext,
+        confirm_password: passwordConfirm,
+      })
+      setPasswordSuccess(true)
+      setPasswordCurrent('')
+      setPasswordNext('')
+      setPasswordConfirm('')
+      setTimeout(() => setPasswordSuccess(false), 3000)
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : 'Erro ao atualizar senha')
+    } finally {
+      setPasswordSaving(false)
     }
   }
 
@@ -223,6 +261,68 @@ export default function Profile() {
               {saving ? 'Salvando...' : 'Salvar Alterações'}
             </Button>
           </Box>
+        </Box>
+
+        {/* Alterar senha */}
+        <Box
+          sx={{
+            mt: 3,
+            p: 3,
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-xl)',
+            border: '2px solid var(--border-subtle)',
+          }}
+        >
+          <Typography
+            sx={{
+              mb: 2,
+              color: 'var(--text-secondary)',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+            }}
+          >
+            ALTERAR SENHA
+          </Typography>
+          {passwordSuccess && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              Senha atualizada com sucesso!
+            </Alert>
+          )}
+          {passwordError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {passwordError}
+            </Alert>
+          )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              type="password"
+              label="Senha atual"
+              value={passwordCurrent}
+              onChange={(e) => setPasswordCurrent(e.target.value)}
+            />
+            <TextField
+              type="password"
+              label="Nova senha"
+              value={passwordNext}
+              onChange={(e) => setPasswordNext(e.target.value)}
+            />
+            <TextField
+              type="password"
+              label="Confirmar nova senha"
+              value={passwordConfirm}
+              onChange={(e) => setPasswordConfirm(e.target.value)}
+            />
+          </Box>
+          <Button
+            fullWidth
+            variant="contained"
+            color="secondary"
+            sx={{ mt: 2, py: 1.5 }}
+            onClick={handlePasswordSave}
+            disabled={passwordSaving}
+          >
+            {passwordSaving ? 'Atualizando...' : 'Atualizar Senha'}
+          </Button>
         </Box>
 
         {/* Ações */}
