@@ -1,13 +1,28 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { Box, Typography, Button } from '@mui/material'
 import { getRoom } from '../lib/api'
 import type { Room } from '../lib/types'
 
+const GAME_ROUTES: Record<string, string> = {
+  'read-my-mind': 'read-my-mind',
+  'confinamento-solitario': 'confinamento-solitario',
+  'concurso-de-beleza': 'concurso-de-beleza',
+  'future-sugoroku': 'future-sugoroku',
+  'leilao-de-cem-votos': 'leilao-de-cem-votos',
+  'blef-jack': 'blef-jack',
+}
+
 export default function Game() {
   const { code } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [error, setError] = useState('')
+  const viewParam = searchParams.get('view')
+  const view =
+    viewParam === 'host' || viewParam === 'tv' || viewParam === 'player'
+      ? viewParam
+      : 'player'
 
   useEffect(() => {
     if (!code) return
@@ -17,8 +32,11 @@ export default function Game() {
       try {
         const room: Room = await getRoom(roomCode)
         if (!active) return
-        if (room.game?.slug === 'read-my-mind') {
-          navigate(`/game/${roomCode}/read-my-mind?view=player`, { replace: true })
+        const slug = room.game?.slug
+        if (!slug) return
+        const route = GAME_ROUTES[slug]
+        if (route) {
+          navigate(`/game/${roomCode}/${route}?view=${view}`, { replace: true })
         }
       } catch (err) {
         if (!active) return
@@ -29,7 +47,8 @@ export default function Game() {
     return () => {
       active = false
     }
-  }, [code, navigate])
+  }, [code, navigate, view])
+
 
   return (
     <Box

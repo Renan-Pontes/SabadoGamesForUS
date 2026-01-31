@@ -15,6 +15,11 @@ import SuitBackdrop from './components/layout/SuitBackdrop'
 
 // Game Pages
 import ReadMyMindGame from './pages/games/ReadMyMindGame'
+import ConfinamentoGame from './pages/games/ConfinamentoGame'
+import BelezaGame from './pages/games/BelezaGame'
+import LeilaoGame from './pages/games/LeilaoGame'
+import BlefJackGame from './pages/games/BlefJackGame'
+import SugorokuGame from './pages/games/SugorokuGame'
 
 // Context
 import { AuthProvider } from './context/AuthProvider'
@@ -220,6 +225,13 @@ function App() {
               
               {/* Read My Mind - Jogo específico */}
               <Route path="/game/:code/read-my-mind" element={<ReadMyMindGame />} />
+
+              {/* Outros jogos */}
+              <Route path="/game/:code/confinamento-solitario" element={<ConfinamentoGame />} />
+              <Route path="/game/:code/concurso-de-beleza" element={<BelezaGame />} />
+              <Route path="/game/:code/leilao-de-cem-votos" element={<LeilaoGame />} />
+              <Route path="/game/:code/blef-jack" element={<BlefJackGame />} />
+              <Route path="/game/:code/future-sugoroku" element={<SugorokuGame />} />
               
               {/* 404 */}
               <Route path="*" element={<NotFound />} />
