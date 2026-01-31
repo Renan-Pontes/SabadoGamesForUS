@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { AuthContext, type User } from './AuthContext'
 
 const TOKEN_KEY = 'sabado_token'
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL || 'https://sabadogames.pythonanywhere.com/'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
