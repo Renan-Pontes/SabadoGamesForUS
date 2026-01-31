@@ -265,3 +265,24 @@ export async function tickLeilao(code: string): Promise<Room> {
     method: 'POST',
   })
 }
+
+export async function betBlefJack(code: string, bet: number): Promise<Room> {
+  return request<Room>(`/rooms/${code}/blef_jack_bet/`, {
+    method: 'POST',
+    body: JSON.stringify({ bet }),
+  })
+}
+
+export async function declareBlefJack(code: string, declared_value: number): Promise<Room> {
+  return request<Room>(`/rooms/${code}/blef_jack_declare/`, {
+    method: 'POST',
+    body: JSON.stringify({ declared_value }),
+  })
+}
+
+export async function guessBlefJack(code: string, winner_player_id: number): Promise<Room> {
+  return request<Room>(`/rooms/${code}/blef_jack_guess/`, {
+    method: 'POST',
+    body: JSON.stringify({ winner_player_id }),
+  })
+}

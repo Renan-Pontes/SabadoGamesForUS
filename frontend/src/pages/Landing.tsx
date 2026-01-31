@@ -21,7 +21,7 @@ import {
   VisibilityOff,
 } from '@mui/icons-material'
 import anime from 'animejs'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 
 // Símbolos de naipes para animação de fundo
 const CARD_SYMBOLS = ['♠', '♥', '♦', '♣', '♤', '♡', '♢', '♧']

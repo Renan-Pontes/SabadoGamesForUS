@@ -16,7 +16,7 @@ import NotFound from './pages/NotFound'
 import ReadMyMindGame from './pages/games/ReadMyMindGame'
 
 // Context
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider } from './context/AuthProvider'
 
 // MUI Theme customizado para Sabado Games
 const darkTheme = createTheme({

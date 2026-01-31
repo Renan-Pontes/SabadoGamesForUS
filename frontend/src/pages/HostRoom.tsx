@@ -21,8 +21,9 @@ import {
   Tv as TvIcon,
 } from '@mui/icons-material'
 import anime from 'animejs'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import { changeRoomGame, endRoom, getRoom, listGames, setReady, startRoom } from '../lib/api'
+import { saveLastRoom } from '../lib/roomHistory'
 import type { Game, Player, Room } from '../lib/types'
 
 type GameCard = Game & { icon: string; color: string }
@@ -55,6 +56,7 @@ export default function HostRoom() {
   const [tvConnected, setTvConnected] = useState(false)
   const [error, setError] = useState('')
   const [startError, setStartError] = useState('')
+  const [readMyMindMode, setReadMyMindMode] = useState<'coop' | 'versus'>('coop')
   const [readyLoading, setReadyLoading] = useState(false)
   const [loadingRoom, setLoadingRoom] = useState(true)
 
@@ -64,6 +66,12 @@ export default function HostRoom() {
       navigate('/')
     }
   }, [isAuthenticated, isLoading, navigate])
+
+  useEffect(() => {
+    if (code) {
+      saveLastRoom(code, 'host')
+    }
+  }, [code])
 
   useEffect(() => {
     let active = true
@@ -86,8 +94,9 @@ export default function HostRoom() {
         if (!active) return
         setError(err instanceof Error ? err.message : 'Erro ao carregar sala.')
       } finally {
-        if (!active) return
-        setLoadingRoom(false)
+        if (active) {
+          setLoadingRoom(false)
+        }
       }
     }
 
@@ -177,13 +186,13 @@ export default function HostRoom() {
     if (!code || !selectedGame) return
     setStartError('')
     try {
-      const payload = selectedGame.slug === 'read-my-mind' ? { mode: 'coop' as const } : undefined
-      await startRoom(code, payload)
       setRulesOpen(false)
       if (selectedGame.slug === 'read-my-mind') {
+        await startRoom(code, { mode: readMyMindMode })
         navigate(`/game/${code}/read-my-mind?view=host`)
       } else {
-        navigate(`/game/${code}`)
+        await startRoom(code)
+        navigate(`/game/${code}?view=host`)
       }
     } catch (err) {
       setStartError(err instanceof Error ? err.message : 'Erro ao iniciar a partida.')
@@ -194,7 +203,7 @@ export default function HostRoom() {
     if (!code) return
     try {
       await endRoom(code)
-    } catch (err) {
+    } catch {
       // Ignora erro de encerramento
     }
     navigate('/lobby')
@@ -664,6 +673,41 @@ export default function HostRoom() {
         </DialogTitle>
         <DialogContent sx={{ pt: 3 }}>
           <Typography sx={{ color: 'var(--text-secondary)', mb: 2 }}>{selectedGame?.description}</Typography>
+          {selectedGame?.slug === 'read-my-mind' && (
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                gap: 2,
+                mb: 2,
+              }}
+            >
+              <Button
+                variant={readMyMindMode === 'coop' ? 'contained' : 'outlined'}
+                onClick={() => setReadMyMindMode('coop')}
+                sx={{
+                  borderWidth: 2,
+                  borderColor: 'var(--status-ready)',
+                  color: readMyMindMode === 'coop' ? '#000' : 'var(--status-ready)',
+                  bgcolor: readMyMindMode === 'coop' ? 'var(--status-ready)' : 'transparent',
+                }}
+              >
+                CO-OP
+              </Button>
+              <Button
+                variant={readMyMindMode === 'versus' ? 'contained' : 'outlined'}
+                onClick={() => setReadMyMindMode('versus')}
+                sx={{
+                  borderWidth: 2,
+                  borderColor: 'var(--neon-purple)',
+                  color: readMyMindMode === 'versus' ? '#000' : 'var(--neon-purple)',
+                  bgcolor: readMyMindMode === 'versus' ? 'var(--neon-purple)' : 'transparent',
+                }}
+              >
+                VERSUS
+              </Button>
+            </Box>
+          )}
           <Box
             sx={{
               background: 'var(--bg-surface)',

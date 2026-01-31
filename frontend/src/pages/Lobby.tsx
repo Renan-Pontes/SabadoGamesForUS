@@ -6,8 +6,9 @@ import {
   Login as JoinIcon,
   Logout as LogoutIcon,
 } from '@mui/icons-material'
-import { useAuth } from '../context/AuthContext'
-import { createRoom, listGames } from '../lib/api'
+import { useAuth } from '../context/useAuth'
+import { createRoom, getRoom, listGames } from '../lib/api'
+import { clearLastRoom, loadLastRoom } from '../lib/roomHistory'
 import type { Game } from '../lib/types'
 
 export default function Lobby() {
@@ -17,6 +18,13 @@ export default function Lobby() {
   const [games, setGames] = useState<Game[]>([])
   const [gamesLoading, setGamesLoading] = useState(true)
   const [error, setError] = useState('')
+  const [resumeInfo, setResumeInfo] = useState<{
+    code: string
+    view: 'host' | 'player'
+    status: 'lobby' | 'live' | 'ended'
+    gameSlug?: string
+  } | null>(null)
+  const [resumeLoading, setResumeLoading] = useState(false)
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -35,8 +43,9 @@ export default function Lobby() {
         if (!active) return
         setError(err instanceof Error ? err.message : 'Erro ao carregar jogos.')
       } finally {
-        if (!active) return
-        setGamesLoading(false)
+        if (active) {
+          setGamesLoading(false)
+        }
       }
     }
     fetchGames()
@@ -44,6 +53,46 @@ export default function Lobby() {
       active = false
     }
   }, [])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    const saved = loadLastRoom()
+    if (!saved) {
+      setResumeInfo(null)
+      return
+    }
+    let active = true
+    async function fetchResume() {
+      setResumeLoading(true)
+      try {
+        const room = await getRoom(saved.code)
+        if (!active) return
+        if (room.status === 'ended') {
+          clearLastRoom()
+          setResumeInfo(null)
+          return
+        }
+        setResumeInfo({
+          code: saved.code,
+          view: saved.view,
+          status: room.status,
+          gameSlug: room.game?.slug,
+        })
+      } catch {
+        if (!active) return
+        clearLastRoom()
+        setResumeInfo(null)
+      } finally {
+        if (active) {
+          setResumeLoading(false)
+        }
+      }
+    }
+    fetchResume()
+    return () => {
+      active = false
+    }
+  }, [isAuthenticated])
 
   async function handleCreateRoom() {
     if (!games.length) {
@@ -62,6 +111,24 @@ export default function Lobby() {
   function handleJoinRoom() {
     if (joinCode.trim()) {
       navigate(`/play/${joinCode.toUpperCase()}`)
+    }
+  }
+
+  function handleResumeRoom() {
+    if (!resumeInfo) return
+    const code = resumeInfo.code.toUpperCase()
+    if (resumeInfo.status === 'live') {
+      if (resumeInfo.gameSlug === 'read-my-mind') {
+        navigate(`/game/${code}/read-my-mind?view=${resumeInfo.view}`)
+      } else {
+        navigate(`/game/${code}?view=${resumeInfo.view}`)
+      }
+      return
+    }
+    if (resumeInfo.view === 'host') {
+      navigate(`/host/${code}`)
+    } else {
+      navigate(`/play/${code}`)
     }
   }
 
@@ -176,6 +243,41 @@ export default function Lobby() {
           </Box>
         </Box>
 
+
+        {resumeInfo && (
+          <Box
+            sx={{
+              mb: 3,
+              p: 2.5,
+              borderRadius: 'var(--radius-xl)',
+              border: '2px dashed var(--accent-gold)',
+              background: 'rgba(212, 165, 32, 0.08)',
+              display: 'flex',
+              alignItems: { xs: 'stretch', md: 'center' },
+              justifyContent: 'space-between',
+              flexDirection: { xs: 'column', md: 'row' },
+              gap: 2,
+            }}
+          >
+            <Box>
+              <Typography sx={{ fontWeight: 600, color: 'var(--accent-gold)' }}>
+                Retomar jogo
+              </Typography>
+              <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                Sala {resumeInfo.code.toUpperCase()} � {resumeInfo.status === 'live' ? 'Partida em andamento' : 'Lobby'}
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={handleResumeRoom}
+              disabled={resumeLoading}
+              sx={{ alignSelf: { xs: 'stretch', md: 'center' } }}
+            >
+              {resumeLoading ? 'Carregando...' : 'Voltar ao jogo'}
+            </Button>
+          </Box>
+        )}
         {/* Opções */}
         <Box
           sx={{
@@ -273,3 +375,4 @@ export default function Lobby() {
     </Box>
   )
 }
+

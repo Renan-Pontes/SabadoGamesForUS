@@ -1,13 +1,33 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Box, Typography, Button } from '@mui/material'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Box, Button, CircularProgress, Typography } from '@mui/material'
+import { useAuth } from '../context/useAuth'
 import { getRoom } from '../lib/api'
 import type { Room } from '../lib/types'
+import BelezaGame from './games/BelezaGame'
+import BlefJackGame from './games/BlefJackGame'
+import ConfinamentoGame from './games/ConfinamentoGame'
+import LeilaoGame from './games/LeilaoGame'
+import SugorokuGame from './games/SugorokuGame'
+
+type ViewMode = 'tv' | 'host' | 'player'
 
 export default function Game() {
   const { code } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const { isAuthenticated, isLoading } = useAuth()
   const [error, setError] = useState('')
+  const [loadingRoom, setLoadingRoom] = useState(true)
+  const [gameSlug, setGameSlug] = useState<string | null>(null)
+
+  const viewMode = (searchParams.get('view') as ViewMode) || 'player'
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && viewMode !== 'tv') {
+      navigate('/')
+    }
+  }, [isAuthenticated, isLoading, viewMode, navigate])
 
   useEffect(() => {
     if (!code) return
@@ -17,18 +37,61 @@ export default function Game() {
         const room: Room = await getRoom(code)
         if (!active) return
         if (room.game?.slug === 'read-my-mind') {
-          navigate(`/game/${code}/read-my-mind?view=player`, { replace: true })
+          const viewParam = viewMode ? `?view=${viewMode}` : ''
+          navigate(`/game/${code}/read-my-mind${viewParam}`, { replace: true })
+          return
         }
+        setGameSlug(room.game?.slug ?? null)
       } catch (err) {
         if (!active) return
         setError(err instanceof Error ? err.message : 'Erro ao carregar sala.')
+      } finally {
+        if (active) {
+          setLoadingRoom(false)
+        }
       }
     }
     redirectIfKnown()
     return () => {
       active = false
     }
-  }, [code, navigate])
+  }, [code, navigate, viewMode])
+
+  if (isLoading || loadingRoom) {
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg-void)',
+        }}
+      >
+        <CircularProgress sx={{ color: 'var(--accent-gold)' }} />
+      </Box>
+    )
+  }
+
+  if (gameSlug === 'confinamento-solitario') {
+    return <ConfinamentoGame />
+  }
+
+  if (gameSlug === 'concurso-de-beleza') {
+    return <BelezaGame />
+  }
+
+  if (gameSlug === 'future-sugoroku') {
+    return <SugorokuGame />
+  }
+
+  if (gameSlug === 'leilao-de-cem-votos') {
+    return <LeilaoGame />
+  }
+
+  if (gameSlug === 'blef-jack') {
+    return <BlefJackGame />
+  }
 
   return (
     <Box

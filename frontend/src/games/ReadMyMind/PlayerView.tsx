@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { Box, Typography, Button, Chip } from '@mui/material'
 import {
   Favorite as HeartIcon,
 } from '@mui/icons-material'
 import anime from 'animejs'
 import type { GameState } from './types'
+import { useNow } from '../utils'
 
 interface PlayerViewProps {
   roomCode: string
@@ -19,6 +20,7 @@ export default function PlayerView({
   gameState, 
   onPlayCard 
 }: PlayerViewProps) {
+  const now = useNow(250)
   const [selectedCard, setSelectedCard] = useState<number | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const cardsRef = useRef<HTMLDivElement>(null)
@@ -28,7 +30,7 @@ export default function PlayerView({
   const isEliminated = player?.isEliminated || false
   const isCoop = gameState.mode === 'coop'
 
-  // Animação das cartas na mão
+  // AnimaÃ§Ã£o das cartas na mÃ£o
   useEffect(() => {
     if (cardsRef.current && myCards.length > 0) {
       anime({
@@ -47,7 +49,7 @@ export default function PlayerView({
     }
   }, [myCards.length, gameState.round])
 
-  // Animação quando carta é jogada
+  // AnimaÃ§Ã£o quando carta Ã© jogada
   function handlePlayCard() {
     if (selectedCard === null || isPlaying) return
 
@@ -76,13 +78,13 @@ export default function PlayerView({
     }
   }
 
-  // Última carta jogada
+  // Ãšltima carta jogada
   const lastCard = gameState.playedCards[gameState.playedCards.length - 1]
   const lastPlayer = lastCard 
     ? gameState.players.find(p => p.id === lastCard.playerId)
     : null
 
-  // Verificar se fui cortado ou cortei alguém
+  // Verificar se fui cortado ou cortei alguÃ©m
   const wasCut = gameState.lastCutPlayer === playerId
   const didCut = gameState.lastCutterPlayer === playerId
 
@@ -145,7 +147,7 @@ export default function PlayerView({
         {/* Fase de espera */}
         {gameState.phase === 'waiting' && (
           <Typography sx={{ color: 'var(--text-muted)' }}>
-            Aguardando início do jogo...
+            Aguardando inÃ­cio do jogo...
           </Typography>
         )}
 
@@ -153,10 +155,10 @@ export default function PlayerView({
         {gameState.phase === 'dealing' && (
           <Box sx={{ textAlign: 'center' }}>
             <Typography variant="h5" sx={{ color: 'var(--accent-gold)', mb: 1 }}>
-              🃏 Recebendo cartas...
+              ðŸƒ Recebendo cartas...
             </Typography>
             <Typography sx={{ color: 'var(--text-muted)' }}>
-              Você receberá {gameState.round} carta{gameState.round > 1 ? 's' : ''}
+              VocÃª receberÃ¡ {gameState.round} carta{gameState.round > 1 ? 's' : ''}
             </Typography>
           </Box>
         )}
@@ -169,7 +171,7 @@ export default function PlayerView({
             </Typography>
             {gameState.nextRoundTs && (
               <Typography sx={{ color: 'var(--text-primary)', mb: 1 }}>
-                {Math.max(0, Math.ceil((gameState.nextRoundTs - Date.now()) / 1000))}s
+                {Math.max(0, Math.ceil((gameState.nextRoundTs - now) / 1000))}s
               </Typography>
             )}
             <Typography sx={{ color: 'var(--text-muted)' }}>
@@ -182,10 +184,10 @@ export default function PlayerView({
         {isEliminated && (
           <Box sx={{ textAlign: 'center' }}>
             <Typography variant="h4" sx={{ color: 'var(--accent-red)', mb: 2 }}>
-              💀 ELIMINADO
+              ðŸ’€ ELIMINADO
             </Typography>
             <Typography sx={{ color: 'var(--text-muted)' }}>
-              Você foi eliminado do jogo. Assista a TV!
+              VocÃª foi eliminado do jogo. Assista a TV!
             </Typography>
           </Box>
         )}
@@ -202,23 +204,23 @@ export default function PlayerView({
             }}
           >
             <Typography variant="h5" sx={{ color: '#fff' }}>
-              {wasCut ? '😱 Você foi cortado!' : '⚔️ Você cortou alguém!'}
+              {wasCut ? 'ðŸ˜± VocÃª foi cortado!' : 'âš”ï¸ VocÃª cortou alguÃ©m!'}
             </Typography>
             {!isCoop && (
               <Typography sx={{ color: '#fff', opacity: 0.8, mt: 1 }}>
                 {gameState.players.filter(p => !p.isEliminated).length === 2 
-                  ? (wasCut ? 'Você GANHOU!' : 'Você foi eliminado!')
-                  : 'Você foi eliminado!'}
+                  ? (wasCut ? 'VocÃª GANHOU!' : 'VocÃª foi eliminado!')
+                  : 'VocÃª foi eliminado!'}
               </Typography>
             )}
           </Box>
         )}
 
-        {/* Jogando - mostrar última carta */}
+        {/* Jogando - mostrar Ãºltima carta */}
         {gameState.phase === 'playing' && !isEliminated && lastCard && (
           <Box sx={{ textAlign: 'center', mb: 3 }}>
             <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-              Última carta ({lastPlayer?.name})
+              Ãšltima carta ({lastPlayer?.name})
             </Typography>
             <Box
               sx={{
@@ -250,10 +252,10 @@ export default function PlayerView({
         {gameState.phase === 'roundEnd' && !isEliminated && (
           <Box sx={{ textAlign: 'center' }}>
             <Typography variant="h4" sx={{ color: 'var(--status-ready)', mb: 2 }}>
-              ✅ Rodada completa!
+              âœ… Rodada completa!
             </Typography>
             <Typography sx={{ color: 'var(--text-muted)' }}>
-              Aguardando próxima rodada...
+              Aguardando prÃ³xima rodada...
             </Typography>
           </Box>
         )}
@@ -271,8 +273,8 @@ export default function PlayerView({
               }}
             >
               {gameState.winner === playerId || gameState.winner === 'team' 
-                ? '🏆 VITÓRIA!' 
-                : '💀 GAME OVER'}
+                ? 'ðŸ† VITÃ“RIA!' 
+                : 'ðŸ’€ GAME OVER'}
             </Typography>
             <Typography sx={{ color: 'var(--text-secondary)' }}>
               {gameState.gameOverReason}
@@ -281,7 +283,7 @@ export default function PlayerView({
         )}
       </Box>
 
-      {/* Cartas na mão */}
+      {/* Cartas na mÃ£o */}
         {gameState.phase === 'playing' && !isEliminated && myCards.length > 0 && (
         <Box
           ref={cardsRef}
@@ -335,7 +337,7 @@ export default function PlayerView({
         </Box>
       )}
 
-      {/* Botão de jogar */}
+      {/* BotÃ£o de jogar */}
       {gameState.phase === 'playing' && !isEliminated && (
         <Button
           fullWidth
@@ -371,7 +373,7 @@ export default function PlayerView({
             mt: 2,
           }}
         >
-          💡 Jogue quando achar que sua carta é a menor!
+          ðŸ’¡ Jogue quando achar que sua carta Ã© a menor!
         </Typography>
       )}
 
@@ -379,7 +381,7 @@ export default function PlayerView({
       {gameState.phase === 'playing' && !isEliminated && myCards.length === 0 && player && (
         <Box sx={{ textAlign: 'center', py: 4 }}>
           <Typography variant="h5" sx={{ color: 'var(--status-ready)' }}>
-            ✅ Você jogou todas suas cartas!
+            âœ… VocÃª jogou todas suas cartas!
           </Typography>
           <Typography sx={{ color: 'var(--text-muted)', mt: 1 }}>
             Aguardando outros jogadores...
@@ -387,7 +389,7 @@ export default function PlayerView({
         </Box>
       )}
 
-      {/* Jogador não encontrado */}
+      {/* Jogador nÃ£o encontrado */}
       {gameState.phase === 'playing' && !player && (
         <Box sx={{ textAlign: 'center', py: 4 }}>
           <Typography sx={{ color: 'var(--text-muted)' }}>
@@ -398,3 +400,4 @@ export default function PlayerView({
     </Box>
   )
 }
+
