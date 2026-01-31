@@ -78,7 +78,10 @@ function mapRoomToGameState(room: Room | null): GameState {
     phase,
     round,
     maxRounds: 10,
-    nextRoundTs: room.state?.next_round_ts ? room.state.next_round_ts * 1000 : undefined,
+    nextRoundTs:
+      typeof room.state?.next_round_ts === 'number'
+        ? room.state.next_round_ts * 1000
+        : undefined,
     playedCards,
     players,
     lives,
