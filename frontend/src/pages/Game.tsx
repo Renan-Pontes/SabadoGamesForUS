@@ -11,13 +11,14 @@ export default function Game() {
 
   useEffect(() => {
     if (!code) return
+    const roomCode = code
     let active = true
     async function redirectIfKnown() {
       try {
-        const room: Room = await getRoom(code)
+        const room: Room = await getRoom(roomCode)
         if (!active) return
         if (room.game?.slug === 'read-my-mind') {
-          navigate(`/game/${code}/read-my-mind?view=player`, { replace: true })
+          navigate(`/game/${roomCode}/read-my-mind?view=player`, { replace: true })
         }
       } catch (err) {
         if (!active) return
