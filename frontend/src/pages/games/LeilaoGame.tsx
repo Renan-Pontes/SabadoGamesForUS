@@ -41,14 +41,15 @@ export default function LeilaoGame() {
 
   useEffect(() => {
     if (!code) return
+    const roomCode = code
     let active = true
 
     async function poll() {
       try {
         if (viewMode !== 'player') {
-          await tickLeilao(code)
+          await tickLeilao(roomCode)
         }
-        const data = await getRoom(code)
+        const data = await getRoom(roomCode)
         if (!active) return
         setRoom(data)
       } catch (err) {

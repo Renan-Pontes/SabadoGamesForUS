@@ -46,14 +46,15 @@ export default function SugorokuGame() {
 
   useEffect(() => {
     if (!code) return
+    const roomCode = code
     let active = true
 
     async function poll() {
       try {
         if (viewMode !== 'player') {
-          await tickSugoroku(code)
+          await tickSugoroku(roomCode)
         }
-        const data = await getRoom(code)
+        const data = await getRoom(roomCode)
         if (!active) return
         setRoom(data)
       } catch (err) {

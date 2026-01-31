@@ -61,11 +61,12 @@ export default function Lobby() {
       setResumeInfo(null)
       return
     }
+    const savedRoom = saved
     let active = true
     async function fetchResume() {
       setResumeLoading(true)
       try {
-        const room = await getRoom(saved.code)
+        const room = await getRoom(savedRoom.code)
         if (!active) return
         if (room.status === 'ended') {
           clearLastRoom()
@@ -73,8 +74,8 @@ export default function Lobby() {
           return
         }
         setResumeInfo({
-          code: saved.code,
-          view: saved.view,
+          code: savedRoom.code,
+          view: savedRoom.view,
           status: room.status,
           gameSlug: room.game?.slug,
         })

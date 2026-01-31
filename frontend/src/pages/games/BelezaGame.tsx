@@ -41,15 +41,16 @@ export default function BelezaGame() {
   }, [code, viewMode])
 
   useEffect(() => {
-    if (!code) return
+    const roomCode = code ?? ''
+    if (!roomCode) return
     let active = true
 
     async function poll() {
       try {
         if (viewMode !== 'player') {
-          await tickBeleza(code)
+          await tickBeleza(roomCode)
         }
-        const data = await getRoom(code)
+        const data = await getRoom(roomCode)
         if (!active) return
         setRoom(data)
       } catch (err) {
