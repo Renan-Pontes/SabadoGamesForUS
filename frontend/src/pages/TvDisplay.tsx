@@ -22,19 +22,20 @@ export default function TvDisplay() {
 
   useEffect(() => {
     if (!code) return
+    const roomCode = code
     let active = true
 
     async function poll() {
       try {
-        await tvPing(code, { device_id: deviceId })
-        const data = await getRoom(code)
+        await tvPing(roomCode, { device_id: deviceId })
+        const data = await getRoom(roomCode)
         if (!active) return
         setRoom(data)
         if (data.status === 'live') {
           if (data.game?.slug === 'read-my-mind') {
-            navigate(`/game/${code}/read-my-mind?view=tv`)
+            navigate(`/game/${roomCode}/read-my-mind?view=tv`)
           } else {
-            navigate(`/game/${code}?view=tv`)
+            navigate(`/game/${roomCode}?view=tv`)
           }
         }
       } catch (err) {

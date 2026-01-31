@@ -30,10 +30,11 @@ export default function PlayerController() {
 
   useEffect(() => {
     if (!code || !isAuthenticated) return
+    const roomCode = code
     let active = true
     async function join() {
       try {
-        const result = await joinRoom(code, {})
+        const result = await joinRoom(roomCode, {})
         if (!active) return
         setPlayer(result.player)
         setIsReady(result.player.ready)
@@ -50,23 +51,24 @@ export default function PlayerController() {
 
   useEffect(() => {
     if (!code) return
+    const roomCode = code
     let active = true
     async function pollRoom() {
       try {
-        const data = await getRoom(code)
+        const data = await getRoom(roomCode)
         if (!active) return
         setRoom(data)
         if (data.status === 'live') {
-          if (!getStayInLobby(code)) {
+          if (!getStayInLobby(roomCode)) {
             if (data.game?.slug === 'read-my-mind') {
-              navigate(`/game/${code}/read-my-mind?view=player`)
+              navigate(`/game/${roomCode}/read-my-mind?view=player`)
             } else {
-              navigate(`/game/${code}?view=player`)
+              navigate(`/game/${roomCode}?view=player`)
             }
           }
         } else {
-          if (getStayInLobby(code)) {
-            clearStayInLobby(code)
+          if (getStayInLobby(roomCode)) {
+            clearStayInLobby(roomCode)
           }
         }
       } catch (err) {
@@ -84,8 +86,10 @@ export default function PlayerController() {
 
   useEffect(() => {
     if (!code || !player) return
+    const roomCode = code
+    const playerId = player.id
     const interval = window.setInterval(() => {
-      sendHeartbeat(code, player.id).catch(() => {
+      sendHeartbeat(roomCode, playerId).catch(() => {
         // Ignore heartbeat errors
       })
     }, 10000)
@@ -246,5 +250,4 @@ export default function PlayerController() {
     </Box>
   )
 }
-
 

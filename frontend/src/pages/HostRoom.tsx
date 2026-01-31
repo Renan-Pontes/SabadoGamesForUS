@@ -76,12 +76,13 @@ export default function HostRoom() {
   useEffect(() => {
     let active = true
     if (!code) return
+    const roomCode = code
 
     async function loadInitial() {
       setLoadingRoom(true)
       setError('')
       try {
-        const [gamesResponse, roomResponse] = await Promise.all([listGames(), getRoom(code)])
+        const [gamesResponse, roomResponse] = await Promise.all([listGames(), getRoom(roomCode)])
         if (!active) return
         const decorated = gamesResponse.map(decorateGame)
         setGames(decorated)
@@ -108,10 +109,11 @@ export default function HostRoom() {
 
   useEffect(() => {
     if (!code) return
+    const roomCode = code
     let active = true
     const interval = window.setInterval(async () => {
       try {
-        const data = await getRoom(code)
+        const data = await getRoom(roomCode)
         if (!active) return
         setRoom(data)
         setPlayers(data.players ?? [])

@@ -139,16 +139,17 @@ export default function ReadMyMindGame() {
 
   useEffect(() => {
     if (!code) return
+    const roomCode = code
     let active = true
     async function loadRoom() {
       try {
         if (viewMode === 'tv') {
-          await tvPing(code, { device_id: deviceId })
+          await tvPing(roomCode, { device_id: deviceId })
         }
         if (viewMode === 'tv' || viewMode === 'host') {
-          await tickReadMyMind(code)
+          await tickReadMyMind(roomCode)
         }
-        const data = await getRoom(code)
+        const data = await getRoom(roomCode)
         if (!active) return
         setRoom(data)
       } catch (err) {
