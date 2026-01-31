@@ -80,6 +80,8 @@ class GameSerializer(serializers.ModelSerializer):
 class PlayerSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     online = serializers.SerializerMethodField()
+    has_guessed = serializers.SerializerMethodField()
+    public_guess = serializers.SerializerMethodField()
 
     class Meta:
         model = Player
@@ -91,6 +93,8 @@ class PlayerSerializer(serializers.ModelSerializer):
             "is_host",
             "ready",
             "online",
+            "has_guessed",
+            "public_guess",
             "joined_at",
             "last_seen_at",
             "state",
@@ -102,18 +106,40 @@ class PlayerSerializer(serializers.ModelSerializer):
             return False
         return timezone.now() - instance.last_seen_at <= timedelta(seconds=30)
 
+    def get_has_guessed(self, instance):
+        if instance.room.game.slug != "confinamento-solitario":
+            return None
+        return instance.state.get("guess") is not None
+
+    def get_public_guess(self, instance):
+        if instance.room.game.slug != "confinamento-solitario":
+            return None
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            return None
+        return instance.state.get("guess")
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get("request")
         state = data.get("state") or {}
         if isinstance(state, dict):
             if instance.room.game.slug == "confinamento-solitario":
-                # Never expose guesses, and hide own suit.
+                # Never expose guesses; reveal suit to other players only.
+                has_guessed = instance.state.get("guess") is not None
                 state.pop("guess", None)
                 if not request or not request.user.is_authenticated:
+                    # TV view: never show suits.
                     state.pop("suit", None)
-                elif instance.user_id == request.user.id:
-                    state.pop("suit", None)
+                else:
+                    if instance.user_id == request.user.id:
+                        valete_id = (instance.room.state or {}).get("valete_player_id")
+                        if valete_id == instance.id:
+                            data["is_valete"] = True
+                            if not (instance.room.state or {}).get("valete_knows_self"):
+                                state.pop("suit", None)
+                        else:
+                            state.pop("suit", None)
             if instance.room.game.slug == "concurso-de-beleza":
                 state.pop("guess", None)
             if instance.room.game.slug == "leilao-de-cem-votos":
@@ -161,6 +187,14 @@ class RoomSerializer(serializers.ModelSerializer):
         if not instance.tv_last_seen_at:
             return False
         return timezone.now() - instance.tv_last_seen_at <= timedelta(seconds=20)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        state = data.get("state") or {}
+        if isinstance(state, dict) and instance.game.slug == "confinamento-solitario":
+            state.pop("valete_player_id", None)
+            data["state"] = state
+        return data
 
 
 class RoomDetailSerializer(RoomSerializer):

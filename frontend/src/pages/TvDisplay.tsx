@@ -30,15 +30,20 @@ export default function TvDisplay() {
         const data = await getRoom(code)
         if (!active) return
         setRoom(data)
-        if (data.status === 'live' && data.game?.slug === 'read-my-mind') {
-          navigate(`/game/${code}/read-my-mind?view=tv`)
+        if (data.status === 'live') {
+          if (data.game?.slug === 'read-my-mind') {
+            navigate(`/game/${code}/read-my-mind?view=tv`)
+          } else {
+            navigate(`/game/${code}?view=tv`)
+          }
         }
       } catch (err) {
         if (!active) return
         setError(err instanceof Error ? err.message : 'Erro ao carregar sala.')
       } finally {
-        if (!active) return
-        setLoading(false)
+        if (active) {
+          setLoading(false)
+        }
       }
     }
 
@@ -48,7 +53,7 @@ export default function TvDisplay() {
       active = false
       window.clearInterval(interval)
     }
-  }, [code, deviceId])
+  }, [code, deviceId, navigate])
 
   return (
     <Box

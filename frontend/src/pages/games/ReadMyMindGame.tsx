@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { Box, Button, CircularProgress, Typography } from '@mui/material'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../context/useAuth'
 import { TvView, PlayerView, HostView } from '../../games/ReadMyMind'
 import type { GameMode, GameState } from '../../games/ReadMyMind'
 import { getRoom, playReadMyMindCard, restartRoom, startRoom, tickReadMyMind, tvPing } from '../../lib/api'
+import { saveLastRoom, setStayInLobby } from '../../lib/roomHistory'
 import type { Room } from '../../lib/types'
 
 type ViewMode = 'tv' | 'host' | 'player'
@@ -117,6 +118,11 @@ export default function ReadMyMindGame() {
     return match ? match.id.toString() : ''
   }, [room?.players, user?.id])
 
+  const isHost = useMemo(() => {
+    if (!room?.players || !user?.id) return false
+    return room.players.some((player) => player.user?.id === user.id && player.is_host)
+  }, [room?.players, user?.id])
+
   const gameState = useMemo(() => mapRoomToGameState(room), [room])
 
   useEffect(() => {
@@ -124,6 +130,12 @@ export default function ReadMyMindGame() {
       navigate('/')
     }
   }, [isAuthenticated, authLoading, viewMode, navigate])
+
+  useEffect(() => {
+    if (!code || viewMode === 'tv') return
+    const view = viewMode === 'host' ? 'host' : 'player'
+    saveLastRoom(code, view)
+  }, [code, viewMode])
 
   useEffect(() => {
     if (!code) return
@@ -143,8 +155,9 @@ export default function ReadMyMindGame() {
         if (!active) return
         setError(err instanceof Error ? err.message : 'Erro ao carregar sala.')
       } finally {
-        if (!active) return
-        setLoadingRoom(false)
+        if (active) {
+          setLoadingRoom(false)
+        }
       }
     }
     loadRoom()
@@ -193,9 +206,35 @@ export default function ReadMyMindGame() {
     }
   }
 
+  async function handleNextRound() {
+    if (!code) return
+    setError('')
+    try {
+      const data = await tickReadMyMind(code)
+      setRoom(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao avancar rodada.')
+    }
+  }
+
   function handleChangeGame() {
     if (!code) return
     navigate(`/host/${code}`)
+  }
+
+  function handleBackToLobby() {
+    if (!code) return
+    setStayInLobby(code, true)
+    if (isHost) {
+      navigate(`/host/${code}`)
+      return
+    }
+    navigate(`/play/${code}`)
+  }
+
+  function handleSwitchView(nextView: ViewMode) {
+    if (!code) return
+    navigate(`/game/${code}/read-my-mind?view=${nextView}`)
   }
 
   if (authLoading || loadingRoom) {
@@ -244,7 +283,7 @@ export default function ReadMyMindGame() {
             roomCode={roomCode}
             gameState={gameState}
             onStartGame={handleStartGame}
-            onNextRound={() => {}}
+            onNextRound={handleNextRound}
             onEndGame={handleEndGame}
             onRestartGame={handleRestartGame}
             onChangeGame={handleChangeGame}
@@ -255,6 +294,9 @@ export default function ReadMyMindGame() {
                 right: 24,
                 bottom: 24,
                 zIndex: 10,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1.5,
               }}
             >
               <Button
@@ -263,6 +305,9 @@ export default function ReadMyMindGame() {
                 onClick={() => setHostScreen('play')}
               >
                 Jogar como host
+              </Button>
+              <Button variant="outlined" color="inherit" onClick={handleBackToLobby}>
+                Voltar ao lobby
               </Button>
             </Box>
           </Box>
@@ -282,10 +327,16 @@ export default function ReadMyMindGame() {
               right: 24,
               bottom: 24,
               zIndex: 10,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1.5,
             }}
           >
             <Button variant="outlined" color="secondary" onClick={() => setHostScreen('control')}>
               Voltar ao painel do host
+            </Button>
+            <Button variant="outlined" color="inherit" onClick={handleBackToLobby}>
+              Voltar ao lobby
             </Button>
           </Box>
         </Box>
@@ -294,12 +345,34 @@ export default function ReadMyMindGame() {
     case 'player':
     default:
       return (
-        <PlayerView
-          roomCode={roomCode}
-          playerId={playerId}
-          gameState={gameState}
-          onPlayCard={handlePlayCard}
-        />
+        <Box sx={{ position: 'relative' }}>
+          <PlayerView
+            roomCode={roomCode}
+            playerId={playerId}
+            gameState={gameState}
+            onPlayCard={handlePlayCard}
+          />
+          <Box
+            sx={{
+              position: 'fixed',
+              right: 24,
+              bottom: 24,
+              zIndex: 10,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1.5,
+            }}
+          >
+            {isHost && (
+              <Button variant="outlined" color="secondary" onClick={() => handleSwitchView('host')}>
+                Painel do host
+              </Button>
+            )}
+            <Button variant="outlined" color="inherit" onClick={handleBackToLobby}>
+              Voltar ao lobby
+            </Button>
+          </Box>
+        </Box>
       )
   }
 }

@@ -14,7 +14,7 @@ import {
   Save as SaveIcon,
   Person as PersonIcon,
 } from '@mui/icons-material'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import { updatePassword, updateProfile } from '../lib/api'
 
 export default function Profile() {

@@ -66,9 +66,10 @@ LEILAO_BASE_POT = 100
 LEILAO_BID_SECONDS = 15
 
 BLEF_JACK_SLUG = "blef-jack"
-BLEF_JACK_START_POINTS = 100
-BLEF_JACK_BASE_BET = 10
-BLEF_JACK_PENALTY = 10
+BLEF_JACK_START_POINTS = 0
+BLEF_JACK_RANKS = list(range(1, 15))
+BLEF_JACK_SUITS = ["hearts", "diamonds", "clubs", "spades"]
+BLEF_JACK_DECK_SIZE = len(BLEF_JACK_RANKS) * len(BLEF_JACK_SUITS)
 
 
 def _room_state(room: Room) -> dict:
@@ -147,14 +148,22 @@ def _initialize_confinamento(room: Room) -> None:
         player.state = player_state
         player.save(update_fields=["state"])
 
-    valete = rng.choice(players)
+    previous_valete_id = (room.state or {}).get("valete_player_id")
+    eligible = players
+    if previous_valete_id and len(players) > 1:
+        eligible = [player for player in players if player.id != previous_valete_id]
+    valete = rng.choice(eligible) if eligible else rng.choice(players)
     now = timezone.now()
     state = {
         "game": CONFINAMENTO_SLUG,
         "round": 1,
         "deadline_ts": (now + timedelta(seconds=CONFINAMENTO_TURN_SECONDS)).timestamp(),
         "valete_player_id": valete.id,
+        "valete_knows_self": rng.random() < 0.5,
         "winners": [],
+        "last_round_eliminated_ids": [],
+        "last_round_survivor_ids": [],
+        "last_round_ts": None,
     }
     _set_room_state(room, state)
 
@@ -172,14 +181,21 @@ def _resolve_confinamento(room: Room, force: bool = False) -> dict:
         if any(player.state.get("guess") is None for player in active_players):
             return state
 
+    eliminated_ids = []
     for player in active_players:
         player_state = player.state or {}
         guess = player_state.get("guess")
         if guess is None or guess != player_state.get("suit"):
             player_state["eliminated"] = True
+            eliminated_ids.append(player.id)
         player_state["guess"] = None
         player.state = player_state
         player.save(update_fields=["state"])
+
+    survivor_ids = [player.id for player in active_players if player.id not in eliminated_ids]
+    state["last_round_eliminated_ids"] = eliminated_ids
+    state["last_round_survivor_ids"] = survivor_ids
+    state["last_round_ts"] = timezone.now().timestamp()
 
     active_players = _active_players(room)
     valete_id = state.get("valete_player_id")
@@ -205,6 +221,7 @@ def _resolve_confinamento(room: Room, force: bool = False) -> dict:
             player_state["guess"] = None
             player.state = player_state
             player.save(update_fields=["state"])
+        state["valete_knows_self"] = rng.random() < 0.5
 
     state["deadline_ts"] = (timezone.now() + timedelta(seconds=CONFINAMENTO_TURN_SECONDS)).timestamp()
     return state
@@ -261,17 +278,22 @@ def _active_generic_players(room: Room):
     return [player for player in players if not player.state.get("eliminated")]
 
 
-def _blef_hand_value(cards):
+def _blef_card_rank(card_id: int, rank_count: int) -> int:
+    return (card_id % rank_count) + 1
+
+
+def _blef_hand_value(cards, rank_count: int, use_full_deck: bool):
     total = 0
     aces = 0
-    for value in cards:
-        if value == 1:
+    for card in cards:
+        rank = _blef_card_rank(card, rank_count) if use_full_deck else card
+        if rank == 1:
             aces += 1
             total += 11
-        elif value >= 10:
+        elif rank >= 10:
             total += 10
         else:
-            total += value
+            total += rank
     while total > 21 and aces:
         total -= 10
         aces -= 1
@@ -279,40 +301,38 @@ def _blef_hand_value(cards):
 
 
 def _deal_blef_cards(players):
+    if not players:
+        return
     rng = secrets.SystemRandom()
+    total_cards = len(players) * 2
+    deck = rng.sample(range(BLEF_JACK_DECK_SIZE), total_cards)
+    index = 0
     for player in players:
         player_state = player.state or {}
-        cards = [rng.randint(1, 13), rng.randint(1, 13)]
-        player_state["cards"] = cards
-        player_state["declared_value"] = None
+        hand = deck[index : index + 2]
+        index += 2
+        player_state["cards"] = hand
         player_state["guess_winner_id"] = None
-        player_state["bet"] = BLEF_JACK_BASE_BET
         player.state = player_state
         player.save(update_fields=["state"])
 
 
 def _initialize_blef_jack(room: Room) -> None:
     players = _active_generic_players(room)
-    pot = 0
     for player in players:
         player_state = player.state or {}
         player_state["eliminated"] = False
         player_state["points"] = player_state.get("points", BLEF_JACK_START_POINTS)
-        if player_state["points"] < BLEF_JACK_BASE_BET:
-            player_state["eliminated"] = True
-        else:
-            player_state["points"] -= BLEF_JACK_BASE_BET
-            pot += BLEF_JACK_BASE_BET
         player.state = player_state
         player.save(update_fields=["state"])
-    _deal_blef_cards(_active_generic_players(room))
+    _deal_blef_cards(players)
     state = {
         "game": BLEF_JACK_SLUG,
         "round": 1,
-        "phase": "declare",
-        "pot": pot,
-        "base_bet": BLEF_JACK_BASE_BET,
+        "phase": "guess",
         "winners": [],
+        "deck_size": BLEF_JACK_DECK_SIZE,
+        "rank_count": len(BLEF_JACK_RANKS),
     }
     _set_room_state(room, state)
 
@@ -327,21 +347,12 @@ def _blef_all_guessed(players):
 
 def _blef_start_next_round(room: Room, state: dict) -> dict:
     active_players = _active_generic_players(room)
-    pot = state.get("pot", 0)
-    for player in active_players:
-        player_state = player.state or {}
-        if player_state.get("points", 0) < BLEF_JACK_BASE_BET:
-            player_state["eliminated"] = True
-        else:
-            player_state["points"] = player_state.get("points", 0) - BLEF_JACK_BASE_BET
-            pot += BLEF_JACK_BASE_BET
-        player.state = player_state
-        player.save(update_fields=["state"])
-    state["pot"] = pot
     state["round"] = (state.get("round") or 1) + 1
-    state["phase"] = "declare"
+    state["phase"] = "guess"
     state["winners"] = []
-    _deal_blef_cards(_active_generic_players(room))
+    state["deck_size"] = BLEF_JACK_DECK_SIZE
+    state["rank_count"] = len(BLEF_JACK_RANKS)
+    _deal_blef_cards(active_players)
     return state
 
 
@@ -353,42 +364,32 @@ def _blef_resolve_round(room: Room, state: dict) -> dict:
         return state
     values = {}
     max_value = None
+    use_full_deck = state.get("deck_size") == BLEF_JACK_DECK_SIZE and state.get("rank_count") == len(BLEF_JACK_RANKS)
+    rank_count = state.get("rank_count") or len(BLEF_JACK_RANKS)
     for player in players:
         cards = player.state.get("cards") or []
-        value = _blef_hand_value(cards)
+        value = _blef_hand_value(cards, rank_count, use_full_deck)
         values[player.id] = value
         if max_value is None or value > max_value:
             max_value = value
     winners = [pid for pid, val in values.items() if val == max_value]
     state["winners"] = winners
-    pot = state.get("pot", 0)
-    guessers = [p for p in players if p.state.get("guess_winner_id") in winners]
-    if guessers:
-        share = pot // len(guessers)
-        remainder = pot % len(guessers)
-        for idx, player in enumerate(guessers):
-            player_state = player.state or {}
-            player_state["points"] = player_state.get("points", 0) + share + (1 if idx < remainder else 0)
-            player.state = player_state
-            player.save(update_fields=["state"])
-        pot = 0
-    state["pot"] = pot
-    # Winner penalty if lied
     for player in players:
-        if player.id not in winners:
-            continue
-        declared = player.state.get("declared_value")
-        actual = values.get(player.id)
-        if declared is None:
-            continue
-        if declared != actual:
-            player_state = player.state or {}
-            penalty = min(BLEF_JACK_PENALTY, player_state.get("points", 0))
-            player_state["points"] = player_state.get("points", 0) - penalty
-            player.state = player_state
-            player.save(update_fields=["state"])
-            pot += penalty
-    state["pot"] = pot
+        player_state = player.state or {}
+        guess_id = player_state.get("guess_winner_id")
+        is_winner = player.id in winners
+        guessed_right = guess_id in winners
+        delta = 0
+        if guessed_right:
+            delta += 3
+        if is_winner:
+            if guessed_right:
+                delta += 2
+            else:
+                delta -= 4
+        player_state["points"] = player_state.get("points", 0) + delta
+        player.state = player_state
+        player.save(update_fields=["state"])
     return _blef_start_next_round(room, state)
 
 
@@ -1690,34 +1691,7 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
         room = self.get_object()
         if room.game.slug != BLEF_JACK_SLUG:
             return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        try:
-            player = room.players.get(user=request.user)
-        except Player.DoesNotExist:
-            return Response({"detail": "Player not in room."}, status=status.HTTP_400_BAD_REQUEST)
-        state = _room_state(room)
-        if state.get("phase") != "declare":
-            return Response({"detail": "Betting closed."}, status=status.HTTP_400_BAD_REQUEST)
-        player_state = player.state or {}
-        if player_state.get("eliminated"):
-            return Response({"detail": "Player eliminated."}, status=status.HTTP_400_BAD_REQUEST)
-        new_bet = serializer.validated_data["bet"]
-        current_bet = player_state.get("bet", BLEF_JACK_BASE_BET)
-        if new_bet < current_bet:
-            return Response({"detail": "Bet can only increase."}, status=status.HTTP_400_BAD_REQUEST)
-        diff = new_bet - current_bet
-        if diff > 0:
-            if player_state.get("points", 0) < diff:
-                return Response({"detail": "Not enough points."}, status=status.HTTP_400_BAD_REQUEST)
-            player_state["points"] -= diff
-            player_state["bet"] = new_bet
-            state["pot"] = state.get("pot", 0) + diff
-            player.state = player_state
-            player.save(update_fields=["state"])
-        _set_room_state(room, state)
-        room = _fresh_room(room)
-        return Response(RoomDetailSerializer(room, context=self.get_serializer_context()).data)
+        return Response({"detail": "Betting not supported."}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=["post"])
     def blef_jack_declare(self, request, code=None):
@@ -1759,7 +1733,7 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
         except Player.DoesNotExist:
             return Response({"detail": "Player not in room."}, status=status.HTTP_400_BAD_REQUEST)
         state = _room_state(room)
-        if state.get("phase") != "guess":
+        if state.get("phase") not in {"guess", "declare"}:
             return Response({"detail": "Not in guess phase."}, status=status.HTTP_400_BAD_REQUEST)
         player_state = player.state or {}
         if player_state.get("eliminated"):

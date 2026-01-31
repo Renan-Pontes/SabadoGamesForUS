@@ -1,24 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-
-interface User {
-  id: number
-  email: string
-  nickname: string
-}
-
-interface AuthContextType {
-  user: User | null
-  token: string | null
-  isAuthenticated: boolean
-  isLoading: boolean
-  login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string, nickname: string) => Promise<void>
-  logout: () => void
-  refreshUser: () => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+import { AuthContext, type User } from './AuthContext'
 
 const TOKEN_KEY = 'sabado_token'
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -30,20 +12,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   })
   const [isLoading, setIsLoading] = useState(true)
 
-  // Fetch user data when token exists
-  useEffect(() => {
-    if (token) {
-      fetchUser()
-    } else {
-      setIsLoading(false)
-    }
-  }, [token])
-
-  async function fetchUser() {
+  const fetchUser = useCallback(async () => {
+    if (!token) return
     try {
       const response = await fetch(`${API_URL}/api/auth/me/`, {
         headers: {
-          'Authorization': `Token ${token}`,
+          Authorization: `Token ${token}`,
           'Content-Type': 'application/json',
         },
       })
@@ -56,16 +30,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           nickname: data.user.profile?.nickname || 'Jogador',
         })
       } else {
-        // Token inválido
         logout()
       }
-    } catch (error) {
-      console.error('Failed to fetch user:', error)
+    } catch (err) {
+      console.error('Failed to fetch user:', err)
       logout()
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [token])
+
+  useEffect(() => {
+    if (token) {
+      fetchUser()
+    } else {
+      setIsLoading(false)
+    }
+  }, [token, fetchUser])
 
   async function login(email: string, password: string) {
     const response = await fetch(`${API_URL}/api/auth/login/`, {
@@ -132,12 +113,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
 }

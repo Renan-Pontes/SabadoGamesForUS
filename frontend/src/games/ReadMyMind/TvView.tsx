@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { Box, Typography, Chip } from '@mui/material'
 import {
   Favorite as HeartIcon,
@@ -6,6 +6,7 @@ import {
 } from '@mui/icons-material'
 import anime from 'animejs'
 import type { GameState, Player } from './types'
+import { useNow } from '../utils'
 
 interface TvViewProps {
   roomCode: string
@@ -15,7 +16,7 @@ interface TvViewProps {
 export default function TvView({ roomCode, gameState }: TvViewProps) {
   const cardsRef = useRef<HTMLDivElement>(null)
   const lastCardRef = useRef<HTMLDivElement>(null)
-  const [now, setNow] = useState(Date.now())
+  const now = useNow(250)
 
   // Animação quando nova carta é jogada
   useEffect(() => {
@@ -42,14 +43,6 @@ export default function TvView({ roomCode, gameState }: TvViewProps) {
       })
     }
   }, [gameState.lastCutPlayer])
-
-  useEffect(() => {
-    if (gameState.phase !== 'roundBreak') return
-    const interval = window.setInterval(() => {
-      setNow(Date.now())
-    }, 250)
-    return () => window.clearInterval(interval)
-  }, [gameState.phase])
 
   const activePlayers = gameState.players.filter(p => !p.isEliminated && p.connected)
   const isCoop = gameState.mode === 'coop'

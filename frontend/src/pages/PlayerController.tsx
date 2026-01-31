@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Box, Typography, Button } from '@mui/material'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import { getRoom, joinRoom, sendHeartbeat, setReady } from '../lib/api'
+import { clearStayInLobby, getStayInLobby, saveLastRoom } from '../lib/roomHistory'
 import type { Player, Room } from '../lib/types'
 
 export default function PlayerController() {
@@ -20,6 +21,12 @@ export default function PlayerController() {
       navigate('/')
     }
   }, [isAuthenticated, isLoading, navigate])
+
+  useEffect(() => {
+    if (code) {
+      saveLastRoom(code, 'player')
+    }
+  }, [code])
 
   useEffect(() => {
     if (!code || !isAuthenticated) return
@@ -50,10 +57,16 @@ export default function PlayerController() {
         if (!active) return
         setRoom(data)
         if (data.status === 'live') {
-          if (data.game?.slug === 'read-my-mind') {
-            navigate(`/game/${code}/read-my-mind?view=player`)
-          } else {
-            navigate(`/game/${code}`)
+          if (!getStayInLobby(code)) {
+            if (data.game?.slug === 'read-my-mind') {
+              navigate(`/game/${code}/read-my-mind?view=player`)
+            } else {
+              navigate(`/game/${code}?view=player`)
+            }
+          }
+        } else {
+          if (getStayInLobby(code)) {
+            clearStayInLobby(code)
           }
         }
       } catch (err) {
@@ -94,6 +107,16 @@ export default function PlayerController() {
 
   function handleLeaveRoom() {
     navigate('/lobby')
+  }
+
+  function handleBackToGame() {
+    if (!code || !room) return
+    clearStayInLobby(code)
+    if (room.game?.slug === 'read-my-mind') {
+      navigate(`/game/${code}/read-my-mind?view=player`)
+    } else {
+      navigate(`/game/${code}?view=player`)
+    }
   }
 
   if (isLoading) {
@@ -205,6 +228,17 @@ export default function PlayerController() {
         >
           {isReady ? 'PRONTO ✓' : 'MARCAR READY'}
         </Button>
+        {room?.status === 'live' && (
+          <Button
+            variant="outlined"
+            color="secondary"
+            size="large"
+            onClick={handleBackToGame}
+            sx={{ mb: 2, py: 1.5, px: 6 }}
+          >
+            Voltar ao jogo
+          </Button>
+        )}
         <Button variant="text" color="error" size="small" onClick={handleLeaveRoom}>
           Sair da sala
         </Button>
@@ -212,3 +246,5 @@ export default function PlayerController() {
     </Box>
   )
 }
+
+

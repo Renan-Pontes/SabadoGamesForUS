@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Box, Typography, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'
 import {
   PlayArrow as PlayIcon,
@@ -8,6 +8,7 @@ import {
   Favorite as HeartIcon,
 } from '@mui/icons-material'
 import type { GameState, GameMode } from './types'
+import { useNow } from '../utils'
 
 interface HostViewProps {
   roomCode: string
@@ -30,6 +31,7 @@ export default function HostView({
 }: HostViewProps) {
   const [modeDialogOpen, setModeDialogOpen] = useState(false)
   const [confirmEndOpen, setConfirmEndOpen] = useState(false)
+  const now = useNow(250)
 
   const isCoop = gameState.mode === 'coop'
   const activePlayers = gameState.players.filter(p => !p.isEliminated && p.connected)
@@ -70,7 +72,7 @@ export default function HostView({
             READ MY MIND
           </Typography>
           <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            Controles do Host • Sala {roomCode}
+            Controles do Host â€¢ Sala {roomCode}
           </Typography>
         </Box>
 
@@ -115,10 +117,10 @@ export default function HostView({
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography sx={{ color: 'var(--text-muted)' }}>Fase:</Typography>
               <Typography sx={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                {gameState.phase === 'waiting' && 'Aguardando início'}
+                {gameState.phase === 'waiting' && 'Aguardando inÃ­cio'}
                 {gameState.phase === 'dealing' && 'Distribuindo cartas'}
                 {gameState.phase === 'playing' && 'Em jogo'}
-                {gameState.phase === 'roundEnd' && 'Rodada concluída'}
+                {gameState.phase === 'roundEnd' && 'Rodada concluÃ­da'}
                 {gameState.phase === 'gameOver' && 'Fim de jogo'}
               </Typography>
             </Box>
@@ -255,7 +257,7 @@ export default function HostView({
 
         {/* Controles */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {/* Aguardando início */}
+          {/* Aguardando inÃ­cio */}
           {gameState.phase === 'waiting' && (
             <Button
               fullWidth
@@ -274,7 +276,7 @@ export default function HostView({
             </Button>
           )}
 
-          {/* Rodada concluída */}
+          {/* Rodada concluÃ­da */}
           {gameState.phase === 'roundEnd' && (
             <Button
               fullWidth
@@ -288,7 +290,7 @@ export default function HostView({
                 background: 'linear-gradient(135deg, var(--status-ready) 0%, #16a34a 100%)',
               }}
             >
-              PRÓXIMA RODADA ({gameState.round + 1})
+              PRÃ“XIMA RODADA ({gameState.round + 1})
             </Button>
           )}
 
@@ -313,15 +315,15 @@ export default function HostView({
           {/* Em jogo */}
           {gameState.phase === 'playing' && (
             <Typography sx={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-              🎮 Jogo em andamento... Aguarde os jogadores.
+              ðŸŽ® Jogo em andamento... Aguarde os jogadores.
             </Typography>
           )}
 
           {gameState.phase === 'roundBreak' && (
             <Typography sx={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-              ⏳ Iniciando rodada {gameState.round + 1}...
+              â³ Iniciando rodada {gameState.round + 1}...
               {gameState.nextRoundTs ? (
-                <span> ({Math.max(0, Math.ceil((gameState.nextRoundTs - Date.now()) / 1000))}s)</span>
+                <span> ({Math.max(0, Math.ceil((gameState.nextRoundTs - now) / 1000))}s)</span>
               ) : null}
             </Typography>
           )}
@@ -340,7 +342,7 @@ export default function HostView({
             </Button>
           )}
 
-          {/* Ações extras */}
+          {/* AÃ§Ãµes extras */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Button
               fullWidth
@@ -364,7 +366,7 @@ export default function HostView({
         </Box>
       </Box>
 
-      {/* Dialog de seleção de modo */}
+      {/* Dialog de seleÃ§Ã£o de modo */}
       <Dialog
         open={modeDialogOpen}
         onClose={() => setModeDialogOpen(false)}
@@ -400,7 +402,7 @@ export default function HostView({
                 },
               }}
             >
-              <Typography variant="h5">🤝 CO-OP</Typography>
+              <Typography variant="h5">ðŸ¤ CO-OP</Typography>
               <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-muted)', mt: 1 }}>
                 Trabalhem juntos! 3 vidas compartilhadas.
               </Typography>
@@ -422,16 +424,16 @@ export default function HostView({
                 },
               }}
             >
-              <Typography variant="h5">⚔️ VERSUS</Typography>
+              <Typography variant="h5">âš”ï¸ VERSUS</Typography>
               <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-muted)', mt: 1 }}>
-                Último sobrevivente vence!
+                Ãšltimo sobrevivente vence!
               </Typography>
             </Button>
           </Box>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de confirmação */}
+      {/* Dialog de confirmaÃ§Ã£o */}
       <Dialog
         open={confirmEndOpen}
         onClose={() => setConfirmEndOpen(false)}
@@ -471,3 +473,4 @@ export default function HostView({
     </Box>
   )
 }
+

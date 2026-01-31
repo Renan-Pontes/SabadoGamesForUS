@@ -22,6 +22,9 @@ export type Player = {
   device_id: string
   is_host: boolean
   ready: boolean
+  has_guessed?: boolean | null
+  is_valete?: boolean
+  public_guess?: string | null
   online?: boolean
   joined_at: string
   last_seen_at: string
