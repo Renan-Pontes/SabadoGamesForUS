@@ -17,6 +17,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
+admin.site.site_header = "RollMee Admin"
+admin.site.site_title = "RollMee Admin"
+admin.site.index_title = "RollMee"
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("api/", include("api.urls")),
