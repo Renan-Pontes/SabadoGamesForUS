@@ -1,6 +1,6 @@
 import type { Game, Player, Room } from './types'
 
-const DEFAULT_API = 'http://localhost:8000'
+const DEFAULT_API = 'https://sabadogames.pythonanywhere.com'
 const API_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? DEFAULT_API
 const BASE_URL = `${API_URL.replace(/\/$/, '')}/api`
 const TOKEN_KEY = 'sabado_token'
