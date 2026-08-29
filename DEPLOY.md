@@ -59,6 +59,27 @@ Para gerar uma `SECRET_KEY` nova:
 python -c "import secrets; print(secrets.token_urlsafe(50))"
 ```
 
+### Conta de administrador
+
+Os 13 jogos entram pelo `seed_games` — **não é preciso admin para tê-los**. A
+conta de administrador serve para o painel do Django: ver salas em andamento,
+inspecionar jogadores, desativar um jogo do catálogo.
+
+Num console Bash do PythonAnywhere:
+
+```bash
+cd ~/SabadoGamesAPI
+set -a && . ./.env && set +a
+python3.13 manage.py ensure_admin --email voce@exemplo.com --nickname SeuApelido
+```
+
+Ele pede a senha no prompt (nada fica no histórico do shell) e cria o
+superusuário junto com o `Profile` — o `createsuperuser` do Django cria só o
+usuário, e aí a conta aparece na mesa como o e-mail inteiro em vez do apelido.
+
+O comando é idempotente: rodar de novo só redefine a senha. Para automatizar,
+a senha também pode vir de `DJANGO_SUPERUSER_PASSWORD`.
+
 ### HTTPS
 
 O certificado precisa ser criado **pelo painel**, uma vez só:
