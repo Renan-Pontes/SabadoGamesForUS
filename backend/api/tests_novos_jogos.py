@@ -309,29 +309,34 @@ class ResistenciaTests(GameTestBase):
                 "so espiao sabota",
             )
 
-    def test_mission_reveals_count_but_not_who(self):
+    def test_one_sabotage_is_enough_and_stays_anonymous(self):
         self.start()
         state = self.room.state
         roles = self.roles()
-        spy = next(pid for pid, role in roles.items() if role == resistencia.ROLE_SPY)
-        leader = resistencia.current_leader_id(state)
-        team = list(dict.fromkeys([spy, leader]))[:2]
-        if len(team) < 2:
-            team = [spy, next(p.id for p in self.players if p.id != spy)]
 
+        # A equipe precisa ser exatamente um espiao e um leal. Montar com o
+        # lider dentro deixava o teste instavel: quando o lider tambem era
+        # espiao, saiam duas sabotagens em vez de uma.
+        spy = next(pid for pid, role in roles.items() if role == resistencia.ROLE_SPY)
+        loyal = next(pid for pid, role in roles.items() if role == resistencia.ROLE_RESISTANCE)
+        team = [spy, loyal]
+
+        leader = resistencia.current_leader_id(state)
         self.post(leader, "resistencia_propose", {"team": team})
         for player in self.players:
             self.post(player.id, "resistencia_vote", {"approve": True})
+        self.assertEqual(self.refresh()["phase"], "mission")
 
-        for member in team:
-            success = roles[member] != resistencia.ROLE_SPY
-            self.post(member, "resistencia_mission", {"success": success})
+        self.post(spy, "resistencia_mission", {"success": False})
+        self.post(loyal, "resistencia_mission", {"success": True})
 
         state = self.refresh()
         last = state["last_mission"]
         self.assertEqual(last["fails"], 1)
-        self.assertFalse(last["success"])
+        self.assertEqual(last["needed"], 1, "com 5 jogadores basta uma sabotagem")
+        self.assertFalse(last["success"], "uma sabotagem derruba a missao")
         self.assertNotIn("saboteurs", last, "nunca se revela quem sabotou")
+        self.assertCountEqual(last["team"], team, "so a equipe e publica")
 
     def test_five_rejections_hand_the_game_to_the_spies(self):
         self.start()
