@@ -1,33 +1,38 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Box, Typography, Button } from '@mui/material'
+import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded'
+import HourglassTopRoundedIcon from '@mui/icons-material/HourglassTopRounded'
 import { useAuth } from '../context/useAuth'
 import { getRoom, joinRoom, sendHeartbeat, setReady } from '../lib/api'
 import { clearStayInLobby, getStayInLobby, saveLastRoom } from '../lib/roomHistory'
+import { gameRoute, getGameColor, getGameMeta } from '../lib/gameCatalog'
 import type { Player, Room } from '../lib/types'
+import { AppShell, LoadingScreen, Panel, RoomCode } from '../components/ui'
+import { PlayerRoster } from '../games/ui'
+import { haptic } from '../games/utils'
 
 export default function PlayerController() {
   const { code } = useParams()
   const navigate = useNavigate()
   const { isAuthenticated, isLoading, user } = useAuth()
+
   const [isReady, setIsReady] = useState(false)
   const [player, setPlayer] = useState<Player | null>(null)
   const [room, setRoom] = useState<Room | null>(null)
   const [error, setError] = useState('')
+  const [joining, setJoining] = useState(true)
+  const [togglingReady, setTogglingReady] = useState(false)
 
-  // Verificar autenticação
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      navigate('/')
-    }
+    if (!isLoading && !isAuthenticated) navigate('/')
   }, [isAuthenticated, isLoading, navigate])
 
   useEffect(() => {
-    if (code) {
-      saveLastRoom(code, 'player')
-    }
+    if (code) saveLastRoom(code, 'player')
   }, [code])
 
+  // Entrar na sala
   useEffect(() => {
     if (!code || !isAuthenticated) return
     const roomCode = code
@@ -40,7 +45,9 @@ export default function PlayerController() {
         setIsReady(result.player.ready)
       } catch (err) {
         if (!active) return
-        setError(err instanceof Error ? err.message : 'Erro ao entrar na sala.')
+        setError(err instanceof Error ? err.message : 'Não foi possível entrar na sala.')
+      } finally {
+        if (active) setJoining(false)
       }
     }
     join()
@@ -49,205 +56,213 @@ export default function PlayerController() {
     }
   }, [code, isAuthenticated])
 
+  // Acompanhar a sala e seguir para o jogo quando o host começar
   useEffect(() => {
     if (!code) return
     const roomCode = code
     let active = true
+
     async function pollRoom() {
+      if (document.hidden) return
       try {
         const data = await getRoom(roomCode)
         if (!active) return
         setRoom(data)
+        setError('')
         if (data.status === 'live') {
-          if (!getStayInLobby(roomCode)) {
-            if (data.game?.slug === 'read-my-mind') {
-              navigate(`/game/${roomCode}/read-my-mind?view=player`)
-            } else {
-              navigate(`/game/${roomCode}?view=player`)
-            }
-          }
-        } else {
-          if (getStayInLobby(roomCode)) {
-            clearStayInLobby(roomCode)
-          }
+          if (!getStayInLobby(roomCode)) navigate(gameRoute(roomCode, 'player'))
+        } else if (getStayInLobby(roomCode)) {
+          clearStayInLobby(roomCode)
         }
       } catch (err) {
         if (!active) return
-        setError(err instanceof Error ? err.message : 'Erro ao atualizar sala.')
+        setError(err instanceof Error ? err.message : 'Não foi possível atualizar a sala.')
       }
     }
+
     pollRoom()
-    const interval = window.setInterval(pollRoom, 5000)
+    const interval = window.setInterval(pollRoom, 3000)
     return () => {
       active = false
       window.clearInterval(interval)
     }
   }, [code, navigate])
 
+  // Presença: sem isso o host vê você como offline.
   useEffect(() => {
     if (!code || !player) return
     const roomCode = code
     const playerId = player.id
     const interval = window.setInterval(() => {
-      sendHeartbeat(roomCode, playerId).catch(() => {
-        // Ignore heartbeat errors
-      })
+      sendHeartbeat(roomCode, playerId).catch(() => undefined)
     }, 10000)
-    return () => {
-      window.clearInterval(interval)
-    }
+    return () => window.clearInterval(interval)
   }, [code, player])
 
   async function handleReadyToggle() {
-    if (!code) return
+    if (!code || togglingReady) return
+    setTogglingReady(true)
+    haptic()
     try {
-      const nextReady = !isReady
-      const result = await setReady(code, nextReady)
+      const result = await setReady(code, !isReady)
       setIsReady(result.ready)
+      setError('')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao atualizar ready.')
+      setError(err instanceof Error ? err.message : 'Não foi possível atualizar seu status.')
+    } finally {
+      setTogglingReady(false)
     }
   }
 
-  function handleLeaveRoom() {
-    navigate('/lobby')
-  }
+  const players = useMemo(() => room?.players ?? [], [room?.players])
+  const readyCount = players.filter((item) => item.ready).length
 
-  function handleBackToGame() {
-    if (!code || !room) return
-    clearStayInLobby(code)
-    if (room.game?.slug === 'read-my-mind') {
-      navigate(`/game/${code}/read-my-mind?view=player`)
-    } else {
-      navigate(`/game/${code}?view=player`)
-    }
-  }
+  if (isLoading || joining) return <LoadingScreen label="ENTRANDO NA SALA" />
 
-  if (isLoading) {
-    return (
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg-void)',
-        }}
-      >
-        <Typography>Carregando...</Typography>
-      </Box>
-    )
-  }
+  const game = room?.game
+  const accent = game ? getGameColor(game.slug) : 'var(--accent-gold)'
+  const meta = game ? getGameMeta(game.slug) : null
+  const isLive = room?.status === 'live'
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        background: `
-          radial-gradient(ellipse at bottom, rgba(212, 165, 32, 0.1) 0%, transparent 50%),
-          var(--bg-void)
-        `,
-        p: 3,
-      }}
+    <AppShell
+      title={user?.nickname || 'Jogador'}
+      subtitle={game ? `Mesa de ${game.name}` : 'Aguardando o host escolher o jogo'}
+      accent={accent}
+      backdropTint={`${accent}1f`}
+      maxWidth={640}
+      error={error}
+      headerRight={<RoomCode code={code ?? ''} size="sm" accent={accent} label="SALA" />}
     >
-      {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 3,
-        }}
-      >
-        <Box>
-          <Typography variant="h5" sx={{ color: 'var(--accent-gold)' }}>
-            {user?.nickname || 'Jogador'}
+      {/* Status grande — é o que a pessoa checa de relance */}
+      <Panel accent={isReady ? 'var(--status-ready)' : 'var(--status-waiting)'} highlight>
+        <Box sx={{ textAlign: 'center', py: 1 }}>
+          <Box
+            sx={{
+              display: 'inline-grid',
+              placeItems: 'center',
+              width: 84,
+              height: 84,
+              borderRadius: '50%',
+              mb: 1.5,
+              color: isReady ? 'var(--status-ready)' : 'var(--status-waiting)',
+              border: `2px solid ${isReady ? 'var(--status-ready)' : 'var(--status-waiting)'}`,
+              background: isReady ? 'rgba(34,197,94,0.12)' : 'rgba(234,179,8,0.1)',
+              '--pulse-color': isReady ? 'rgba(34,197,94,0.45)' : 'rgba(234,179,8,0.4)',
+              animation: 'pulseGlow 2.6s ease-in-out infinite',
+            }}
+          >
+            {isReady ? (
+              <CheckCircleRoundedIcon sx={{ fontSize: 44 }} />
+            ) : (
+              <HourglassTopRoundedIcon sx={{ fontSize: 40 }} />
+            )}
+          </Box>
+
+          <Typography
+            sx={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '1.9rem',
+              lineHeight: 1.1,
+              letterSpacing: '0.06em',
+              color: isReady ? 'var(--status-ready)' : 'var(--status-waiting)',
+            }}
+          >
+            {isReady ? 'VOCÊ ESTÁ PRONTO' : 'MARQUE QUE ESTÁ PRONTO'}
           </Typography>
-          <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-            Sala: {code?.toUpperCase()}
+
+          <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.9rem', mt: 0.5, mb: 2.5 }}>
+            {isLive
+              ? 'A partida já começou.'
+              : `${readyCount} de ${players.length} na mesa já confirmaram.`}
           </Typography>
-          {room?.game && (
-            <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-              Jogo: {room.game.name}
-            </Typography>
+
+          <Button
+            fullWidth
+            variant={isReady ? 'outlined' : 'contained'}
+            color={isReady ? 'success' : 'warning'}
+            size="large"
+            onClick={handleReadyToggle}
+            disabled={!player || togglingReady}
+            sx={{ py: 2, fontSize: '1.1rem' }}
+          >
+            {isReady ? 'Desmarcar' : 'Estou pronto'}
+          </Button>
+
+          {isLive && (
+            <Button
+              fullWidth
+              variant="contained"
+              color="secondary"
+              size="large"
+              onClick={() => {
+                if (!code) return
+                clearStayInLobby(code)
+                navigate(gameRoute(code, 'player'))
+              }}
+              sx={{ mt: 1.5, py: 1.8 }}
+            >
+              Voltar ao jogo
+            </Button>
           )}
         </Box>
-        <Box
-          sx={{
-            px: 2,
-            py: 0.5,
-            borderRadius: 'var(--radius-full)',
-            background: isReady ? 'var(--status-ready)' : 'var(--status-waiting)',
-            color: 'var(--bg-void)',
-            fontSize: '0.875rem',
-            fontWeight: 600,
-          }}
-        >
-          {isReady ? 'Pronto!' : 'Aguardando'}
-        </Box>
-      </Box>
+      </Panel>
 
-      {/* Área principal */}
-      <Box
-        sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg-card)',
-          borderRadius: 'var(--radius-xl)',
-          border: '2px solid var(--border-subtle)',
-          p: 4,
-          textAlign: 'center',
-        }}
-      >
-        <Typography variant="h4" sx={{ mb: 2 }}>
-          📱 Controle do Jogador
-        </Typography>
-        <Typography sx={{ color: 'var(--text-muted)', mb: 4 }}>
-          {room?.status === 'live'
-            ? 'Partida em andamento...'
-            : 'Aguardando o host iniciar o jogo...'}
-        </Typography>
-        {error && (
-          <Typography sx={{ color: 'var(--accent-red)', mb: 2, fontSize: '0.9rem' }}>
-            {error}
+      {/* O que vai acontecer */}
+      {meta && game && (
+        <Panel title="COMO JOGAR" hint={`${meta.duration} · ${meta.vibe}`} accent={accent} sx={{ mt: 2.5 }} index={1}>
+          <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.92rem', mb: 2 }}>
+            {meta.pitch}
           </Typography>
-        )}
-        <Button
-          variant="contained"
-          color={isReady ? 'success' : 'warning'}
-          size="large"
-          onClick={handleReadyToggle}
-          disabled={!player}
-          sx={{
-            mb: 2,
-            py: 2,
-            px: 6,
-            fontSize: '1.2rem',
-          }}
-        >
-          {isReady ? 'PRONTO ✓' : 'MARCAR READY'}
-        </Button>
-        {room?.status === 'live' && (
-          <Button
-            variant="outlined"
-            color="secondary"
-            size="large"
-            onClick={handleBackToGame}
-            sx={{ mb: 2, py: 1.5, px: 6 }}
-          >
-            Voltar ao jogo
-          </Button>
-        )}
-        <Button variant="text" color="error" size="small" onClick={handleLeaveRoom}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+            {meta.howTo.map((step, index) => (
+              <Box key={index} sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
+                <Box
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    flexShrink: 0,
+                    borderRadius: '50%',
+                    display: 'grid',
+                    placeItems: 'center',
+                    fontFamily: 'var(--font-display)',
+                    fontSize: '0.8rem',
+                    color: accent,
+                    border: `1px solid ${accent}66`,
+                    background: `${accent}14`,
+                  }}
+                >
+                  {index + 1}
+                </Box>
+                <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.88rem', pt: 0.15 }}>
+                  {step}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Panel>
+      )}
+
+      <Panel title="NA MESA" hint={`${readyCount}/${players.length} prontos`} accent={accent} sx={{ mt: 2.5 }} index={2}>
+        <PlayerRoster
+          players={players}
+          currentUserId={user?.id}
+          accent={accent}
+          emptyLabel="Você é o primeiro a chegar."
+          describe={(item) => ({
+            ready: item.ready,
+            highlight: item.ready,
+            status:
+              item.online === false ? 'Offline' : item.ready ? 'Pronto' : 'Ainda não confirmou',
+          })}
+        />
+      </Panel>
+
+      <Box sx={{ textAlign: 'center', mt: 3 }}>
+        <Button variant="text" color="error" size="small" onClick={() => navigate('/lobby')}>
           Sair da sala
         </Button>
       </Box>
-    </Box>
+    </AppShell>
   )
 }
-

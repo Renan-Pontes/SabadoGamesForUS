@@ -1,430 +1,417 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { Box, Button, Chip, CircularProgress, TextField, Typography } from '@mui/material'
-import { useAuth } from '../../context/useAuth'
-import { bidLeilao, getRoom, tickLeilao } from '../../lib/api'
-import { saveLastRoom, setStayInLobby } from '../../lib/roomHistory'
-import type { Player, Room } from '../../lib/types'
-import { formatSeconds, useCountdown } from '../../games/utils'
+import { Box, Button, TextField, Typography } from '@mui/material'
+import GavelRoundedIcon from '@mui/icons-material/GavelRounded'
+import { bidLeilao, tickLeilao } from '../../lib/api'
+import { useGameRoom } from '../../games/useGameRoom'
+import { getAccent } from '../../games/theme'
+import {
+  ActionPanel,
+  CountdownRing,
+  GameCard,
+  GameShell,
+  PlayerRail,
+  PlayerRoster,
+  ResultOverlay,
+  StatPill,
+} from '../../games/ui'
+import { haptic, namesFor, playerLabel, playerState, readNumberArray } from '../../games/utils'
 
-type ViewMode = 'tv' | 'host' | 'player'
-
-function getPlayerLabel(player: Player) {
-  return player.name || player.user?.profile?.nickname || player.user?.username || 'Player'
-}
+const ACCENT = getAccent('leilao-de-cem-votos')
+const BID_SECONDS = 15
+/** Atalhos de lance: o relógio é de 15s, ninguém digita número inteiro a tempo. */
+const QUICK_RAISES = [1, 5, 10, 25]
 
 export default function LeilaoGame() {
-  const { code } = useParams()
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const { isAuthenticated, isLoading: authLoading, user } = useAuth()
+  const {
+    code,
+    viewMode,
+    isTv,
+    state,
+    deadline,
+    players,
+    me,
+    meState,
+    canToggleView,
+    loading,
+    error,
+    setError,
+    refresh,
+    goBack,
+    toggleView,
+    status,
+    isLive,
+    isEnded,
+  } = useGameRoom({ tick: tickLeilao, pollMs: 1500 })
 
-  const viewMode = (searchParams.get('view') as ViewMode) || 'player'
-
-  const [room, setRoom] = useState<Room | null>(null)
-  const [error, setError] = useState('')
-  const [loadingRoom, setLoadingRoom] = useState(true)
   const [bidValue, setBidValue] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated && viewMode !== 'tv') {
-      navigate('/')
-    }
-  }, [authLoading, isAuthenticated, viewMode, navigate])
-
-  useEffect(() => {
-    if (!code || viewMode === 'tv') return
-    const view = viewMode === 'host' ? 'host' : 'player'
-    saveLastRoom(code, view)
-  }, [code, viewMode])
-
-  useEffect(() => {
-    if (!code) return
-    const roomCode = code
-    let active = true
-
-    async function poll() {
-      try {
-        if (viewMode !== 'player') {
-          await tickLeilao(roomCode)
-        }
-        const data = await getRoom(roomCode)
-        if (!active) return
-        setRoom(data)
-      } catch (err) {
-        if (!active) return
-        setError(err instanceof Error ? err.message : 'Failed to load room.')
-      } finally {
-        if (active) {
-          setLoadingRoom(false)
-        }
-      }
-    }
-
-    poll()
-    const interval = window.setInterval(poll, 5000)
-    return () => {
-      active = false
-      window.clearInterval(interval)
-    }
-  }, [code, viewMode])
-
-  const state = useMemo(() => (room?.state ?? {}) as Record<string, unknown>, [room])
   const round = typeof state.round === 'number' ? state.round : 1
   const maxRounds = typeof state.max_rounds === 'number' ? state.max_rounds : 10
   const pot = typeof state.pot === 'number' ? state.pot : 0
   const carry = typeof state.carry === 'number' ? state.carry : 0
-  const deadline = typeof state.deadline_ts === 'number' ? state.deadline_ts : null
+  const highestBid = typeof state.highest_bid === 'number' ? state.highest_bid : 0
+  const highestBidderId =
+    typeof state.highest_bidder_id === 'number' ? state.highest_bidder_id : null
   const lastWinnerId = typeof state.last_winner_id === 'number' ? state.last_winner_id : null
   const lastBid = typeof state.last_bid === 'number' ? state.last_bid : null
   const suddenDeath = Boolean(state.sudden_death)
-  const tiePlayers = Array.isArray(state.tie_players) ? (state.tie_players as number[]) : []
+  const tiePlayers = readNumberArray(state, 'tie_players')
+  const winners = readNumberArray(state, 'winners')
 
-  const countdown = useCountdown(deadline)
-
-  const players = useMemo(() => room?.players ?? [], [room?.players])
-
-  const me = useMemo(() => {
-    if (!room?.players || !user?.id) return null
-    return room.players.find((player) => player.user?.id === user.id) ?? null
-  }, [room?.players, user?.id])
-
-  const meState = (me?.state ?? {}) as Record<string, unknown>
   const mePoints = typeof meState.points === 'number' ? meState.points : 0
   const meBid = typeof meState.bid === 'number' ? meState.bid : 0
   const meSubmitted = Boolean(meState.submitted)
   const meEliminated = Boolean(meState.eliminated)
-  const isHost = Boolean(me?.is_host)
-  const canToggleView = viewMode !== 'tv' && isHost
+  const meIsTopBidder = Boolean(me && highestBidderId === me.id)
+  const meBenched = suddenDeath && me !== null && !tiePlayers.includes(me.id)
 
-  function handleToggleView() {
-    if (!code) return
-    const nextView = viewMode === 'host' ? 'player' : 'host'
-    navigate(`/game/${code}?view=${nextView}`)
-  }
+  const highestBidder = players.find((player) => player.id === highestBidderId) ?? null
+  const lastWinner = players.find((player) => player.id === lastWinnerId) ?? null
 
-  function handleBackToLobby() {
-    if (!code) return
-    setStayInLobby(code, true)
-    if (isHost) {
-      navigate(`/host/${code}`)
+  const activePlayers = useMemo(
+    () => players.filter((player) => !playerState(player).eliminated),
+    [players],
+  )
+  const pendingCount = activePlayers.filter(
+    (player) => !(suddenDeath && !tiePlayers.includes(player.id)),
+  ).length
+
+  // Lance mínimo válido: precisa superar o topo atual.
+  const minBid = Math.max(highestBid + 1, meBid)
+  const maxAffordable = mePoints + meBid
+
+  // A cada rodada nova, limpa o campo.
+  useEffect(() => {
+    setBidValue('')
+  }, [round, suddenDeath])
+
+  async function submitBid(value: number) {
+    if (!code || submitting) return
+    if (!Number.isFinite(value) || value < minBid) {
+      setError(`O lance precisa ser de pelo menos ${minBid} pontos.`)
       return
     }
-    navigate(`/play/${code}`)
-  }
-
-  const highestBid = useMemo(() => {
-    return players.reduce((max, player) => {
-      const playerState = (player.state ?? {}) as Record<string, unknown>
-      const bid = typeof playerState.bid === 'number' ? playerState.bid : 0
-      return Math.max(max, bid)
-    }, 0)
-  }, [players])
-
-  async function handleBid() {
-    if (!code || !bidValue) return
-    const value = Number(bidValue)
-    if (Number.isNaN(value)) return
+    if (value > maxAffordable) {
+      setError(`Você só consegue chegar a ${maxAffordable} pontos.`)
+      return
+    }
     setSubmitting(true)
     setError('')
+    haptic()
     try {
       await bidLeilao(code, value)
-      const data = await getRoom(code)
-      setRoom(data)
       setBidValue('')
+      await refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to bid.')
+      setError(err instanceof Error ? err.message : 'Não foi possível dar o lance.')
     } finally {
       setSubmitting(false)
     }
   }
 
-  if (authLoading || loadingRoom) {
-    return (
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg-void)',
-        }}
-      >
-        <CircularProgress sx={{ color: 'var(--accent-gold)' }} />
-      </Box>
-    )
-  }
-
-  if (error && !room) {
-    return (
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg-void)',
-          p: 3,
-        }}
-      >
-        <Typography sx={{ color: 'var(--accent-red)' }}>{error}</Typography>
-      </Box>
-    )
-  }
-
-  const lastWinner = players.find((player) => player.id === lastWinnerId)
-
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        background: `
-          radial-gradient(ellipse at top, rgba(239, 68, 68, 0.15) 0%, transparent 50%),
-          var(--bg-void)
-        `,
-        p: { xs: 2, md: 3 },
-      }}
-    >
-      <Box sx={{ maxWidth: 1000, mx: 'auto' }}>
-        <Box sx={{ textAlign: 'center', mb: 3 }}>
-          <Typography variant="h4" sx={{ color: 'var(--accent-red)' }}>
-            LEILAO DE CEM VOTOS
-          </Typography>
-          <Typography sx={{ color: 'var(--text-muted)' }}>
-            Room {code?.toUpperCase()} {viewMode !== 'player' ? `• ${viewMode.toUpperCase()}` : ''}
-          </Typography>
-        </Box>
-
-        {viewMode === 'tv' && (
-          <Box
-            sx={{
-              mb: 3,
-              p: 3,
-              borderRadius: 'var(--radius-xl)',
-              border: '2px solid var(--accent-red)',
-              background: 'rgba(220, 38, 38, 0.12)',
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-              gap: 3,
-              textAlign: 'center',
-            }}
-          >
-            <Box>
-              <Typography sx={{ color: 'var(--text-muted)', mb: 1 }}>Último lance</Typography>
-              <Typography variant="h2" sx={{ color: 'var(--accent-red)' }}>
-                {lastBid ?? '--'}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography sx={{ color: 'var(--text-muted)', mb: 1 }}>Total acumulado</Typography>
-              <Typography variant="h2" sx={{ color: 'var(--accent-gold)' }}>
-                {pot}
-              </Typography>
-            </Box>
-          </Box>
-        )}
-
-        {viewMode !== 'tv' && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-            <Button variant="outlined" color="inherit" onClick={handleBackToLobby}>
-              Voltar ao lobby
-            </Button>
-            {canToggleView && (
-              <Button variant="outlined" color="secondary" onClick={handleToggleView}>
-                {viewMode === 'host' ? 'Ver como jogador' : 'Voltar ao host'}
-              </Button>
+    <GameShell
+      title="LEILÃO DE CEM VOTOS"
+      tagline="Cada rodada tem um pote. Quem der o maior lance leva — e tudo que foi gasto engorda o pote seguinte."
+      accent={ACCENT}
+      roomCode={code}
+      viewMode={viewMode}
+      status={status}
+      loading={loading}
+      error={error}
+      onBack={goBack}
+      onToggleView={canToggleView ? toggleView : undefined}
+      headerExtra={
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: { xs: 2, md: 5 },
+          }}
+        >
+          <CountdownRing
+            deadlineTs={deadline}
+            totalSeconds={BID_SECONDS}
+            accent={ACCENT.main}
+            size={isTv ? 220 : 150}
+            label="Para cobrir"
+          />
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <StatPill
+              label={suddenDeath ? 'Morte súbita' : 'Rodada'}
+              value={suddenDeath ? '∞' : `${round}/${maxRounds}`}
+              accent={suddenDeath ? 'var(--accent-red)' : ACCENT.main}
+              filled={suddenDeath}
+              size={isTv ? 'lg' : 'md'}
+            />
+            <StatPill label="Em jogo" value={pendingCount} accent={ACCENT.main} size={isTv ? 'lg' : 'md'} />
+            {carry > 0 && (
+              <StatPill
+                label="Acumulado"
+                value={`+${carry}`}
+                accent="var(--accent-gold)"
+                size={isTv ? 'lg' : 'md'}
+              />
             )}
           </Box>
-        )}
-
-        {viewMode !== 'tv' && meEliminated && (
-          <Box
-            sx={{
-              mb: 2,
-              p: 2,
-              borderRadius: 'var(--radius-lg)',
-              border: '2px solid var(--accent-red)',
-              background: 'rgba(220, 38, 38, 0.2)',
-              textAlign: 'center',
-            }}
-          >
-            <Typography variant="h5" sx={{ color: '#fff' }}>
-              Você foi eliminado!
-            </Typography>
-          </Box>
-        )}
-
-        {room?.status === 'ended' && viewMode !== 'tv' && (
-          <Box
-            sx={{
-              mb: 2,
-              p: 2,
-              borderRadius: 'var(--radius-lg)',
-              border: '2px solid var(--accent-gold)',
-              background: 'rgba(212, 165, 32, 0.2)',
-              textAlign: 'center',
-            }}
-          >
-            <Typography variant="h5" sx={{ color: '#fff' }}>
-              {state.winners && Array.isArray(state.winners) && state.winners.length
-                ? `Vencedores: ${state.winners
-                    .map((id) => players.find((p) => p.id === id)?.name || id)
-                    .join(', ')}`
-                : 'Partida encerrada'}
-            </Typography>
-          </Box>
-        )}
-
-        {error && (
-          <Box
-            sx={{
-              mb: 2,
-              p: 2,
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid rgba(220, 38, 38, 0.4)',
-              background: 'rgba(220, 38, 38, 0.15)',
-            }}
-          >
-            <Typography sx={{ color: 'var(--accent-red)' }}>{error}</Typography>
-          </Box>
-        )}
-
+        </Box>
+      }
+    >
+      {/* O palco: pote e lance a bater */}
+      <GameCard accent={ACCENT.main} highlight>
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-            gap: 2,
+            gridTemplateColumns: { xs: '1fr', sm: '1fr auto 1fr' },
+            alignItems: 'center',
+            gap: { xs: 3, md: 4 },
+            textAlign: 'center',
+            py: { xs: 1, md: 2 },
           }}
         >
-          <Box
-            sx={{
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-lg)',
-              border: '2px solid var(--border-subtle)',
-              p: 3,
-            }}
-          >
-            <Typography sx={{ fontWeight: 600, mb: 2 }}>Round Info</Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              <Chip label={`Round ${round}/${maxRounds}`} sx={{ bgcolor: 'var(--accent-red)', color: '#fff' }} />
-              <Chip label={`Pot ${pot}`} sx={{ bgcolor: 'var(--bg-surface)' }} />
-              <Chip label={`Carry ${carry}`} sx={{ bgcolor: 'var(--bg-surface)' }} />
-              <Chip label={`Timer ${formatSeconds(countdown)}`} sx={{ bgcolor: 'var(--bg-surface)' }} />
-            </Box>
-            {countdown !== null && (
-              <Box sx={{ mt: 2, textAlign: 'center' }}>
-                <Typography variant="h3" sx={{ color: 'var(--accent-red)' }}>
-                  {formatSeconds(countdown)}
-                </Typography>
-                <Typography sx={{ color: 'var(--text-muted)' }}>Tempo restante</Typography>
-              </Box>
-            )}
-            <Typography sx={{ mt: 2, color: 'var(--text-secondary)' }}>
-              Highest bid: {highestBid}
+          <Box>
+            <Typography
+              sx={{
+                fontSize: '0.68rem',
+                letterSpacing: '0.24em',
+                color: 'var(--text-muted)',
+                fontWeight: 800,
+              }}
+            >
+              POTE DA RODADA
             </Typography>
-            {lastWinner && (
-              <Typography sx={{ mt: 1, color: 'var(--status-ready)' }}>
-                Last winner: {getPlayerLabel(lastWinner)} {lastBid !== null ? `(bid ${lastBid})` : ''}
-              </Typography>
-            )}
-            {suddenDeath && (
-              <Typography sx={{ mt: 1, color: 'var(--accent-gold)' }}>
-                Sudden death! Tie players: {tiePlayers.join(', ')}
-              </Typography>
-            )}
+            <Typography
+              key={pot}
+              className="animate-pop-in"
+              sx={{
+                fontFamily: 'var(--font-display)',
+                fontSize: isTv ? { xs: '4.5rem', md: '8rem' } : { xs: '3.5rem', md: '5rem' },
+                lineHeight: 1,
+                color: 'var(--accent-gold)',
+                textShadow: '0 0 50px var(--accent-gold-glow)',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {pot}
+            </Typography>
           </Box>
 
           <Box
             sx={{
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-lg)',
-              border: '2px solid var(--border-subtle)',
-              p: 3,
+              display: { xs: 'none', sm: 'block' },
+              width: 1,
+              height: '70%',
+              background: 'rgba(255,255,255,0.1)',
+              mx: 'auto',
             }}
-          >
-            <Typography sx={{ fontWeight: 600, mb: 2 }}>Players</Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {players.map((player) => {
-                const playerState = (player.state ?? {}) as Record<string, unknown>
-                const points = typeof playerState.points === 'number' ? playerState.points : 0
-                const eliminated = Boolean(playerState.eliminated)
-                const isSelf = Boolean(user?.id && player.user?.id === user.id)
-                return (
-                  <Box
-                    key={player.id}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      p: 1.5,
-                      borderRadius: 'var(--radius-md)',
-                      background: 'var(--bg-surface)',
-                      opacity: eliminated ? 0.6 : 1,
-                    }}
-                  >
-                    <Box>
-                      <Typography sx={{ fontWeight: 600 }}>{getPlayerLabel(player)}</Typography>
-                      <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                        {eliminated ? 'Eliminated' : isSelf && meSubmitted ? 'Lance enviado' : 'Aguardando'}
-                      </Typography>
-                    </Box>
-                    <Chip
-                      label={`Pts ${points}`}
-                      size="small"
-                      sx={{
-                        bgcolor: eliminated ? 'var(--accent-red)' : 'var(--bg-elevated)',
-                        color: eliminated ? '#fff' : 'var(--text-primary)',
-                      }}
-                    />
-                  </Box>
-                )
-              })}
-            </Box>
+          />
+
+          <Box>
+            <Typography
+              sx={{
+                fontSize: '0.68rem',
+                letterSpacing: '0.24em',
+                color: 'var(--text-muted)',
+                fontWeight: 800,
+              }}
+            >
+              LANCE A BATER
+            </Typography>
+            <Typography
+              key={highestBid}
+              className="animate-pop-in"
+              sx={{
+                fontFamily: 'var(--font-display)',
+                fontSize: isTv ? { xs: '4.5rem', md: '8rem' } : { xs: '3.5rem', md: '5rem' },
+                lineHeight: 1,
+                color: highestBid > 0 ? ACCENT.main : 'var(--text-muted)',
+                textShadow: highestBid > 0 ? `0 0 50px ${ACCENT.glow}` : 'none',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {highestBid > 0 ? highestBid : '—'}
+            </Typography>
+            <Typography
+              sx={{
+                mt: 0.5,
+                fontWeight: 700,
+                color: highestBidder ? ACCENT.light : 'var(--text-muted)',
+                minHeight: '1.5em',
+              }}
+            >
+              {highestBidder
+                ? meIsTopBidder
+                  ? 'Você está na frente'
+                  : `${playerLabel(highestBidder)} lidera`
+                : 'Ninguém deu lance ainda'}
+            </Typography>
           </Box>
         </Box>
 
-        {viewMode === 'player' && (
+        {suddenDeath && (
           <Box
             sx={{
-              mt: 3,
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-lg)',
-              border: '2px solid var(--border-subtle)',
-              p: 3,
+              mt: 2,
+              p: 1.5,
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--accent-red)',
+              background: 'rgba(220, 38, 38, 0.14)',
+              textAlign: 'center',
+              '--pulse-color': 'rgba(220, 38, 38, 0.4)',
+              animation: 'pulseGlow 2.4s ease-in-out infinite',
             }}
           >
-            <Typography sx={{ fontWeight: 600, mb: 1 }}>Place your bid</Typography>
-            <Typography sx={{ color: 'var(--text-muted)', mb: 2 }}>
-              Your points: {mePoints}. Current bid: {meBid}.
+            <Typography sx={{ color: 'var(--accent-red-light)', fontWeight: 800, letterSpacing: '0.1em' }}>
+              ⚔️ MORTE SÚBITA — {namesFor(tiePlayers, players)}
             </Typography>
-            {meEliminated ? (
-              <Typography sx={{ color: 'var(--accent-red)' }}>You are eliminated.</Typography>
-            ) : (
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-                <TextField
-                  type="number"
-                  value={bidValue}
-                  onChange={(event) => setBidValue(event.target.value)}
-                  placeholder="Bid"
-                  sx={{ minWidth: 200 }}
-                />
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleBid}
-                  disabled={!bidValue || submitting || room?.status !== 'live'}
-                >
-                  {meSubmitted ? 'Update bid' : 'Bid'}
-                </Button>
-                {meSubmitted && (
-                  <Typography sx={{ color: 'var(--status-ready)' }}>Bid submitted!</Typography>
-                )}
-              </Box>
-            )}
           </Box>
         )}
-      </Box>
-    </Box>
+
+        {lastWinner && lastBid !== null && (
+          <Typography sx={{ mt: 2, textAlign: 'center', color: 'var(--text-muted)' }}>
+            Rodada anterior: <strong style={{ color: 'var(--status-ready)' }}>{playerLabel(lastWinner)}</strong>{' '}
+            levou o pote com {lastBid} pontos.
+          </Typography>
+        )}
+      </GameCard>
+
+      <GameCard title="Jogadores" hint="Só você enxerga seus próprios pontos" accent={ACCENT.main} sx={{ mt: 2 }} index={1}>
+        {isTv ? (
+          <PlayerRail
+            players={players}
+            accent={ACCENT.main}
+            describe={(player) => {
+              const pState = playerState(player)
+              const eliminated = Boolean(pState.eliminated)
+              const isLeader = player.id === highestBidderId
+              return {
+                value: isLeader ? highestBid : undefined,
+                caption: eliminated ? 'Sem pontos' : isLeader ? 'Lance mais alto' : 'Na disputa',
+                eliminated,
+                highlight: isLeader,
+                badge: eliminated ? '💀' : isLeader ? '🔨' : undefined,
+              }
+            }}
+          />
+        ) : (
+          <PlayerRoster
+            players={players}
+            currentUserId={me?.user?.id}
+            accent={ACCENT.main}
+            describe={(player) => {
+              const pState = playerState(player)
+              const eliminated = Boolean(pState.eliminated)
+              const isSelf = Boolean(me && player.id === me.id)
+              const points = typeof pState.points === 'number' ? pState.points : null
+              const isLeader = player.id === highestBidderId
+              return {
+                eliminated,
+                highlight: isLeader,
+                ready: Boolean(pState.submitted),
+                status: eliminated
+                  ? 'Ficou sem pontos'
+                  : suddenDeath && !tiePlayers.includes(player.id)
+                    ? 'Fora da morte súbita'
+                    : isLeader
+                      ? 'Lance mais alto'
+                      : 'Na disputa',
+                trailing: (
+                  <StatPill
+                    label="Pontos"
+                    value={isSelf && points !== null ? points : '•••'}
+                    size="sm"
+                    accent={ACCENT.main}
+                    filled={isSelf}
+                  />
+                ),
+              }
+            }}
+          />
+        )}
+      </GameCard>
+
+      {viewMode === 'player' && (
+        <ActionPanel
+          title={meIsTopBidder ? `Seu lance: ${meBid} — você lidera` : 'Dê seu lance'}
+          hint={`Você tem ${mePoints} pontos livres. Lance mínimo: ${minBid}. Pontos gastos não voltam.`}
+          accent={ACCENT.main}
+          lockedReason={
+            meEliminated
+              ? 'Você ficou sem pontos e está fora.'
+              : meBenched
+                ? 'A morte súbita é entre os dois líderes. Assista.'
+                : !isLive
+                  ? 'A partida não está em andamento.'
+                  : undefined
+          }
+        >
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+            {QUICK_RAISES.map((raise) => {
+              const target = minBid + raise - 1
+              const affordable = target <= maxAffordable
+              return (
+                <Button
+                  key={raise}
+                  variant="outlined"
+                  disabled={submitting || !affordable}
+                  onClick={() => submitBid(target)}
+                  sx={{ flex: '1 1 90px', flexDirection: 'column', py: 1.25, gap: 0 }}
+                >
+                  <Box component="span" sx={{ fontSize: '1.3rem', fontFamily: 'var(--font-display)' }}>
+                    {target}
+                  </Box>
+                  <Box component="span" sx={{ fontSize: '0.6rem', letterSpacing: '0.1em', opacity: 0.7 }}>
+                    {raise === 1 ? 'MÍNIMO' : `+${raise - 1}`}
+                  </Box>
+                </Button>
+              )
+            })}
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'stretch', flexWrap: 'wrap' }}>
+            <TextField
+              type="number"
+              value={bidValue}
+              onChange={(event) => setBidValue(event.target.value)}
+              placeholder={String(minBid)}
+              slotProps={{ htmlInput: { min: minBid, max: maxAffordable, style: { fontSize: '1.4rem' } } }}
+              sx={{ flex: '1 1 140px' }}
+            />
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<GavelRoundedIcon />}
+              onClick={() => submitBid(Number(bidValue))}
+              disabled={!bidValue || submitting}
+              sx={{ flex: '1 1 160px', fontSize: '1.05rem' }}
+            >
+              {submitting ? 'Enviando...' : 'Dar lance'}
+            </Button>
+          </Box>
+
+          {meSubmitted && !meIsTopBidder && (
+            <Typography sx={{ mt: 2, textAlign: 'center', color: 'var(--status-waiting)', fontWeight: 700 }}>
+              Seu lance de {meBid} foi coberto. Cubra de volta ou perca o que já apostou.
+            </Typography>
+          )}
+        </ActionPanel>
+      )}
+
+      <ResultOverlay
+        open={isEnded}
+        tone={isTv || winners.includes(me?.id ?? -1) ? 'win' : 'lose'}
+        title="LEILÃO ENCERRADO"
+        subtitle={winners.length ? `Vencedores: ${namesFor(winners, players)}` : 'Partida encerrada.'}
+      />
+      <ResultOverlay
+        open={!isTv && !isEnded && meEliminated}
+        tone="lose"
+        title="VOCÊ QUEBROU"
+        subtitle="Seus pontos acabaram. Fim de linha no leilão."
+      />
+    </GameShell>
   )
 }

@@ -7,7 +7,24 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import Game, Player, Room
+from . import cacada, caveira, infiltrado, palavra_chave, perfil, resistencia, sintonia
 from .serializers import (
+    CacadaAskSerializer,
+    CacadaHexSerializer,
+    CaveiraBidSerializer,
+    CaveiraFlipSerializer,
+    CaveiraPlaceSerializer,
+    InfiltradoAccuseSerializer,
+    InfiltradoSpyGuessSerializer,
+    InfiltradoVoteSerializer,
+    PalavraChaveClueSerializer,
+    PalavraChaveGuessSerializer,
+    PerfilGuessSerializer,
+    ResistenciaMissionSerializer,
+    ResistenciaProposeSerializer,
+    ResistenciaVoteSerializer,
+    SintoniaClueSerializer,
+    SintoniaGuessSerializer,
     ChangeGameSerializer,
     GameSerializer,
     LoginSerializer,
@@ -65,6 +82,14 @@ LEILAO_ROUNDS = 10
 LEILAO_BASE_POT = 100
 LEILAO_BID_SECONDS = 15
 
+CACADA_SLUG = cacada.CACADA_SLUG
+SINTONIA_SLUG = sintonia.SINTONIA_SLUG
+CAVEIRA_SLUG = caveira.CAVEIRA_SLUG
+RESISTENCIA_SLUG = resistencia.RESISTENCIA_SLUG
+PALAVRA_CHAVE_SLUG = palavra_chave.PALAVRA_CHAVE_SLUG
+INFILTRADO_SLUG = infiltrado.INFILTRADO_SLUG
+PERFIL_SLUG = perfil.PERFIL_SLUG
+
 BLEF_JACK_SLUG = "blef-jack"
 BLEF_JACK_START_POINTS = 0
 BLEF_JACK_RANKS = list(range(1, 15))
@@ -112,7 +137,7 @@ def _deal_cards(players, round_number: int) -> None:
 
 
 def _initialize_read_my_mind(room: Room, mode: str) -> None:
-    players = list(room.players.all())
+    players = _all_players(room)
     now = timezone.now()
     state = {
         "game": READ_MY_MIND_SLUG,
@@ -136,7 +161,7 @@ def _initialize_read_my_mind(room: Room, mode: str) -> None:
 
 
 def _initialize_confinamento(room: Room) -> None:
-    players = list(room.players.all())
+    players = _all_players(room)
     if not players:
         return
     rng = secrets.SystemRandom()
@@ -313,6 +338,8 @@ def _deal_blef_cards(players):
         index += 2
         player_state["cards"] = hand
         player_state["guess_winner_id"] = None
+        # A declaração é o blefe da rodada — não pode vazar para a seguinte.
+        player_state["declared_value"] = None
         player.state = player_state
         player.save(update_fields=["state"])
 
@@ -329,10 +356,14 @@ def _initialize_blef_jack(room: Room) -> None:
     state = {
         "game": BLEF_JACK_SLUG,
         "round": 1,
-        "phase": "guess",
+        "phase": "declare",
         "winners": [],
         "deck_size": BLEF_JACK_DECK_SIZE,
         "rank_count": len(BLEF_JACK_RANKS),
+        "last_round": None,
+        "last_winner_ids": [],
+        "last_best_value": None,
+        "last_reveal": {},
     }
     _set_room_state(room, state)
 
@@ -348,7 +379,9 @@ def _blef_all_guessed(players):
 def _blef_start_next_round(room: Room, state: dict) -> dict:
     active_players = _active_generic_players(room)
     state["round"] = (state.get("round") or 1) + 1
-    state["phase"] = "guess"
+    # Toda rodada começa no blefe: só depois que todos declararam é que se
+    # aposta em quem tem a melhor mão.
+    state["phase"] = "declare"
     state["winners"] = []
     state["deck_size"] = BLEF_JACK_DECK_SIZE
     state["rank_count"] = len(BLEF_JACK_RANKS)
@@ -374,6 +407,10 @@ def _blef_resolve_round(room: Room, state: dict) -> dict:
             max_value = value
     winners = [pid for pid, val in values.items() if val == max_value]
     state["winners"] = winners
+
+    # A rodada seguinte zera tudo, então o resultado precisa ser guardado
+    # aqui — é o que a mesa vai discutir: quem blefou o quê.
+    reveal = {}
     for player in players:
         player_state = player.state or {}
         guess_id = player_state.get("guess_winner_id")
@@ -388,9 +425,23 @@ def _blef_resolve_round(room: Room, state: dict) -> dict:
             else:
                 delta -= 4
         player_state["points"] = player_state.get("points", 0) + delta
+        reveal[str(player.id)] = {
+            "cards": list(player_state.get("cards") or []),
+            "value": values.get(player.id),
+            "declared": player_state.get("declared_value"),
+            "guess_winner_id": guess_id,
+            "delta": delta,
+            "won": is_winner,
+        }
         player.state = player_state
         player.save(update_fields=["state"])
-    return _blef_start_next_round(room, state)
+
+    state = _blef_start_next_round(room, state)
+    state["last_round"] = state.get("round", 1) - 1
+    state["last_winner_ids"] = winners
+    state["last_best_value"] = max_value
+    state["last_reveal"] = reveal
+    return state
 
 
 def _coord_key(coord):
@@ -432,7 +483,7 @@ def _initialize_sugoroku(room: Room) -> None:
             continue
         penalties[_coord_key(coord)] = rng.choice([1, 2, 3])
 
-    for player in room.players.all():
+    for player in _all_players(room):
         player_state = player.state or {}
         player_state.update(
             {
@@ -594,7 +645,7 @@ def _resolve_sugoroku(room: Room) -> dict:
     losers = state.get("losers", [])
     exit_coord = state.get("exit")
 
-    for player in room.players.all():
+    for player in _all_players(room):
         player_state = player.state or {}
         if player_state.get("eliminated") or player_state.get("cleared"):
             continue
@@ -680,7 +731,7 @@ def _tick_sugoroku(room: Room) -> dict:
 
 def _initialize_leilao(room: Room) -> None:
     rng = secrets.SystemRandom()
-    for player in room.players.all():
+    for player in _all_players(room):
         player_state = player.state or {}
         player_state["eliminated"] = False
         player_state["points"] = rng.randint(100, 200)
@@ -705,6 +756,8 @@ def _initialize_leilao(room: Room) -> None:
         "sudden_death": False,
         "tie_players": [],
         "round_bid_total": 0,
+        "highest_bid": 0,
+        "highest_bidder_id": None,
     }
     _set_room_state(room, state)
 
@@ -760,6 +813,8 @@ def _resolve_leilao(room: Room, force: bool = False) -> dict:
     state["last_winner_id"] = winner_id
     state["last_bid"] = highest
     state["round_bid_total"] = 0
+    state["highest_bid"] = 0
+    state["highest_bidder_id"] = None
     if winner_id is not None:
         winners = state.get("winners", [])
         winners.append(winner_id)
@@ -852,7 +907,7 @@ def _tick_leilao(room: Room) -> dict:
 
 
 def _initialize_beleza(room: Room) -> None:
-    players = list(room.players.all())
+    players = _all_players(room)
     for player in players:
         player_state = player.state or {}
         player_state["eliminated"] = False
@@ -868,6 +923,8 @@ def _initialize_beleza(room: Room) -> None:
         "no_loss_streak": 0,
         "multiplier": BELEZA_MULTIPLIER,
         "last_target": None,
+        "last_mean": None,
+        "last_guesses": {},
         "last_winner_id": None,
         "last_winner_ids": [],
         "phase": "guess",
@@ -897,6 +954,12 @@ def _resolve_beleza(room: Room, force: bool = False) -> dict:
     mean = sum(values) / len(values)
     target = mean * BELEZA_MULTIPLIER
     state["last_target"] = target
+    state["last_mean"] = mean
+    # Os palpites só ficam públicos depois de resolvidos: no showdown a
+    # discussão sobre quem chutou o quê é metade do jogo.
+    state["last_guesses"] = {
+        str(player_id): value for player_id, value in guesses.items() if value is not None
+    }
 
     duplicate_rule = state.get("eliminations", 0) >= 1
     exact_rule = state.get("eliminations", 0) >= 2
@@ -984,6 +1047,119 @@ def _resolve_beleza(room: Room, force: bool = False) -> dict:
         room.status = Room.STATUS_ENDED
         room.save(update_fields=["status"])
 
+    return state
+
+
+def _initialize_cacada(room: Room, advanced: bool) -> bool:
+    """Monta o tabuleiro e reparte as pistas. False se não deu para gerar."""
+    players = _all_players(room)
+    result = cacada.initialize(players, advanced=advanced)
+    if result is None:
+        return False
+
+    state, assignments = result
+    for player in players:
+        player_state = player.state or {}
+        clue = assignments.get(player.id)
+        player_state["clue"] = clue
+        player_state["eliminated"] = False
+        player.state = player_state
+        player.save(update_fields=["state"])
+
+    _set_room_state(room, state)
+    return True
+
+
+def _cacada_clues(room: Room) -> dict:
+    """Pistas de todos os jogadores — só circula dentro do servidor."""
+    clues = {}
+    for player in _all_players(room):
+        clue = (player.state or {}).get("clue")
+        if clue:
+            clues[player.id] = clue
+    return clues
+
+
+def _now_ts():
+    return timezone.now().timestamp()
+
+
+def _initialize_new_games(room: Room, request):
+    """
+    Monta a partida dos jogos adicionados depois da primeira leva.
+    Devolve uma mensagem de erro, ou None se deu tudo certo.
+    """
+    slug = room.game.slug
+    players = _all_players(room)
+
+    if slug == SINTONIA_SLUG:
+        if len(players) < 3:
+            return "Sintonia precisa de pelo menos 3 jogadores."
+        _set_room_state(room, sintonia.initialize(players, _now_ts()))
+        return None
+
+    if slug == CAVEIRA_SLUG:
+        if len(players) < 3:
+            return "Caveira precisa de pelo menos 3 jogadores."
+        _set_room_state(room, caveira.initialize(players))
+        return None
+
+    if slug == RESISTENCIA_SLUG:
+        if not resistencia.supports(len(players)):
+            return "A Resistência funciona com 5 a 10 jogadores."
+        _set_room_state(room, resistencia.initialize(players))
+        return None
+
+    if slug == PALAVRA_CHAVE_SLUG:
+        state = palavra_chave.initialize(players)
+        if state is None:
+            return "Palavra-Chave precisa de pelo menos 4 jogadores."
+        _set_room_state(room, state)
+        return None
+
+    if slug == INFILTRADO_SLUG:
+        state = infiltrado.initialize(players, _now_ts())
+        if state is None:
+            return "O Infiltrado precisa de pelo menos 3 jogadores."
+        _set_room_state(room, state)
+        return None
+
+    if slug == PERFIL_SLUG:
+        if len(players) < 2:
+            return "Perfil precisa de pelo menos 2 jogadores."
+        themes = request.data.get("themes") or perfil.available_themes()
+        if not isinstance(themes, list) or not themes:
+            themes = perfil.available_themes()
+        rounds = request.data.get("rounds") or 8
+        try:
+            rounds = int(rounds)
+        except (TypeError, ValueError):
+            rounds = 8
+        _set_room_state(room, perfil.initialize(players, themes, rounds, _now_ts()))
+        return None
+
+    return None
+
+
+def _tick_new_games(room: Room):
+    """Relógio dos jogos por tempo. Idempotente: pode ser chamado à vontade."""
+    slug = room.game.slug
+    state = _room_state(room)
+    players = _all_players(room)
+
+    if slug == SINTONIA_SLUG:
+        state = sintonia.tick(state, players, _now_ts())
+    elif slug == INFILTRADO_SLUG:
+        state = infiltrado.tick(state, _now_ts())
+    elif slug == PERFIL_SLUG:
+        state = perfil.tick(state, players, _now_ts())
+    else:
+        return state
+
+    _set_room_state(room, state)
+    if state.get("phase") == "ended" and room.status == Room.STATUS_LIVE:
+        room.status = Room.STATUS_ENDED
+        room.save(update_fields=["status"])
     return state
 
 
@@ -1203,6 +1379,10 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             "sugoroku_tick",
             "leilao_tick",
             "tv_ping",
+            "sintonia_tick",
+            "infiltrado_tick",
+            "perfil_tick",
+            "perfil_next",
         }
         if self.action in open_actions:
             return [permissions.AllowAny()]
@@ -1221,6 +1401,26 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             "blef_jack_bet",
             "blef_jack_declare",
             "blef_jack_guess",
+            "cacada_setup",
+            "cacada_ask",
+            "cacada_search",
+            "cacada_penalty",
+            "sintonia_clue",
+            "sintonia_guess",
+            "caveira_place",
+            "caveira_bid",
+            "caveira_pass",
+            "caveira_flip",
+            "resistencia_propose",
+            "resistencia_vote",
+            "resistencia_mission",
+            "palavra_chave_clue",
+            "palavra_chave_guess",
+            "palavra_chave_pass",
+            "infiltrado_accuse",
+            "infiltrado_vote",
+            "infiltrado_spy_guess",
+            "perfil_guess",
         }:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
@@ -1262,6 +1462,38 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             return BlefJackDeclareSerializer
         if self.action == "blef_jack_guess":
             return BlefJackGuessSerializer
+        if self.action == "cacada_ask":
+            return CacadaAskSerializer
+        if self.action in {"cacada_setup", "cacada_search", "cacada_penalty"}:
+            return CacadaHexSerializer
+        if self.action == "sintonia_clue":
+            return SintoniaClueSerializer
+        if self.action == "sintonia_guess":
+            return SintoniaGuessSerializer
+        if self.action == "caveira_place":
+            return CaveiraPlaceSerializer
+        if self.action == "caveira_bid":
+            return CaveiraBidSerializer
+        if self.action == "caveira_flip":
+            return CaveiraFlipSerializer
+        if self.action == "resistencia_propose":
+            return ResistenciaProposeSerializer
+        if self.action == "resistencia_vote":
+            return ResistenciaVoteSerializer
+        if self.action == "resistencia_mission":
+            return ResistenciaMissionSerializer
+        if self.action == "palavra_chave_clue":
+            return PalavraChaveClueSerializer
+        if self.action == "palavra_chave_guess":
+            return PalavraChaveGuessSerializer
+        if self.action == "infiltrado_accuse":
+            return InfiltradoAccuseSerializer
+        if self.action == "infiltrado_vote":
+            return InfiltradoVoteSerializer
+        if self.action == "infiltrado_spy_guess":
+            return InfiltradoSpyGuessSerializer
+        if self.action == "perfil_guess":
+            return PerfilGuessSerializer
         return RoomSerializer
 
     def create(self, request, *args, **kwargs):
@@ -1337,6 +1569,21 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             _initialize_leilao(room)
         if room.game.slug == BLEF_JACK_SLUG:
             _initialize_blef_jack(room)
+        if room.game.slug == CACADA_SLUG:
+            if room.players.count() < 3:
+                return Response(
+                    {"detail": "A Caçada precisa de pelo menos 3 jogadores."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            advanced = bool(request.data.get("advanced"))
+            if not _initialize_cacada(room, advanced):
+                return Response(
+                    {"detail": "Não foi possível gerar um mapa com solução única. Tente de novo."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        setup_error = _initialize_new_games(room, request)
+        if setup_error:
+            return Response({"detail": setup_error}, status=status.HTTP_400_BAD_REQUEST)
         room.status = Room.STATUS_LIVE
         room.save(update_fields=["status"])
         room = _fresh_room(room)
@@ -1669,6 +1916,10 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
         player_state["points"] = points - diff
         player_state["bid"] = new_bid
         player_state["submitted"] = True
+        if new_bid >= state.get("highest_bid", 0):
+            # Leilão aberto: todos precisam enxergar o lance a ser superado.
+            state["highest_bid"] = new_bid
+            state["highest_bidder_id"] = player.id
         if diff > 0:
             state["deadline_ts"] = timezone.now().timestamp() + LEILAO_BID_SECONDS
         player.state = player_state
@@ -1733,8 +1984,11 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
         except Player.DoesNotExist:
             return Response({"detail": "Player not in room."}, status=status.HTTP_400_BAD_REQUEST)
         state = _room_state(room)
-        if state.get("phase") not in {"guess", "declare"}:
-            return Response({"detail": "Not in guess phase."}, status=status.HTTP_400_BAD_REQUEST)
+        if state.get("phase") != "guess":
+            return Response(
+                {"detail": "Aguarde todos declararem antes de apostar."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         player_state = player.state or {}
         if player_state.get("eliminated"):
             return Response({"detail": "Player eliminated."}, status=status.HTTP_400_BAD_REQUEST)
@@ -1748,3 +2002,435 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
         _set_room_state(room, state)
         room = _fresh_room(room)
         return Response(RoomDetailSerializer(room, context=self.get_serializer_context()).data)
+
+    # ------------------------------------------------------------------
+    # A Caçada
+    # ------------------------------------------------------------------
+
+    def _cacada_context(self, request):
+        """Sala, jogador e pista do requisitante — ou uma resposta de erro."""
+        room = self.get_object()
+        if room.game.slug != CACADA_SLUG:
+            return None, None, Response(
+                {"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        try:
+            player = room.players.get(user=request.user)
+        except Player.DoesNotExist:
+            return None, None, Response(
+                {"detail": "Player not in room."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        return room, player, None
+
+    def _cacada_apply(self, room, error):
+        """Devolve a sala atualizada, ou o erro de regra como 400."""
+        if error:
+            return Response({"detail": error}, status=status.HTTP_400_BAD_REQUEST)
+        fresh = _fresh_room(room)
+        return Response(RoomDetailSerializer(fresh, context=self.get_serializer_context()).data)
+
+    @action(detail=True, methods=["post"])
+    def cacada_setup(self, request, code=None):
+        room, player, failure = self._cacada_context(request)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        clue = (player.state or {}).get("clue")
+        error = cacada.place_setup_cube(state, player.id, clue, serializer.validated_data["hex"])
+        if not error:
+            _set_room_state(room, state)
+        return self._cacada_apply(room, error)
+
+    @action(detail=True, methods=["post"])
+    def cacada_ask(self, request, code=None):
+        room, player, failure = self._cacada_context(request)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        target_id = serializer.validated_data["target_player_id"]
+        clues = _cacada_clues(room)
+        if target_id not in clues:
+            return Response({"detail": "Jogador inválido."}, status=status.HTTP_400_BAD_REQUEST)
+        state = _room_state(room)
+        error = cacada.ask(
+            state, player.id, target_id, clues[target_id], serializer.validated_data["hex"]
+        )
+        if not error:
+            _set_room_state(room, state)
+        return self._cacada_apply(room, error)
+
+    @action(detail=True, methods=["post"])
+    def cacada_search(self, request, code=None):
+        room, player, failure = self._cacada_context(request)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = cacada.search(
+            state, player.id, _cacada_clues(room), serializer.validated_data["hex"]
+        )
+        if not error:
+            _set_room_state(room, state)
+            if state.get("phase") == "ended":
+                room.status = Room.STATUS_ENDED
+                room.save(update_fields=["status"])
+        return self._cacada_apply(room, error)
+
+    @action(detail=True, methods=["post"])
+    def cacada_penalty(self, request, code=None):
+        room, player, failure = self._cacada_context(request)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        clue = (player.state or {}).get("clue")
+        error = cacada.place_penalty_cube(state, player.id, clue, serializer.validated_data["hex"])
+        if not error:
+            _set_room_state(room, state)
+        return self._cacada_apply(room, error)
+
+    # ------------------------------------------------------------------
+    # Jogos da segunda leva: fiação comum
+    # ------------------------------------------------------------------
+
+    def _game_context(self, request, slug):
+        """Sala e jogador do requisitante, ou uma resposta de erro pronta."""
+        room = self.get_object()
+        if room.game.slug != slug:
+            return None, None, Response(
+                {"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        try:
+            player = room.players.get(user=request.user)
+        except Player.DoesNotExist:
+            return None, None, Response(
+                {"detail": "Player not in room."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        return room, player, None
+
+    def _respond(self, room, error=None):
+        if error:
+            return Response({"detail": error}, status=status.HTTP_400_BAD_REQUEST)
+        fresh = _fresh_room(room)
+        return Response(RoomDetailSerializer(fresh, context=self.get_serializer_context()).data)
+
+    def _finish_if_ended(self, room, state):
+        if state.get("phase") == "ended" and room.status == Room.STATUS_LIVE:
+            room.status = Room.STATUS_ENDED
+            room.save(update_fields=["status"])
+
+    # ------------------------------------------------------------------
+    # Sintonia
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"])
+    def sintonia_clue(self, request, code=None):
+        room, player, failure = self._game_context(request, SINTONIA_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = sintonia.submit_clue(state, player.id, serializer.validated_data["clue"], _now_ts())
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def sintonia_guess(self, request, code=None):
+        room, player, failure = self._game_context(request, SINTONIA_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        value = serializer.validated_data["value"]
+        error = sintonia.submit_guess(state, player.id, value)
+        if error:
+            return self._respond(room, error)
+
+        player_state = player.state or {}
+        player_state["guess"] = value
+        player.state = player_state
+        player.save(update_fields=["state"])
+
+        state = sintonia.tick(state, _all_players(room), _now_ts())
+        _set_room_state(room, state)
+        return self._respond(room)
+
+    @action(detail=True, methods=["post"])
+    def sintonia_tick(self, request, code=None):
+        room = self.get_object()
+        if room.game.slug != SINTONIA_SLUG:
+            return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
+        _tick_new_games(room)
+        return self._respond(room)
+
+    # ------------------------------------------------------------------
+    # Caveira
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"])
+    def caveira_place(self, request, code=None):
+        room, player, failure = self._game_context(request, CAVEIRA_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = caveira.place_card(state, player, serializer.validated_data["card"])
+        if not error:
+            caveira.sync_public(state, _all_players(room))
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def caveira_bid(self, request, code=None):
+        room, player, failure = self._game_context(request, CAVEIRA_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        amount = serializer.validated_data["amount"]
+        if state.get("phase") == "placing":
+            error = caveira.open_bidding(state, player, amount)
+        else:
+            error = caveira.raise_bid(state, player, amount)
+        if not error:
+            _set_room_state(room, state)
+            self._finish_if_ended(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def caveira_pass(self, request, code=None):
+        room, player, failure = self._game_context(request, CAVEIRA_SLUG)
+        if failure:
+            return failure
+        state = _room_state(room)
+        error = caveira.pass_bid(state, player)
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def caveira_flip(self, request, code=None):
+        room, player, failure = self._game_context(request, CAVEIRA_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        players = _all_players(room)
+        target_id = serializer.validated_data.get("target_player_id")
+
+        if target_id:
+            target = next((p for p in players if p.id == target_id), None)
+            if target is None:
+                return self._respond(room, "Jogador inválido.")
+            error = caveira.flip_other(state, player, target, players)
+        else:
+            error = caveira.flip_own(state, player, players)
+
+        if not error:
+            caveira.sync_public(state, _all_players(room))
+            _set_room_state(room, state)
+            self._finish_if_ended(room, state)
+        return self._respond(room, error)
+
+    # ------------------------------------------------------------------
+    # A Resistência
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"])
+    def resistencia_propose(self, request, code=None):
+        room, player, failure = self._game_context(request, RESISTENCIA_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = resistencia.propose_team(state, player.id, serializer.validated_data["team"])
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def resistencia_vote(self, request, code=None):
+        room, player, failure = self._game_context(request, RESISTENCIA_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = resistencia.cast_vote(state, player.id, serializer.validated_data["approve"])
+        if error:
+            return self._respond(room, error)
+        if resistencia.votes_complete(state):
+            resistencia.resolve_vote(state)
+        _set_room_state(room, state)
+        self._finish_if_ended(room, state)
+        return self._respond(room)
+
+    @action(detail=True, methods=["post"])
+    def resistencia_mission(self, request, code=None):
+        room, player, failure = self._game_context(request, RESISTENCIA_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = resistencia.play_mission_card(state, player, serializer.validated_data["success"])
+        if error:
+            return self._respond(room, error)
+        players = _all_players(room)
+        if resistencia.mission_complete(state, players):
+            resistencia.resolve_mission(state, players)
+        _set_room_state(room, state)
+        self._finish_if_ended(room, state)
+        return self._respond(room)
+
+    # ------------------------------------------------------------------
+    # Palavra-Chave
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"])
+    def palavra_chave_clue(self, request, code=None):
+        room, player, failure = self._game_context(request, PALAVRA_CHAVE_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = palavra_chave.give_clue(
+            state, player, serializer.validated_data["word"], serializer.validated_data["count"]
+        )
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def palavra_chave_guess(self, request, code=None):
+        room, player, failure = self._game_context(request, PALAVRA_CHAVE_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = palavra_chave.guess_word(state, player, serializer.validated_data["index"])
+        if not error:
+            _set_room_state(room, state)
+            self._finish_if_ended(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def palavra_chave_pass(self, request, code=None):
+        room, player, failure = self._game_context(request, PALAVRA_CHAVE_SLUG)
+        if failure:
+            return failure
+        state = _room_state(room)
+        error = palavra_chave.end_turn(state, player)
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    # ------------------------------------------------------------------
+    # O Infiltrado
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"])
+    def infiltrado_accuse(self, request, code=None):
+        room, player, failure = self._game_context(request, INFILTRADO_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = infiltrado.accuse(
+            state, player.id, serializer.validated_data["accused_player_id"]
+        )
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def infiltrado_vote(self, request, code=None):
+        room, player, failure = self._game_context(request, INFILTRADO_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = infiltrado.vote_accusation(state, player.id, serializer.validated_data["agree"])
+        if error:
+            return self._respond(room, error)
+        if infiltrado.accusation_complete(state):
+            infiltrado.resolve_accusation(state)
+        _set_room_state(room, state)
+        self._finish_if_ended(room, state)
+        return self._respond(room)
+
+    @action(detail=True, methods=["post"])
+    def infiltrado_spy_guess(self, request, code=None):
+        room, player, failure = self._game_context(request, INFILTRADO_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = infiltrado.spy_guess(state, player.id, serializer.validated_data["location"])
+        if not error:
+            _set_room_state(room, state)
+            self._finish_if_ended(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def infiltrado_tick(self, request, code=None):
+        room = self.get_object()
+        if room.game.slug != INFILTRADO_SLUG:
+            return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
+        _tick_new_games(room)
+        return self._respond(room)
+
+    # ------------------------------------------------------------------
+    # Perfil
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"])
+    def perfil_guess(self, request, code=None):
+        room, player, failure = self._game_context(request, PERFIL_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = perfil.submit_guess(
+            state, player, serializer.validated_data["guess"], _all_players(room), _now_ts()
+        )
+        _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def perfil_next(self, request, code=None):
+        """Adianta a próxima dica — para a mesa não esperar o cronômetro."""
+        room = self.get_object()
+        if room.game.slug != PERFIL_SLUG:
+            return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
+        state = _room_state(room)
+        error = perfil.reveal_next(state, _now_ts())
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def perfil_tick(self, request, code=None):
+        room = self.get_object()
+        if room.game.slug != PERFIL_SLUG:
+            return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
+        _tick_new_games(room)
+        return self._respond(room)

@@ -1,403 +1,288 @@
-﻿import { useState, useEffect, useRef } from 'react'
-import { Box, Typography, Button, Chip } from '@mui/material'
-import {
-  Favorite as HeartIcon,
-} from '@mui/icons-material'
-import anime from 'animejs'
+import { useState } from 'react'
+import { Box, Typography, Button } from '@mui/material'
+import FavoriteIcon from '@mui/icons-material/Favorite'
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import type { GameState } from './types'
-import { useNow } from '../utils'
+import { useNow, haptic } from '../utils'
+import { getAccent } from '../theme'
+import { ActionPanel, GameCard, GameShell, PlayingCard, ResultOverlay, StatPill } from '../ui'
 
 interface PlayerViewProps {
   roomCode: string
   playerId: string
   gameState: GameState
   onPlayCard: (cardValue: number) => void
+  /** `host` mostra o mesmo jogo, mas com a navegação do host. */
+  viewMode?: 'player' | 'host'
+  onBack?: () => void
+  onToggleView?: () => void
+  error?: string
 }
 
-export default function PlayerView({ 
-  roomCode, 
-  playerId, 
-  gameState, 
-  onPlayCard 
+const ACCENT = getAccent('read-my-mind')
+
+export default function PlayerView({
+  roomCode,
+  playerId,
+  gameState,
+  onPlayCard,
+  viewMode = 'player',
+  onBack,
+  onToggleView,
+  error,
 }: PlayerViewProps) {
   const now = useNow(250)
   const [selectedCard, setSelectedCard] = useState<number | null>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const cardsRef = useRef<HTMLDivElement>(null)
+  const [playing, setPlaying] = useState(false)
 
-  const player = gameState.players.find(p => p.id === playerId)
-  const myCards = player?.cards || []
-  const isEliminated = player?.isEliminated || false
+  const player = gameState.players.find((p) => p.id === playerId)
+  const myCards = player?.cards ?? []
+  const isEliminated = player?.isEliminated ?? false
   const isCoop = gameState.mode === 'coop'
 
-  // AnimaÃ§Ã£o das cartas na mÃ£o
-  useEffect(() => {
-    if (cardsRef.current && myCards.length > 0) {
-      anime({
-        targets: cardsRef.current.querySelectorAll('.hand-card'),
-        translateY: [100, 0],
-        opacity: [0, 1],
-        rotate: (_el: HTMLElement, i: number) => {
-          const total = myCards.length
-          const spread = Math.min(total * 5, 20)
-          return (i - (total - 1) / 2) * spread / total
-        },
-        delay: anime.stagger(100),
-        easing: 'easeOutElastic(1, .6)',
-        duration: 800,
-      })
-    }
-  }, [myCards.length, gameState.round])
+  const played = gameState.playedCards
+  const lastCard = played[played.length - 1]
+  const lastPlayer = lastCard ? gameState.players.find((p) => p.id === lastCard.playerId) : null
 
-  // AnimaÃ§Ã£o quando carta Ã© jogada
-  function handlePlayCard() {
-    if (selectedCard === null || isPlaying) return
-
-    setIsPlaying(true)
-
-    // Animar a carta saindo
-    const cardEl = cardsRef.current?.querySelector(`[data-value="${selectedCard}"]`)
-    if (cardEl) {
-      anime({
-        targets: cardEl,
-        translateY: -200,
-        opacity: 0,
-        scale: 0.5,
-        duration: 400,
-        easing: 'easeInBack',
-        complete: () => {
-          onPlayCard(selectedCard)
-          setSelectedCard(null)
-          setIsPlaying(false)
-        },
-      })
-    } else {
-      onPlayCard(selectedCard)
-      setSelectedCard(null)
-      setIsPlaying(false)
-    }
-  }
-
-  // Ãšltima carta jogada
-  const lastCard = gameState.playedCards[gameState.playedCards.length - 1]
-  const lastPlayer = lastCard 
-    ? gameState.players.find(p => p.id === lastCard.playerId)
-    : null
-
-  // Verificar se fui cortado ou cortei alguÃ©m
   const wasCut = gameState.lastCutPlayer === playerId
   const didCut = gameState.lastCutterPlayer === playerId
+  const iWon = gameState.winner === playerId || gameState.winner === 'team'
+
+  const secondsToNextRound = gameState.nextRoundTs
+    ? Math.max(0, Math.ceil((gameState.nextRoundTs - now) / 1000))
+    : null
+
+  // A seleção só vale enquanto a carta continuar na mão: assim ela se
+  // desfaz sozinha quando a rodada vira ou quando a carta é jogada, sem
+  // precisar de um efeito para limpar estado.
+  const selected = selectedCard !== null && myCards.includes(selectedCard) ? selectedCard : null
+
+  function handlePlay() {
+    if (selected === null || playing) return
+    setPlaying(true)
+    haptic([12, 40, 18])
+    onPlayCard(selected)
+    setSelectedCard(null)
+    // O estado real chega no próximo poll; liberar o botão logo evita travar
+    // a jogada se a resposta demorar.
+    window.setTimeout(() => setPlaying(false), 400)
+  }
+
+  const lockedReason = isEliminated
+    ? 'Você foi eliminado. Acompanhe pela TV.'
+    : gameState.phase === 'waiting'
+      ? 'Aguardando o host começar.'
+      : gameState.phase === 'roundBreak'
+        ? `Rodada ${gameState.round + 1} chegando${secondsToNextRound !== null ? ` em ${secondsToNextRound}s` : ''}...`
+        : gameState.phase === 'gameOver'
+          ? 'A partida acabou.'
+          : myCards.length === 0
+            ? 'Você jogou todas as suas cartas. Agora é torcer.'
+            : undefined
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        background: `
-          radial-gradient(ellipse at bottom, ${isCoop ? 'rgba(34, 197, 94, 0.1)' : 'rgba(168, 85, 247, 0.1)'} 0%, transparent 50%),
-          var(--bg-void)
-        `,
-        display: 'flex',
-        flexDirection: 'column',
-        p: 2,
-      }}
-    >
-      {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 2,
-        }}
-      >
-        <Box>
-          <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>
-            {roomCode}
-          </Typography>
-          <Typography variant="h6" sx={{ color: 'var(--accent-gold)' }}>
-            {player?.name}
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Chip
-            label={`R${gameState.round}`}
-            size="small"
-            sx={{ bgcolor: 'var(--accent-gold)', color: '#000', fontWeight: 700 }}
+    <GameShell
+      title="READ MY MIND"
+      tagline={
+        isCoop
+          ? 'Joguem em ordem crescente. Sem falar, sem sinais.'
+          : 'Quem cortar a sequência é eliminado.'
+      }
+      accent={ACCENT}
+      roomCode={roomCode}
+      viewMode={viewMode}
+      onBack={onBack}
+      onToggleView={onToggleView}
+      error={error}
+      maxWidth={720}
+      headerExtra={
+        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+          <StatPill
+            label="Modo"
+            value={isCoop ? 'CO-OP' : 'VERSUS'}
+            accent={isCoop ? 'var(--status-ready)' : 'var(--neon-purple)'}
+            filled
           />
+          <StatPill label="Rodada" value={`${gameState.round}/${gameState.maxRounds}`} accent={ACCENT.main} />
+          <StatPill label="Na mão" value={myCards.length} accent={ACCENT.main} />
+
           {isCoop && (
-            <Box sx={{ display: 'flex' }}>
-              {Array.from({ length: gameState.lives }).map((_, i) => (
-                <HeartIcon key={i} sx={{ color: 'var(--accent-red)', fontSize: '1.2rem' }} />
-              ))}
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 0.25,
+                px: 1.75,
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'rgba(255,255,255,0.035)',
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: '0.65rem',
+                  letterSpacing: '0.18em',
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                }}
+              >
+                VIDAS
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 0.25 }}>
+                {Array.from({ length: gameState.maxLives }).map((_, index) =>
+                  index < gameState.lives ? (
+                    <FavoriteIcon key={index} sx={{ color: 'var(--accent-red)', fontSize: '1.2rem' }} />
+                  ) : (
+                    <FavoriteBorderIcon
+                      key={index}
+                      sx={{ color: 'var(--text-muted)', fontSize: '1.2rem', opacity: 0.4 }}
+                    />
+                  ),
+                )}
+              </Box>
             </Box>
           )}
         </Box>
-      </Box>
-
-      {/* Status central */}
-      <Box
-        sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
+      }
+    >
+      {/* A mesa */}
+      <GameCard
+        title="NA MESA"
+        hint={lastPlayer ? `último: ${lastPlayer.name}` : 'nada ainda'}
+        accent={ACCENT.main}
+        highlight
       >
-        {/* Fase de espera */}
-        {gameState.phase === 'waiting' && (
-          <Typography sx={{ color: 'var(--text-muted)' }}>
-            Aguardando inÃ­cio do jogo...
+        {lastCard ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, flexWrap: 'wrap' }}>
+            <PlayingCard key={`${lastCard.value}-${played.length}`} faceValue={lastCard.value} size="lg" highlight />
+            {played.length > 1 && (
+              <Box sx={{ maxWidth: 260 }}>
+                <Typography
+                  sx={{
+                    fontSize: '0.6rem',
+                    letterSpacing: '0.2em',
+                    fontWeight: 800,
+                    color: 'var(--text-muted)',
+                    mb: 1,
+                  }}
+                >
+                  ANTES DISSO
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {played.slice(0, -1).map((card, index) => (
+                    <PlayingCard
+                      key={`${card.value}-${index}`}
+                      faceValue={card.value}
+                      size="xs"
+                      dimmed
+                      dealDelay={index * 30}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
+          </Box>
+        ) : (
+          <Typography sx={{ textAlign: 'center', color: 'var(--text-muted)', py: 3 }}>
+            A mesa está vazia. Quem tem a carta mais baixa?
           </Typography>
         )}
+      </GameCard>
 
-        {/* Distribuindo cartas */}
-        {gameState.phase === 'dealing' && (
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h5" sx={{ color: 'var(--accent-gold)', mb: 1 }}>
-              ðŸƒ Recebendo cartas...
-            </Typography>
-            <Typography sx={{ color: 'var(--text-muted)' }}>
-              VocÃª receberÃ¡ {gameState.round} carta{gameState.round > 1 ? 's' : ''}
-            </Typography>
-          </Box>
-        )}
-
-        {/* Pausa entre rodadas */}
-        {gameState.phase === 'roundBreak' && (
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h5" sx={{ color: 'var(--accent-gold)', mb: 1 }}>
-              Preparando rodada {gameState.round + 1}...
-            </Typography>
-            {gameState.nextRoundTs && (
-              <Typography sx={{ color: 'var(--text-primary)', mb: 1 }}>
-                {Math.max(0, Math.ceil((gameState.nextRoundTs - now) / 1000))}s
-              </Typography>
-            )}
-            <Typography sx={{ color: 'var(--text-muted)' }}>
-              Novas cartas chegando em instantes.
-            </Typography>
-          </Box>
-        )}
-
-        {/* Eliminado */}
-        {isEliminated && (
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ color: 'var(--accent-red)', mb: 2 }}>
-              ðŸ’€ ELIMINADO
-            </Typography>
-            <Typography sx={{ color: 'var(--text-muted)' }}>
-              VocÃª foi eliminado do jogo. Assista a TV!
-            </Typography>
-          </Box>
-        )}
-
-        {/* Alerta de corte */}
-        {(wasCut || didCut) && gameState.phase === 'playing' && (
-          <Box
-            sx={{
-              background: 'rgba(220, 38, 38, 0.9)',
-              borderRadius: 'var(--radius-lg)',
-              p: 3,
-              mb: 3,
-              textAlign: 'center',
-            }}
-          >
-            <Typography variant="h5" sx={{ color: '#fff' }}>
-              {wasCut ? 'ðŸ˜± VocÃª foi cortado!' : 'âš”ï¸ VocÃª cortou alguÃ©m!'}
-            </Typography>
-            {!isCoop && (
-              <Typography sx={{ color: '#fff', opacity: 0.8, mt: 1 }}>
-                {gameState.players.filter(p => !p.isEliminated).length === 2 
-                  ? (wasCut ? 'VocÃª GANHOU!' : 'VocÃª foi eliminado!')
-                  : 'VocÃª foi eliminado!'}
-              </Typography>
-            )}
-          </Box>
-        )}
-
-        {/* Jogando - mostrar Ãºltima carta */}
-        {gameState.phase === 'playing' && !isEliminated && lastCard && (
-          <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-              Ãšltima carta ({lastPlayer?.name})
-            </Typography>
-            <Box
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 60,
-                height: 80,
-                background: 'linear-gradient(135deg, #fff 0%, #e0e0e0 100%)',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: 'var(--shadow-md)',
-                mt: 1,
-              }}
-            >
-              <Typography
-                sx={{
-                  fontSize: '1.5rem',
-                  fontWeight: 700,
-                  color: lastCard.value > 50 ? '#dc2626' : '#1e3a8a',
-                }}
-              >
-                {lastCard.value}
-              </Typography>
-            </Box>
-          </Box>
-        )}
-
-        {/* Fim de rodada */}
-        {gameState.phase === 'roundEnd' && !isEliminated && (
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h4" sx={{ color: 'var(--status-ready)', mb: 2 }}>
-              âœ… Rodada completa!
-            </Typography>
-            <Typography sx={{ color: 'var(--text-muted)' }}>
-              Aguardando prÃ³xima rodada...
-            </Typography>
-          </Box>
-        )}
-
-        {/* Game Over */}
-        {gameState.phase === 'gameOver' && (
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography 
-              variant="h3" 
-              sx={{ 
-                color: gameState.winner === playerId || gameState.winner === 'team' 
-                  ? 'var(--accent-gold)' 
-                  : 'var(--accent-red)',
-                mb: 2,
-              }}
-            >
-              {gameState.winner === playerId || gameState.winner === 'team' 
-                ? 'ðŸ† VITÃ“RIA!' 
-                : 'ðŸ’€ GAME OVER'}
-            </Typography>
-            <Typography sx={{ color: 'var(--text-secondary)' }}>
-              {gameState.gameOverReason}
-            </Typography>
-          </Box>
-        )}
-      </Box>
-
-      {/* Cartas na mÃ£o */}
-        {gameState.phase === 'playing' && !isEliminated && myCards.length > 0 && (
+      {/* Minha mão */}
+      <ActionPanel
+        title={selected !== null ? `Jogar a carta ${selected}?` : 'Sua mão'}
+        hint="Jogue quando tiver certeza de que a sua é a menor carta ainda na mesa."
+        accent={ACCENT.main}
+        lockedReason={lockedReason}
+      >
         <Box
-          ref={cardsRef}
           sx={{
             display: 'flex',
-            justifyContent: 'center',
-            gap: 1,
             flexWrap: 'wrap',
-            mb: 2,
+            justifyContent: 'center',
+            gap: 1.25,
+            mb: 2.5,
+            minHeight: 130,
+            alignItems: 'center',
           }}
         >
-          {myCards.map((card) => (
-            <Box
-              key={card}
-              data-value={card}
-              className="hand-card"
-              onClick={() => setSelectedCard(selectedCard === card ? null : card)}
-              sx={{
-                width: 70,
-                height: 100,
-                background: selectedCard === card
-                  ? 'linear-gradient(135deg, var(--accent-gold) 0%, #fbbf24 100%)'
-                  : 'linear-gradient(135deg, #fff 0%, #e0e0e0 100%)',
-                borderRadius: 'var(--radius-md)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                transform: selectedCard === card ? 'translateY(-10px) scale(1.05)' : 'none',
-                boxShadow: selectedCard === card
-                  ? '0 10px 30px var(--accent-gold-glow)'
-                  : 'var(--shadow-md)',
-                border: selectedCard === card
-                  ? '3px solid var(--accent-gold)'
-                  : '2px solid var(--border-subtle)',
-                opacity: 0,
-              }}
-            >
-              <Typography
+          {myCards.map((card, index) => {
+            const isSelected = selected === card
+            return (
+              <Box
+                key={card}
+                onClick={() => setSelectedCard(isSelected ? null : card)}
+                role="button"
+                tabIndex={0}
+                aria-pressed={isSelected}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    setSelectedCard(isSelected ? null : card)
+                  }
+                }}
                 sx={{
-                  fontSize: '2rem',
-                  fontWeight: 700,
-                  color: card > 50 ? '#dc2626' : '#1e3a8a',
+                  cursor: 'pointer',
+                  transform: isSelected ? 'translateY(-14px)' : 'none',
+                  transition: 'transform 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  '&:hover': { transform: 'translateY(-8px)' },
                 }}
               >
-                {card}
-              </Typography>
-            </Box>
-          ))}
+                <PlayingCard
+                  faceValue={card}
+                  size="md"
+                  highlight={isSelected}
+                  dealDelay={index * 90}
+                  tilt={(index - (myCards.length - 1) / 2) * 3}
+                />
+              </Box>
+            )
+          })}
         </Box>
-      )}
 
-      {/* BotÃ£o de jogar */}
-      {gameState.phase === 'playing' && !isEliminated && (
         <Button
           fullWidth
           variant="contained"
           size="large"
-          onClick={handlePlayCard}
-          disabled={selectedCard === null || isPlaying}
-          sx={{
-            py: 2,
-            fontSize: '1.2rem',
-            background: selectedCard !== null
-              ? 'linear-gradient(135deg, var(--accent-red) 0%, #b91c1c 100%)'
-              : undefined,
-            '&:disabled': {
-              background: 'var(--bg-surface)',
-              color: 'var(--text-muted)',
-            },
-          }}
+          onClick={handlePlay}
+          disabled={selected === null || playing}
+          sx={{ py: 2, fontSize: '1.15rem' }}
         >
-          {selectedCard !== null
-            ? `JOGAR ${selectedCard}`
-            : 'Selecione uma carta'}
+          {selected !== null ? `Jogar ${selected}` : 'Escolha uma carta'}
         </Button>
-      )}
+      </ActionPanel>
 
-      {/* Dica */}
-      {gameState.phase === 'playing' && !isEliminated && myCards.length > 0 && (
-        <Typography 
-          sx={{ 
-            textAlign: 'center', 
-            color: 'var(--text-muted)', 
-            fontSize: '0.8rem',
-            mt: 2,
-          }}
-        >
-          ðŸ’¡ Jogue quando achar que sua carta Ã© a menor!
-        </Typography>
-      )}
+      {/* Cortinas */}
+      <ResultOverlay
+        open={(wasCut || didCut) && gameState.phase === 'playing'}
+        tone={wasCut ? 'lose' : 'danger'}
+        sigil={wasCut ? '😱' : '⚔️'}
+        title={wasCut ? 'VOCÊ FOI CORTADO' : 'VOCÊ CORTOU ALGUÉM'}
+        subtitle={
+          isCoop
+            ? 'A equipe perdeu uma vida.'
+            : wasCut
+              ? 'Alguém jogou depois de você com uma carta menor.'
+              : 'Você jogou uma carta maior do que a de alguém.'
+        }
+      />
 
-      {/* Sem cartas */}
-      {gameState.phase === 'playing' && !isEliminated && myCards.length === 0 && player && (
-        <Box sx={{ textAlign: 'center', py: 4 }}>
-          <Typography variant="h5" sx={{ color: 'var(--status-ready)' }}>
-            âœ… VocÃª jogou todas suas cartas!
-          </Typography>
-          <Typography sx={{ color: 'var(--text-muted)', mt: 1 }}>
-            Aguardando outros jogadores...
-          </Typography>
-        </Box>
-      )}
+      <ResultOverlay
+        open={gameState.phase === 'gameOver'}
+        tone={iWon ? 'win' : 'lose'}
+        title={iWon ? 'VITÓRIA' : 'GAME OVER'}
+        subtitle={gameState.gameOverReason ?? undefined}
+      />
 
-      {/* Jogador nÃ£o encontrado */}
-      {gameState.phase === 'playing' && !player && (
-        <Box sx={{ textAlign: 'center', py: 4 }}>
-          <Typography sx={{ color: 'var(--text-muted)' }}>
-            Conectando ao jogo...
-          </Typography>
-        </Box>
-      )}
-    </Box>
+      <ResultOverlay
+        open={isEliminated && gameState.phase !== 'gameOver'}
+        tone="lose"
+        title="VOCÊ FOI ELIMINADO"
+        subtitle="Acompanhe o resto da partida pela TV."
+      />
+    </GameShell>
   )
 }
-

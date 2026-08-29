@@ -1,29 +1,35 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Box, Typography, Button, TextField, IconButton, Avatar } from '@mui/material'
-import {
-  Add as AddIcon,
-  Login as JoinIcon,
-  Logout as LogoutIcon,
-} from '@mui/icons-material'
+import { Box, Typography, Button, TextField, IconButton, Tooltip } from '@mui/material'
+import AddRoundedIcon from '@mui/icons-material/AddRounded'
+import LoginRoundedIcon from '@mui/icons-material/LoginRounded'
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded'
+import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded'
 import { useAuth } from '../context/useAuth'
 import { createRoom, getRoom, listGames } from '../lib/api'
 import { clearLastRoom, loadLastRoom } from '../lib/roomHistory'
+import { gameRoute } from '../lib/gameCatalog'
 import type { Game } from '../lib/types'
+import { AppShell, Brand, GameTile, LoadingScreen, Panel } from '../components/ui'
+
+type ResumeInfo = {
+  code: string
+  view: 'host' | 'player'
+  status: 'lobby' | 'live' | 'ended'
+  gameName?: string
+}
 
 export default function Lobby() {
   const navigate = useNavigate()
   const { isAuthenticated, isLoading, user, logout } = useAuth()
+
   const [joinCode, setJoinCode] = useState('')
   const [games, setGames] = useState<Game[]>([])
+  const [selectedGameId, setSelectedGameId] = useState<number | null>(null)
   const [gamesLoading, setGamesLoading] = useState(true)
+  const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
-  const [resumeInfo, setResumeInfo] = useState<{
-    code: string
-    view: 'host' | 'player'
-    status: 'lobby' | 'live' | 'ended'
-    gameSlug?: string
-  } | null>(null)
+  const [resumeInfo, setResumeInfo] = useState<ResumeInfo | null>(null)
   const [resumeLoading, setResumeLoading] = useState(false)
 
   useEffect(() => {
@@ -39,13 +45,12 @@ export default function Lobby() {
         const data = await listGames()
         if (!active) return
         setGames(data)
+        setSelectedGameId((current) => current ?? data[0]?.id ?? null)
       } catch (err) {
         if (!active) return
-        setError(err instanceof Error ? err.message : 'Erro ao carregar jogos.')
+        setError(err instanceof Error ? err.message : 'Não foi possível carregar os jogos.')
       } finally {
-        if (active) {
-          setGamesLoading(false)
-        }
+        if (active) setGamesLoading(false)
       }
     }
     fetchGames()
@@ -54,6 +59,7 @@ export default function Lobby() {
     }
   }, [])
 
+  // Sala anterior ainda viva? Oferece voltar em vez de obrigar a redigitar o código.
   useEffect(() => {
     if (!isAuthenticated) return
     const saved = loadLastRoom()
@@ -61,12 +67,11 @@ export default function Lobby() {
       setResumeInfo(null)
       return
     }
-    const savedRoom = saved
     let active = true
     async function fetchResume() {
       setResumeLoading(true)
       try {
-        const room = await getRoom(savedRoom.code)
+        const room = await getRoom(saved!.code)
         if (!active) return
         if (room.status === 'ended') {
           clearLastRoom()
@@ -74,19 +79,17 @@ export default function Lobby() {
           return
         }
         setResumeInfo({
-          code: savedRoom.code,
-          view: savedRoom.view,
+          code: saved!.code,
+          view: saved!.view,
           status: room.status,
-          gameSlug: room.game?.slug,
+          gameName: room.game?.name,
         })
       } catch {
         if (!active) return
         clearLastRoom()
         setResumeInfo(null)
       } finally {
-        if (active) {
-          setResumeLoading(false)
-        }
+        if (active) setResumeLoading(false)
       }
     }
     fetchResume()
@@ -95,164 +98,111 @@ export default function Lobby() {
     }
   }, [isAuthenticated])
 
+  const selectedGame = useMemo(
+    () => games.find((game) => game.id === selectedGameId) ?? null,
+    [games, selectedGameId],
+  )
+
   async function handleCreateRoom() {
-    if (!games.length) {
-      setError('Nenhum jogo disponível para criar sala.')
+    if (!selectedGame) {
+      setError('Escolha um jogo para abrir a sala.')
       return
     }
+    setCreating(true)
     setError('')
     try {
-      const room = await createRoom({ game_id: games[0].id, host_name: user?.nickname })
+      const room = await createRoom({ game_id: selectedGame.id, host_name: user?.nickname })
       navigate(`/host/${room.code}`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao criar sala.')
+      setError(err instanceof Error ? err.message : 'Não foi possível criar a sala.')
+      setCreating(false)
     }
   }
 
   function handleJoinRoom() {
-    if (joinCode.trim()) {
-      navigate(`/play/${joinCode.toUpperCase()}`)
-    }
+    const code = joinCode.trim().toUpperCase()
+    if (code) navigate(`/play/${code}`)
   }
 
   function handleResumeRoom() {
     if (!resumeInfo) return
     const code = resumeInfo.code.toUpperCase()
     if (resumeInfo.status === 'live') {
-      if (resumeInfo.gameSlug === 'read-my-mind') {
-        navigate(`/game/${code}/read-my-mind?view=${resumeInfo.view}`)
-      } else {
-        navigate(`/game/${code}?view=${resumeInfo.view}`)
-      }
+      navigate(gameRoute(code, resumeInfo.view))
       return
     }
-    if (resumeInfo.view === 'host') {
-      navigate(`/host/${code}`)
-    } else {
-      navigate(`/play/${code}`)
-    }
+    navigate(resumeInfo.view === 'host' ? `/host/${code}` : `/play/${code}`)
   }
 
-  function handleLogout() {
-    logout()
-    navigate('/')
-  }
-
-  if (isLoading) {
-    return (
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Typography>Carregando...</Typography>
-      </Box>
-    )
-  }
-
-  const avatarColor = user?.nickname
-    ? `hsl(${user.nickname.charCodeAt(0) * 10}, 70%, 50%)`
-    : 'var(--accent-gold)'
+  if (isLoading) return <LoadingScreen label="ABRINDO O LOBBY" />
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        p: { xs: 2, md: 4 },
-        background: `
-          radial-gradient(ellipse at top, rgba(220, 38, 38, 0.1) 0%, transparent 50%),
-          var(--bg-void)
-        `,
-      }}
-    >
-      <Box sx={{ maxWidth: 800, mx: 'auto' }}>
-        {/* Header */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 4,
-            pb: 3,
-            borderBottom: '1px solid var(--border-subtle)',
-          }}
-        >
-          <Box>
-            <Typography
-              variant="h3"
+    <AppShell
+      headerLeft={<Brand size="md" />}
+      error={error}
+      headerRight={
+        <>
+          <Button
+            onClick={() => navigate('/profile')}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              px: 1.75,
+              py: 0.9,
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'rgba(255,255,255,0.03)',
+              textTransform: 'none',
+              '&:hover': { borderColor: 'var(--accent-gold)', background: 'rgba(255,255,255,0.06)' },
+            }}
+          >
+            <Box
               sx={{
-                background: 'linear-gradient(90deg, var(--accent-red), var(--accent-gold))',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                width: 34,
+                height: 34,
+                borderRadius: '50%',
+                display: 'grid',
+                placeItems: 'center',
+                fontFamily: 'var(--font-display)',
+                fontSize: '0.95rem',
+                color: '#0a0a0f',
+                background: 'linear-gradient(140deg, var(--accent-gold), var(--accent-gold-light))',
               }}
             >
-              SABADO GAMES
-            </Typography>
-          </Box>
-
-          {/* Perfil e Logout */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Button
-              onClick={() => navigate('/profile')}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                px: 2,
-                py: 1,
-                borderRadius: 'var(--radius-lg)',
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-subtle)',
-                textTransform: 'none',
-                '&:hover': {
-                  borderColor: 'var(--accent-gold)',
-                  background: 'var(--bg-surface)',
-                },
-              }}
-            >
-              <Avatar
-                sx={{
-                  width: 32,
-                  height: 32,
-                  fontSize: '0.9rem',
-                  bgcolor: avatarColor,
-                }}
+              {(user?.nickname ?? 'J').charAt(0).toUpperCase()}
+            </Box>
+            <Box sx={{ textAlign: 'left' }}>
+              <Typography
+                sx={{ fontWeight: 700, fontSize: '0.9rem', lineHeight: 1.2, color: 'var(--text-primary)' }}
               >
-                {user?.nickname?.charAt(0).toUpperCase() || 'J'}
-              </Avatar>
-              <Box sx={{ textAlign: 'left' }}>
-                <Typography sx={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.9rem', lineHeight: 1.2 }}>
-                  {user?.nickname || 'Jogador'}
-                </Typography>
-                <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.75rem', lineHeight: 1 }}>
-                  Ver perfil
-                </Typography>
-              </Box>
-            </Button>
+                {user?.nickname || 'Jogador'}
+              </Typography>
+              <Typography sx={{ fontSize: '0.68rem', lineHeight: 1, color: 'var(--text-muted)' }}>
+                Ver perfil
+              </Typography>
+            </Box>
+          </Button>
+          <Tooltip title="Sair da conta">
             <IconButton
-              onClick={handleLogout}
-              sx={{
-                color: 'var(--text-muted)',
-                '&:hover': { color: 'var(--accent-red)' },
+              onClick={() => {
+                logout()
+                navigate('/')
               }}
+              aria-label="Sair da conta"
+              sx={{ color: 'var(--text-muted)', '&:hover': { color: 'var(--accent-red)' } }}
             >
-              <LogoutIcon />
+              <LogoutRoundedIcon />
             </IconButton>
-          </Box>
-        </Box>
-
-
-        {resumeInfo && (
+          </Tooltip>
+        </>
+      }
+    >
+      {/* Retomar sala anterior */}
+      {resumeInfo && (
+        <Panel accent="var(--accent-gold)" highlight sx={{ mb: 2.5 }}>
           <Box
             sx={{
-              mb: 3,
-              p: 2.5,
-              borderRadius: 'var(--radius-xl)',
-              border: '2px dashed var(--accent-gold)',
-              background: 'rgba(212, 165, 32, 0.08)',
               display: 'flex',
               alignItems: { xs: 'stretch', md: 'center' },
               justifyContent: 'space-between',
@@ -261,103 +211,145 @@ export default function Lobby() {
             }}
           >
             <Box>
-              <Typography sx={{ fontWeight: 600, color: 'var(--accent-gold)' }}>
-                Retomar jogo
+              <Typography
+                sx={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '1.35rem',
+                  letterSpacing: '0.06em',
+                  color: 'var(--accent-gold)',
+                }}
+              >
+                VOCÊ TEM UMA MESA ABERTA
               </Typography>
-              <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                Sala {resumeInfo.code.toUpperCase()} � {resumeInfo.status === 'live' ? 'Partida em andamento' : 'Lobby'}
+              <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+                Sala {resumeInfo.code.toUpperCase()}
+                {resumeInfo.gameName ? ` · ${resumeInfo.gameName}` : ''} ·{' '}
+                {resumeInfo.status === 'live' ? 'partida em andamento' : 'aguardando no lobby'}
               </Typography>
             </Box>
             <Button
               variant="contained"
               color="secondary"
+              startIcon={<PlayArrowRoundedIcon />}
               onClick={handleResumeRoom}
               disabled={resumeLoading}
-              sx={{ alignSelf: { xs: 'stretch', md: 'center' } }}
+              sx={{ flexShrink: 0 }}
             >
               {resumeLoading ? 'Carregando...' : 'Voltar ao jogo'}
             </Button>
           </Box>
-        )}
-        {/* Opções */}
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            gap: 3,
-          }}
+        </Panel>
+      )}
+
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', lg: '1fr 340px' },
+          gap: 2.5,
+          alignItems: 'start',
+        }}
+      >
+        {/* Catálogo */}
+        <Panel
+          title="ESCOLHA O JOGO"
+          hint={gamesLoading ? 'carregando...' : `${games.length} disponíveis`}
+          accent="var(--accent-red)"
         >
-          {/* Criar Sala */}
-          <Box
-            sx={{
-              flex: 1,
-              background: 'linear-gradient(135deg, var(--bg-card) 0%, rgba(220, 38, 38, 0.1) 100%)',
-              borderRadius: 'var(--radius-xl)',
-              border: '2px solid var(--accent-red)',
-              p: 4,
-              position: 'relative',
-              overflow: 'hidden',
-              '&::before': {
-                content: '""',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 4,
-                background: 'linear-gradient(90deg, var(--accent-red), var(--accent-gold), var(--accent-red))',
-              },
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <AddIcon sx={{ fontSize: 32, color: 'var(--accent-red)' }} />
-              <Typography variant="h4" sx={{ color: 'var(--accent-red)' }}>
-                Criar Sala
+          {gamesLoading ? (
+            <Typography sx={{ color: 'var(--text-muted)', py: 4, textAlign: 'center' }}>
+              Buscando os jogos da mesa...
+            </Typography>
+          ) : games.length === 0 ? (
+            <Typography sx={{ color: 'var(--text-muted)', py: 4, textAlign: 'center' }}>
+              Nenhum jogo cadastrado no servidor.
+            </Typography>
+          ) : (
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
+                gap: 2,
+              }}
+            >
+              {games.map((game, index) => (
+                <GameTile
+                  key={game.id}
+                  game={game}
+                  index={index}
+                  selected={game.id === selectedGameId}
+                  onSelect={() => setSelectedGameId(game.id)}
+                />
+              ))}
+            </Box>
+          )}
+        </Panel>
+
+        {/* Ações */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <Panel accent="var(--accent-red)" highlight index={1}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
+              <AddRoundedIcon sx={{ fontSize: 26, color: 'var(--accent-red)' }} />
+              <Typography
+                sx={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '1.4rem',
+                  letterSpacing: '0.06em',
+                  color: 'var(--accent-red)',
+                }}
+              >
+                ABRIR SALA
               </Typography>
             </Box>
-            <Typography sx={{ mb: 4, color: 'var(--text-secondary)' }}>
-              Seja o host! Crie uma sala, escolha os jogos e convide seus amigos.
+            <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.9rem', mb: 2.5 }}>
+              {selectedGame
+                ? `Você vai abrir uma mesa de ${selectedGame.name}. Dá pra trocar o jogo depois.`
+                : 'Escolha um jogo ao lado para abrir a mesa.'}
             </Typography>
-            {error && (
-              <Typography sx={{ color: 'var(--accent-red)', mb: 2, fontSize: '0.9rem' }}>{error}</Typography>
-            )}
             <Button
               fullWidth
               variant="contained"
               color="primary"
               size="large"
               onClick={handleCreateRoom}
-              disabled={gamesLoading}
-              sx={{ py: 2 }}
+              disabled={gamesLoading || creating || !selectedGame}
+              sx={{ py: 1.8 }}
             >
-              {gamesLoading ? 'CARREGANDO...' : 'CRIAR NOVA SALA'}
+              {creating ? 'Criando...' : 'Criar nova sala'}
             </Button>
-          </Box>
+          </Panel>
 
-          {/* Entrar em Sala */}
-          <Box
-            sx={{
-              flex: 1,
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-xl)',
-              border: '2px solid var(--border-subtle)',
-              p: 4,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <JoinIcon sx={{ fontSize: 32, color: 'var(--accent-gold)' }} />
-              <Typography variant="h4" sx={{ color: 'var(--accent-gold)' }}>
-                Entrar
+          <Panel accent="var(--accent-gold)" index={2}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
+              <LoginRoundedIcon sx={{ fontSize: 26, color: 'var(--accent-gold)' }} />
+              <Typography
+                sx={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '1.4rem',
+                  letterSpacing: '0.06em',
+                  color: 'var(--accent-gold)',
+                }}
+              >
+                ENTRAR
               </Typography>
             </Box>
-            <Typography sx={{ mb: 3, color: 'var(--text-secondary)' }}>
-              Já tem um código? Entre em uma sala existente.
+            <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.9rem', mb: 2 }}>
+              Recebeu um código? Sente na mesa de alguém.
             </Typography>
             <TextField
               fullWidth
-              placeholder="Código da sala"
+              placeholder="CÓDIGO"
               value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value)}
-              sx={{ mb: 2 }}
+              onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
+              onKeyDown={(event) => event.key === 'Enter' && handleJoinRoom()}
+              sx={{ mb: 1.5 }}
+              slotProps={{
+                htmlInput: {
+                  maxLength: 6,
+                  inputMode: 'numeric',
+                  style: { textAlign: 'center', fontSize: '1.4rem', letterSpacing: '0.24em' },
+                  'aria-label': 'Código da sala',
+                },
+              }}
             />
             <Button
               fullWidth
@@ -366,14 +358,13 @@ export default function Lobby() {
               size="large"
               onClick={handleJoinRoom}
               disabled={!joinCode.trim()}
-              sx={{ py: 2 }}
+              sx={{ py: 1.6 }}
             >
-              ENTRAR NA SALA
+              Entrar na sala
             </Button>
-          </Box>
+          </Panel>
         </Box>
       </Box>
-    </Box>
+    </AppShell>
   )
 }
-

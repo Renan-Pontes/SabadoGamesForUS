@@ -62,6 +62,83 @@ class Command(BaseCommand):
                 "is_active": True,
             },
             {
+                "slug": "a-cacada",
+                "name": "A Caçada",
+                "description": (
+                    "Cada um recebe uma pista sobre onde a criatura se esconde. "
+                    "Só um hexágono do mapa satisfaz todas — encontre-o antes dos outros."
+                ),
+                "min_players": 3,
+                "max_players": 6,
+                "is_active": True,
+            },
+            {
+                "slug": "sintonia",
+                "name": "Sintonia",
+                "description": (
+                    "Um espectro, um alvo escondido e uma pista só. "
+                    "A mesa discute e cada um aponta onde acha que está."
+                ),
+                "min_players": 3,
+                "max_players": 12,
+                "is_active": True,
+            },
+            {
+                "slug": "caveira",
+                "name": "Caveira",
+                "description": (
+                    "Três rosas e uma caveira. Empilhe, blefe e aposte quantas "
+                    "cartas consegue virar sem achar a caveira."
+                ),
+                "min_players": 3,
+                "max_players": 6,
+                "is_active": True,
+            },
+            {
+                "slug": "resistencia",
+                "name": "A Resistência",
+                "description": (
+                    "Espiões infiltrados sabotam missões em segredo. "
+                    "Cinco missões, votação aberta e nenhuma certeza."
+                ),
+                "min_players": 5,
+                "max_players": 10,
+                "is_active": True,
+            },
+            {
+                "slug": "palavra-chave",
+                "name": "Palavra-Chave",
+                "description": (
+                    "Dois times, 25 palavras e um espião-mestre que só pode dizer "
+                    "uma palavra e um número. Cuidado com o assassino."
+                ),
+                "min_players": 4,
+                "max_players": 12,
+                "is_active": True,
+            },
+            {
+                "slug": "o-infiltrado",
+                "name": "O Infiltrado",
+                "description": (
+                    "Todos sabem onde estão, menos um. Perguntem entre si sem "
+                    "entregar o local — e descubram quem está blefando."
+                ),
+                "min_players": 3,
+                "max_players": 12,
+                "is_active": True,
+            },
+            {
+                "slug": "perfil",
+                "name": "Perfil",
+                "description": (
+                    "Dicas reveladas uma a uma sobre uma pessoa, lugar, coisa, "
+                    "ano ou ficção. Quem acerta primeiro leva mais pontos."
+                ),
+                "min_players": 2,
+                "max_players": 12,
+                "is_active": True,
+            },
+            {
                 "slug": "blef-jack",
                 "name": "Blef Jack",
                 "description": (

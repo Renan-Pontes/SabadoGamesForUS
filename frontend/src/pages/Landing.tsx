@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -6,174 +6,85 @@ import {
   TextField,
   Typography,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
   IconButton,
   Alert,
   InputAdornment,
 } from '@mui/material'
-import {
-  Close as CloseIcon,
-  Tv as TvIcon,
-  SportsEsports as GameIcon,
-  Visibility,
-  VisibilityOff,
-} from '@mui/icons-material'
-import anime from 'animejs'
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
+import TvRoundedIcon from '@mui/icons-material/TvRounded'
+import SportsEsportsRoundedIcon from '@mui/icons-material/SportsEsportsRounded'
+import VisibilityRounded from '@mui/icons-material/VisibilityRounded'
+import VisibilityOffRounded from '@mui/icons-material/VisibilityOffRounded'
 import { useAuth } from '../context/useAuth'
+import { Brand, LoadingScreen, Panel } from '../components/ui'
+import { pageBackdrop } from '../components/ui/surfaces'
 
-// Símbolos de naipes para animação de fundo
-const CARD_SYMBOLS = ['♠', '♥', '♦', '♣', '♤', '♡', '♢', '♧']
+/** Naipes soltos ao fundo, com posições fixas para não brigarem com o conteúdo. */
+const FLOATING_SUITS = [
+  { symbol: '♠', top: '12%', left: '6%', size: '7rem', color: 'rgba(245,245,245,0.05)', delay: '0s' },
+  { symbol: '♥', top: '22%', right: '9%', size: '9rem', color: 'rgba(220,38,38,0.07)', delay: '-3s' },
+  { symbol: '♦', bottom: '18%', left: '13%', size: '6rem', color: 'rgba(251,191,36,0.07)', delay: '-6s' },
+  { symbol: '♣', bottom: '10%', right: '16%', size: '8rem', color: 'rgba(34,211,238,0.06)', delay: '-9s' },
+  { symbol: '♥', top: '58%', left: '3%', size: '5rem', color: 'rgba(239,68,68,0.05)', delay: '-4.5s' },
+  { symbol: '♠', top: '6%', right: '32%', size: '4.5rem', color: 'rgba(245,245,245,0.04)', delay: '-7.5s' },
+]
 
 export default function Landing() {
   const navigate = useNavigate()
   const { isAuthenticated, login, register, isLoading } = useAuth()
-  
-  // Estados dos modals
-  const [loginOpen, setLoginOpen] = useState(false)
-  const [registerOpen, setRegisterOpen] = useState(false)
-  
-  // Estados do formulário de login
-  const [loginEmail, setLoginEmail] = useState('')
-  const [loginPassword, setLoginPassword] = useState('')
-  const [loginError, setLoginError] = useState('')
-  const [loginLoading, setLoginLoading] = useState(false)
-  const [showLoginPassword, setShowLoginPassword] = useState(false)
-  
-  // Estados do formulário de registro
-  const [registerEmail, setRegisterEmail] = useState('')
-  const [registerPassword, setRegisterPassword] = useState('')
-  const [registerNickname, setRegisterNickname] = useState('')
-  const [registerError, setRegisterError] = useState('')
-  const [registerLoading, setRegisterLoading] = useState(false)
-  const [showRegisterPassword, setShowRegisterPassword] = useState(false)
-  
-  // Estados dos códigos
-  const [tvCode, setTvCode] = useState('')
-  
-  // Refs para animações
-  const titleRef = useRef<HTMLDivElement>(null)
-  const cardsRef = useRef<HTMLDivElement>(null)
 
-  // Redirecionar se já estiver logado
+  const [mode, setMode] = useState<'login' | 'register' | null>(null)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [nickname, setNickname] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [tvCode, setTvCode] = useState('')
+
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
       navigate('/lobby')
     }
   }, [isAuthenticated, isLoading, navigate])
 
-  // Animações de entrada
+  // Trocar entre entrar e criar conta limpa o erro, não os dados já digitados.
   useEffect(() => {
-    // Animação do título
-    if (titleRef.current) {
-      anime({
-        targets: titleRef.current.querySelectorAll('.title-char'),
-        opacity: [0, 1],
-        translateY: [50, 0],
-        delay: anime.stagger(50),
-        easing: 'easeOutExpo',
-        duration: 1000,
-      })
-    }
+    setFormError('')
+  }, [mode])
 
-    // Animação das cartas flutuantes
-    if (cardsRef.current) {
-      anime({
-        targets: cardsRef.current.querySelectorAll('.floating-card'),
-        translateY: () => anime.random(-20, 20),
-        rotate: () => anime.random(-15, 15),
-        opacity: [0, 0.6],
-        delay: anime.stagger(100, { from: 'center' }),
-        duration: 2000,
-        easing: 'easeOutElastic(1, .5)',
-        complete: () => {
-          // Loop de flutuação
-          anime({
-            targets: cardsRef.current?.querySelectorAll('.floating-card'),
-            translateY: () => [anime.random(-10, 10), anime.random(-20, 20)],
-            duration: () => anime.random(3000, 5000),
-            easing: 'easeInOutSine',
-            direction: 'alternate',
-            loop: true,
-          })
-        },
-      })
-    }
-  }, [])
-
-  // Handlers
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
-    setLoginLoading(true)
-    setLoginError('')
-
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault()
+    setSubmitting(true)
+    setFormError('')
     try {
-      await login(loginEmail, loginPassword)
-      setLoginOpen(false)
+      if (mode === 'register') {
+        await register(email, password, nickname)
+      } else {
+        await login(email, password)
+      }
+      setMode(null)
       navigate('/lobby')
     } catch (err) {
-      setLoginError(err instanceof Error ? err.message : 'Erro ao fazer login')
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : mode === 'register'
+            ? 'Não foi possível criar a conta.'
+            : 'Não foi possível entrar.',
+      )
     } finally {
-      setLoginLoading(false)
-    }
-  }
-
-  async function handleRegister(e: React.FormEvent) {
-    e.preventDefault()
-    setRegisterLoading(true)
-    setRegisterError('')
-
-    try {
-      await register(registerEmail, registerPassword, registerNickname)
-      setRegisterOpen(false)
-      navigate('/lobby')
-    } catch (err) {
-      setRegisterError(err instanceof Error ? err.message : 'Erro ao criar conta')
-    } finally {
-      setRegisterLoading(false)
+      setSubmitting(false)
     }
   }
 
   function handleTvConnect() {
-    if (tvCode.trim()) {
-      navigate(`/tv/${tvCode.toUpperCase()}`)
-    }
+    const code = tvCode.trim().toUpperCase()
+    if (code) navigate(`/tv/${code}`)
   }
 
-  // Renderizar título com animação por letra
-  const renderTitle = (text: string) => {
-    return text.split('').map((char, i) => (
-      <span
-        key={i}
-        className="title-char"
-        style={{
-          display: 'inline-block',
-          opacity: 0,
-        }}
-      >
-        {char === ' ' ? '\u00A0' : char}
-      </span>
-    ))
-  }
-
-  if (isLoading) {
-    return (
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg-void)',
-        }}
-      >
-        <Typography variant="h4" sx={{ color: 'var(--accent-gold)' }}>
-          Carregando...
-        </Typography>
-      </Box>
-    )
-  }
+  if (isLoading) return <LoadingScreen label="ABRINDO A MESA" />
 
   return (
     <Box
@@ -183,51 +94,34 @@ export default function Landing() {
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        background: `
-          radial-gradient(ellipse at top, rgba(220, 38, 38, 0.15) 0%, transparent 50%),
-          radial-gradient(ellipse at bottom, rgba(212, 165, 32, 0.1) 0%, transparent 50%),
-          var(--bg-void)
-        `,
+        background: pageBackdrop('rgba(220, 38, 38, 0.16)', 'rgba(212, 165, 32, 0.12)'),
       }}
     >
-      {/* Background de cartas flutuantes */}
-      <Box
-        ref={cardsRef}
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          overflow: 'hidden',
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
-      >
-        {CARD_SYMBOLS.map((symbol, i) =>
-          Array.from({ length: 4 }).map((_, j) => (
-            <Box
-              key={`${i}-${j}`}
-              className="floating-card"
-              sx={{
-                position: 'absolute',
-                fontSize: { xs: '3rem', md: '5rem' },
-                color: symbol === '♥' || symbol === '♦' || symbol === '♡' || symbol === '♢'
-                  ? 'var(--accent-red)'
-                  : 'var(--text-muted)',
-                opacity: 0,
-                left: `${10 + (i * 10) + (j * 5)}%`,
-                top: `${15 + (j * 20)}%`,
-                filter: 'blur(1px)',
-                textShadow: symbol === '♥' || symbol === '♦'
-                  ? '0 0 20px var(--accent-red-glow)'
-                  : 'none',
-              }}
-            >
-              {symbol}
-            </Box>
-          ))
-        )}
+      {/* Naipes de fundo */}
+      <Box aria-hidden sx={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+        {FLOATING_SUITS.map((suit, index) => (
+          <Box
+            key={index}
+            component="span"
+            sx={{
+              position: 'absolute',
+              top: suit.top,
+              left: suit.left,
+              right: suit.right,
+              bottom: suit.bottom,
+              fontFamily: 'var(--font-display)',
+              fontSize: suit.size,
+              lineHeight: 1,
+              color: suit.color,
+              animation: 'float 9s ease-in-out infinite',
+              animationDelay: suit.delay,
+            }}
+          >
+            {suit.symbol}
+          </Box>
+        ))}
       </Box>
 
-      {/* Conteúdo principal */}
       <Box
         sx={{
           flex: 1,
@@ -235,390 +129,258 @@ export default function Landing() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          px: 3,
+          px: { xs: 2.5, md: 4 },
           py: 6,
           position: 'relative',
           zIndex: 1,
         }}
       >
-        {/* Logo / Título */}
-        <Box
-          ref={titleRef}
-          sx={{
-            textAlign: 'center',
-            mb: 6,
-          }}
-        >
-          <Typography
-            variant="h1"
-            sx={{
-              fontSize: { xs: '3rem', sm: '4rem', md: '6rem' },
-              fontWeight: 400,
-              background: 'linear-gradient(135deg, var(--accent-red) 0%, var(--accent-gold) 50%, var(--accent-red) 100%)',
-              backgroundSize: '200% auto',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              animation: 'shimmer 3s linear infinite',
-              textShadow: '0 0 60px var(--accent-red-glow)',
-              mb: 1,
-            }}
-          >
-            {renderTitle('SABADO')}
-          </Typography>
-          <Typography
-            variant="h2"
-            sx={{
-              fontSize: { xs: '2rem', sm: '2.5rem', md: '3.5rem' },
-              color: 'var(--text-primary)',
-              letterSpacing: '0.3em',
-            }}
-          >
-            {renderTitle('GAMES')}
-          </Typography>
-          <Typography
-            sx={{
-              mt: 2,
-              color: 'var(--text-muted)',
-              fontSize: '1.1rem',
-              maxWidth: 400,
-              mx: 'auto',
-            }}
-          >
-            Party games para noites épicas com amigos
-          </Typography>
+        <Box sx={{ mb: { xs: 5, md: 7 } }}>
+          <Brand size="hero" animated tagline="Party games para noites em que a amizade é opcional." />
         </Box>
 
-        {/* Cards de ação */}
         <Box
           sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            gap: 3,
-            maxWidth: 700,
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+            gap: 2.5,
+            maxWidth: 760,
             width: '100%',
           }}
         >
-          {/* Card TV */}
-          <Box
-            sx={{
-              flex: 1,
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-xl)',
-              border: '2px solid var(--border-subtle)',
-              p: 4,
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                borderColor: 'var(--neon-cyan)',
-                boxShadow: '0 0 30px rgba(34, 211, 238, 0.2)',
-              },
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-              <TvIcon sx={{ fontSize: 32, color: 'var(--neon-cyan)' }} />
-              <Typography variant="h4" sx={{ color: 'var(--neon-cyan)' }}>
-                Conectar TV
+          {/* Jogar */}
+          <Panel accent="var(--accent-red)" highlight index={0}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+              <SportsEsportsRoundedIcon sx={{ fontSize: 30, color: 'var(--accent-red)' }} />
+              <Typography
+                sx={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '1.6rem',
+                  letterSpacing: '0.06em',
+                  color: 'var(--accent-red)',
+                }}
+              >
+                JOGAR
               </Typography>
             </Box>
-            <Typography sx={{ mb: 3, color: 'var(--text-secondary)' }}>
-              Digite o código para exibir o jogo na TV ou monitor principal.
+            <Typography sx={{ color: 'var(--text-secondary)', mb: 3, fontSize: '0.92rem' }}>
+              Entre para criar uma sala ou sentar numa mesa que já existe.
             </Typography>
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+              <Button
+                fullWidth
+                variant="contained"
+                color="primary"
+                onClick={() => setMode('login')}
+                sx={{ py: 1.6 }}
+              >
+                Entrar
+              </Button>
+              <Button
+                fullWidth
+                variant="outlined"
+                color="secondary"
+                onClick={() => setMode('register')}
+              >
+                Criar conta
+              </Button>
+            </Box>
+          </Panel>
+
+          {/* TV */}
+          <Panel accent="var(--neon-cyan)" index={1}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+              <TvRoundedIcon sx={{ fontSize: 30, color: 'var(--neon-cyan)' }} />
+              <Typography
+                sx={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '1.6rem',
+                  letterSpacing: '0.06em',
+                  color: 'var(--neon-cyan)',
+                }}
+              >
+                CONECTAR TV
+              </Typography>
+            </Box>
+            <Typography sx={{ color: 'var(--text-secondary)', mb: 3, fontSize: '0.92rem' }}>
+              Abra esta tela na TV da sala. Não precisa de conta.
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1.25 }}>
               <TextField
                 fullWidth
                 placeholder="CÓDIGO"
                 value={tvCode}
-                onChange={(e) => setTvCode(e.target.value.toUpperCase())}
-                inputProps={{ maxLength: 6, style: { textAlign: 'center', fontSize: '1.2rem' } }}
-                onKeyDown={(e) => e.key === 'Enter' && handleTvConnect()}
+                onChange={(event) => setTvCode(event.target.value.toUpperCase())}
+                onKeyDown={(event) => event.key === 'Enter' && handleTvConnect()}
+                slotProps={{
+                  htmlInput: {
+                    maxLength: 6,
+                    style: { textAlign: 'center', fontSize: '1.3rem', letterSpacing: '0.2em' },
+                    inputMode: 'numeric',
+                    'aria-label': 'Código da sala',
+                  },
+                }}
               />
               <Button
                 variant="contained"
                 onClick={handleTvConnect}
                 disabled={!tvCode.trim()}
                 sx={{
+                  minWidth: 88,
                   bgcolor: 'var(--neon-cyan)',
+                  backgroundImage: 'none',
                   color: 'var(--bg-void)',
-                  '&:hover': { bgcolor: '#06b6d4' },
-                  minWidth: 100,
+                  boxShadow: '0 6px 20px rgba(34, 211, 238, 0.3)',
+                  '&:hover': { bgcolor: '#06b6d4', backgroundImage: 'none' },
                 }}
               >
-                IR
+                Ir
               </Button>
             </Box>
-          </Box>
-
-          {/* Card Jogar (Login/Register) */}
-          <Box
-            sx={{
-              flex: 1,
-              background: 'linear-gradient(135deg, var(--bg-card) 0%, rgba(220, 38, 38, 0.1) 100%)',
-              borderRadius: 'var(--radius-xl)',
-              border: '2px solid var(--accent-red)',
-              p: 4,
-              position: 'relative',
-              overflow: 'hidden',
-              '&::before': {
-                content: '""',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 4,
-                background: 'linear-gradient(90deg, var(--accent-red), var(--accent-gold), var(--accent-red))',
-              },
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-              <GameIcon sx={{ fontSize: 32, color: 'var(--accent-red)' }} />
-              <Typography variant="h4" sx={{ color: 'var(--accent-red)' }}>
-                Jogar
-              </Typography>
-            </Box>
-            <Typography sx={{ mb: 3, color: 'var(--text-secondary)' }}>
-              Faça login para criar ou entrar em uma sala de jogos.
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Button
-                fullWidth
-                variant="contained"
-                color="primary"
-                onClick={() => setLoginOpen(true)}
-                sx={{ py: 1.5 }}
-              >
-                Login
-              </Button>
-              <Button
-                fullWidth
-                variant="outlined"
-                color="secondary"
-                onClick={() => setRegisterOpen(true)}
-              >
-                Criar Conta
-              </Button>
-            </Box>
-          </Box>
+          </Panel>
         </Box>
       </Box>
 
-      {/* Footer */}
       <Box
         sx={{
           textAlign: 'center',
           py: 3,
           color: 'var(--text-muted)',
-          fontSize: '0.875rem',
+          fontSize: '0.8rem',
+          position: 'relative',
+          zIndex: 1,
         }}
       >
-        Sabado Games · Inspirado em Alice in Borderland & Kakegurui
+        Sabado Games · inspirado em Alice in Borderland &amp; Kakegurui
       </Box>
 
-      {/* Modal de Login */}
+      {/* Um formulário só para entrar e criar conta */}
       <Dialog
-        open={loginOpen}
-        onClose={() => setLoginOpen(false)}
+        open={mode !== null}
+        onClose={() => setMode(null)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 'var(--radius-xl)',
-            border: '2px solid var(--accent-red)',
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: 'var(--radius-xl)',
+              border: `1px solid ${mode === 'register' ? 'var(--accent-gold)' : 'var(--accent-red)'}`,
+            },
           },
         }}
       >
-        <DialogTitle
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderBottom: '1px solid var(--border-subtle)',
-          }}
-        >
-          <Typography variant="h4" sx={{ color: 'var(--accent-red)' }}>
-            LOGIN
-          </Typography>
-          <IconButton onClick={() => setLoginOpen(false)} size="small">
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <form onSubmit={handleLogin}>
-          <DialogContent sx={{ pt: 3 }}>
-            {loginError && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {loginError}
-              </Alert>
-            )}
-            <TextField
-              fullWidth
-              label="Email"
-              type="email"
-              value={loginEmail}
-              onChange={(e) => setLoginEmail(e.target.value)}
-              sx={{ mb: 2 }}
-              required
-              autoFocus
-            />
-            <TextField
-              fullWidth
-              label="Senha"
-              type={showLoginPassword ? 'text' : 'password'}
-              value={loginPassword}
-              onChange={(e) => setLoginPassword(e.target.value)}
-              required
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      edge="end"
-                    >
-                      {showLoginPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 3 }}>
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              type="submit"
-              disabled={loginLoading}
-              sx={{ py: 1.5 }}
-            >
-              {loginLoading ? 'Entrando...' : 'Entrar'}
-            </Button>
-          </DialogActions>
-        </form>
-        <Box sx={{ textAlign: 'center', pb: 3 }}>
-          <Typography variant="body2" sx={{ color: 'var(--text-muted)' }}>
-            Não tem conta?{' '}
-            <Box
-              component="span"
+        <DialogContent sx={{ p: 3.5 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+            <Typography
               sx={{
-                color: 'var(--accent-gold)',
-                cursor: 'pointer',
-                '&:hover': { textDecoration: 'underline' },
-              }}
-              onClick={() => {
-                setLoginOpen(false)
-                setRegisterOpen(true)
+                fontFamily: 'var(--font-display)',
+                fontSize: '1.9rem',
+                letterSpacing: '0.06em',
+                color: mode === 'register' ? 'var(--accent-gold)' : 'var(--accent-red)',
               }}
             >
-              Criar agora
-            </Box>
-          </Typography>
-        </Box>
-      </Dialog>
+              {mode === 'register' ? 'CRIAR CONTA' : 'ENTRAR'}
+            </Typography>
+            <IconButton onClick={() => setMode(null)} size="small" aria-label="Fechar">
+              <CloseRoundedIcon />
+            </IconButton>
+          </Box>
 
-      {/* Modal de Registro */}
-      <Dialog
-        open={registerOpen}
-        onClose={() => setRegisterOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 'var(--radius-xl)',
-            border: '2px solid var(--accent-gold)',
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderBottom: '1px solid var(--border-subtle)',
-          }}
-        >
-          <Typography variant="h4" sx={{ color: 'var(--accent-gold)' }}>
-            CRIAR CONTA
-          </Typography>
-          <IconButton onClick={() => setRegisterOpen(false)} size="small">
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <form onSubmit={handleRegister}>
-          <DialogContent sx={{ pt: 3 }}>
-            {registerError && (
+          <form onSubmit={handleSubmit}>
+            {formError && (
               <Alert severity="error" sx={{ mb: 2 }}>
-                {registerError}
+                {formError}
               </Alert>
             )}
-            <TextField
-              fullWidth
-              label="Nickname"
-              value={registerNickname}
-              onChange={(e) => setRegisterNickname(e.target.value)}
-              sx={{ mb: 2 }}
-              required
-              autoFocus
-              helperText="Como você será chamado nos jogos"
-            />
+
+            {mode === 'register' && (
+              <TextField
+                fullWidth
+                label="Apelido"
+                value={nickname}
+                onChange={(event) => setNickname(event.target.value)}
+                sx={{ mb: 2 }}
+                required
+                autoFocus
+                helperText="É assim que você aparece na mesa"
+              />
+            )}
+
             <TextField
               fullWidth
               label="Email"
               type="email"
-              value={registerEmail}
-              onChange={(e) => setRegisterEmail(e.target.value)}
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               sx={{ mb: 2 }}
               required
+              autoFocus={mode === 'login'}
+              autoComplete="email"
             />
+
             <TextField
               fullWidth
               label="Senha"
-              type={showRegisterPassword ? 'text' : 'password'}
-              value={registerPassword}
-              onChange={(e) => setRegisterPassword(e.target.value)}
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
               required
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowRegisterPassword(!showRegisterPassword)}
-                      edge="end"
-                    >
-                      {showRegisterPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
+              autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword((current) => !current)}
+                        edge="end"
+                        aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                      >
+                        {showPassword ? <VisibilityOffRounded /> : <VisibilityRounded />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 3 }}>
+
             <Button
               fullWidth
               variant="contained"
-              color="secondary"
+              color={mode === 'register' ? 'secondary' : 'primary'}
               type="submit"
-              disabled={registerLoading}
-              sx={{ py: 1.5 }}
+              disabled={submitting}
+              sx={{ mt: 3, py: 1.6 }}
             >
-              {registerLoading ? 'Criando...' : 'Criar Conta'}
+              {submitting
+                ? mode === 'register'
+                  ? 'Criando...'
+                  : 'Entrando...'
+                : mode === 'register'
+                  ? 'Criar conta'
+                  : 'Entrar'}
             </Button>
-          </DialogActions>
-        </form>
-        <Box sx={{ textAlign: 'center', pb: 3 }}>
-          <Typography variant="body2" sx={{ color: 'var(--text-muted)' }}>
-            Já tem conta?{' '}
+          </form>
+
+          <Typography sx={{ mt: 2.5, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+            {mode === 'register' ? 'Já tem conta? ' : 'Ainda não tem conta? '}
             <Box
-              component="span"
+              component="button"
+              type="button"
+              onClick={() => setMode(mode === 'register' ? 'login' : 'register')}
               sx={{
-                color: 'var(--accent-red)',
+                background: 'none',
+                border: 'none',
+                p: 0,
+                font: 'inherit',
                 cursor: 'pointer',
-                '&:hover': { textDecoration: 'underline' },
-              }}
-              onClick={() => {
-                setRegisterOpen(false)
-                setLoginOpen(true)
+                color: mode === 'register' ? 'var(--accent-red)' : 'var(--accent-gold)',
+                textDecoration: 'underline',
               }}
             >
-              Fazer login
+              {mode === 'register' ? 'Entrar' : 'Criar agora'}
             </Box>
           </Typography>
-        </Box>
+        </DialogContent>
       </Dialog>
     </Box>
   )

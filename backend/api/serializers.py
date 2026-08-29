@@ -4,7 +4,28 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
+from . import cacada, caveira, infiltrado, palavra_chave, perfil, resistencia, sintonia
 from .models import Game, Player, Profile, Room
+
+# Cada jogo sabe o que precisa esconder do estado publico da sala.
+ROOM_REDACTORS = {
+    sintonia.SINTONIA_SLUG: sintonia.redact_state,
+    caveira.CAVEIRA_SLUG: caveira.redact_state,
+    resistencia.RESISTENCIA_SLUG: resistencia.redact_state,
+    palavra_chave.PALAVRA_CHAVE_SLUG: palavra_chave.redact_state,
+    infiltrado.INFILTRADO_SLUG: infiltrado.redact_state,
+    perfil.PERFIL_SLUG: perfil.redact_state,
+}
+
+# Campos do estado de jogador que so o dono pode ver.
+PRIVATE_PLAYER_FIELDS = {
+    cacada.CACADA_SLUG: ["clue"],
+    sintonia.SINTONIA_SLUG: ["guess"],
+    caveira.CAVEIRA_SLUG: ["hand", "stack"],
+    resistencia.RESISTENCIA_SLUG: ["role", "mission_card"],
+    palavra_chave.PALAVRA_CHAVE_SLUG: ["key", "words"],
+    infiltrado.INFILTRADO_SLUG: ["location", "role", "is_spy"],
+}
 
 User = get_user_model()
 
@@ -107,9 +128,15 @@ class PlayerSerializer(serializers.ModelSerializer):
         return timezone.now() - instance.last_seen_at <= timedelta(seconds=30)
 
     def get_has_guessed(self, instance):
-        if instance.room.game.slug != "confinamento-solitario":
-            return None
-        return instance.state.get("guess") is not None
+        """Se a pessoa já jogou nesta rodada — sem revelar o que ela jogou."""
+        slug = instance.room.game.slug
+        if slug == "confinamento-solitario":
+            return instance.state.get("guess") is not None
+        if slug == "concurso-de-beleza":
+            return instance.state.get("guess") is not None
+        if slug == "blef-jack":
+            return instance.state.get("guess_winner_id") is not None
+        return None
 
     def get_public_guess(self, instance):
         if instance.room.game.slug != "confinamento-solitario":
@@ -119,10 +146,22 @@ class PlayerSerializer(serializers.ModelSerializer):
             return None
         return instance.state.get("guess")
 
+    def _viewer_is_spy(self, instance):
+        """O leitor desta resposta é espião na mesma sala?"""
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return False
+        viewer = instance.room.players.filter(user=request.user).first()
+        if not viewer:
+            return False
+        return (viewer.state or {}).get("role") == resistencia.ROLE_SPY
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get("request")
-        state = data.get("state") or {}
+        # Copia obrigatoria: o DRF devolve o proprio dict do modelo, e
+        # mutar aqui apagaria o estado do jogador em memoria.
+        state = dict(data.get("state") or {})
         if isinstance(state, dict):
             if instance.room.game.slug == "confinamento-solitario":
                 # Never expose guesses; reveal suit to other players only.
@@ -143,15 +182,33 @@ class PlayerSerializer(serializers.ModelSerializer):
             if instance.room.game.slug == "concurso-de-beleza":
                 state.pop("guess", None)
             if instance.room.game.slug == "leilao-de-cem-votos":
-                state.pop("bid", None)
-                state.pop("submitted", None)
+                # O leilão é aberto: o maior lance é público (fica no estado da
+                # sala). O que fica escondido é quanto cada um ainda tem e qual
+                # foi o lance individual de cada oponente.
                 if not request or not request.user.is_authenticated or instance.user_id != request.user.id:
+                    state.pop("bid", None)
+                    state.pop("submitted", None)
                     state.pop("points", None)
             if instance.room.game.slug == "blef-jack":
                 if not request or not request.user.is_authenticated or instance.user_id != request.user.id:
                     state.pop("points", None)
                     state.pop("cards", None)
                     state.pop("guess_winner_id", None)
+            slug = instance.room.game.slug
+            private = PRIVATE_PLAYER_FIELDS.get(slug)
+            if private:
+                is_owner = bool(
+                    request
+                    and request.user.is_authenticated
+                    and instance.user_id == request.user.id
+                )
+                if not is_owner:
+                    for field in private:
+                        state.pop(field, None)
+                    # Espiões se reconhecem: é a única informação que a
+                    # Resistência dá de graça, e o jogo depende dela.
+                    if slug == resistencia.RESISTENCIA_SLUG and self._viewer_is_spy(instance):
+                        state["role"] = instance.state.get("role")
             data["state"] = state
         return data
 
@@ -190,9 +247,18 @@ class RoomSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        state = data.get("state") or {}
-        if isinstance(state, dict) and instance.game.slug == "confinamento-solitario":
-            state.pop("valete_player_id", None)
+        state = dict(data.get("state") or {})
+        if isinstance(state, dict):
+            if instance.game.slug == "confinamento-solitario":
+                state.pop("valete_player_id", None)
+            if instance.game.slug == "a-cacada":
+                # O esconderijo nunca sai do servidor enquanto a caçada corre.
+                # Depois que alguém encontra a criatura, revelar é o desfecho.
+                if state.get("phase") != "ended":
+                    state.pop("solution", None)
+            redactor = ROOM_REDACTORS.get(instance.game.slug)
+            if redactor:
+                state = redactor(state)
             data["state"] = state
         return data
 
@@ -430,3 +496,89 @@ class BlefJackDeclareSerializer(serializers.Serializer):
 
 class BlefJackGuessSerializer(serializers.Serializer):
     winner_player_id = serializers.IntegerField()
+
+
+class CacadaHexSerializer(serializers.Serializer):
+    """Hexágono no formato "coluna,linha"."""
+
+    hex = serializers.RegexField(r"^\d{1,2},\d{1,2}$")
+
+
+class CacadaAskSerializer(CacadaHexSerializer):
+    target_player_id = serializers.IntegerField()
+
+
+# --- Sintonia ---------------------------------------------------------------
+
+
+class SintoniaClueSerializer(serializers.Serializer):
+    clue = serializers.CharField(max_length=80)
+
+
+class SintoniaGuessSerializer(serializers.Serializer):
+    value = serializers.IntegerField(min_value=0, max_value=100)
+
+
+# --- Caveira ----------------------------------------------------------------
+
+
+class CaveiraPlaceSerializer(serializers.Serializer):
+    card = serializers.ChoiceField(choices=["rosa", "caveira"])
+
+
+class CaveiraBidSerializer(serializers.Serializer):
+    amount = serializers.IntegerField(min_value=1)
+
+
+class CaveiraFlipSerializer(serializers.Serializer):
+    # Sem alvo, o jogador vira a propria pilha.
+    target_player_id = serializers.IntegerField(required=False, allow_null=True)
+
+
+# --- A Resistencia ----------------------------------------------------------
+
+
+class ResistenciaProposeSerializer(serializers.Serializer):
+    team = serializers.ListField(child=serializers.IntegerField(), min_length=1, max_length=5)
+
+
+class ResistenciaVoteSerializer(serializers.Serializer):
+    approve = serializers.BooleanField()
+
+
+class ResistenciaMissionSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+
+
+# --- Palavra-Chave ----------------------------------------------------------
+
+
+class PalavraChaveClueSerializer(serializers.Serializer):
+    word = serializers.CharField(max_length=24)
+    count = serializers.IntegerField(min_value=0, max_value=9)
+
+
+class PalavraChaveGuessSerializer(serializers.Serializer):
+    index = serializers.IntegerField(min_value=0, max_value=24)
+
+
+# --- O Infiltrado -----------------------------------------------------------
+
+
+class InfiltradoAccuseSerializer(serializers.Serializer):
+    accused_player_id = serializers.IntegerField()
+
+
+class InfiltradoVoteSerializer(serializers.Serializer):
+    agree = serializers.BooleanField()
+
+
+class InfiltradoSpyGuessSerializer(serializers.Serializer):
+    location = serializers.CharField(max_length=80)
+
+
+# --- Perfil -----------------------------------------------------------------
+
+
+class PerfilGuessSerializer(serializers.Serializer):
+    guess = serializers.CharField(max_length=120)

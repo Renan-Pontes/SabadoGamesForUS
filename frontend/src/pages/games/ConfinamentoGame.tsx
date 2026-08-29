@@ -1,458 +1,429 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { Box, Button, Chip, CircularProgress, Typography } from '@mui/material'
-import { useAuth } from '../../context/useAuth'
-import { getRoom, submitConfinamentoGuess, tickConfinamento } from '../../lib/api'
-import { saveLastRoom, setStayInLobby } from '../../lib/roomHistory'
-import type { Player, Room } from '../../lib/types'
-import { formatSeconds, useCountdown } from '../../games/utils'
+import { Box, Button, Typography } from '@mui/material'
+import { submitConfinamentoGuess, tickConfinamento } from '../../lib/api'
+import type { Player } from '../../lib/types'
+import { useGameRoom } from '../../games/useGameRoom'
+import { getAccent } from '../../games/theme'
+import {
+  ActionPanel,
+  CountdownRing,
+  GameCard,
+  GameShell,
+  PlayerRoster,
+  PlayingCard,
+  ResultOverlay,
+  StatPill,
+  SUITS,
+  SUIT_ORDER,
+} from '../../games/ui'
+import type { SuitKey } from '../../games/ui'
+import { haptic, namesFor, playerLabel, playerState, readNumberArray } from '../../games/utils'
 
-type ViewMode = 'tv' | 'host' | 'player'
-
-const SUITS = [
-  { key: 'hearts', label: 'Hearts', symbol: '♥', color: 'var(--accent-red)' },
-  { key: 'diamonds', label: 'Diamonds', symbol: '♦', color: 'var(--accent-red)' },
-  { key: 'clubs', label: 'Clubs', symbol: '♣', color: 'var(--text-primary)' },
-  { key: 'spades', label: 'Spades', symbol: '♠', color: 'var(--text-primary)' },
-] as const
-
-function getPlayerLabel(player: Player) {
-  return player.name || player.user?.profile?.nickname || player.user?.username || 'Player'
-}
+const ACCENT = getAccent('confinamento-solitario')
+const TURN_SECONDS = 120
 
 export default function ConfinamentoGame() {
-  const { code } = useParams()
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const { isAuthenticated, isLoading: authLoading, user } = useAuth()
+  const {
+    code,
+    viewMode,
+    isTv,
+    setRoom,
+    state,
+    deadline,
+    players,
+    me,
+    meState,
+    canToggleView,
+    loading,
+    error,
+    setError,
+    goBack,
+    toggleView,
+    status,
+    isLive,
+    isEnded,
+  } = useGameRoom({ tick: tickConfinamento, pollMs: 2500 })
 
-  const viewMode = (searchParams.get('view') as ViewMode) || 'player'
-
-  const [room, setRoom] = useState<Room | null>(null)
-  const [error, setError] = useState('')
-  const [loadingRoom, setLoadingRoom] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [lastGuess, setLastGuess] = useState<string | null>(null)
+  const [pendingGuess, setPendingGuess] = useState<SuitKey | null>(null)
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated && viewMode !== 'tv') {
-      navigate('/')
-    }
-  }, [authLoading, isAuthenticated, viewMode, navigate])
-
-  useEffect(() => {
-    if (!code || viewMode === 'tv') return
-    const view = viewMode === 'host' ? 'host' : 'player'
-    saveLastRoom(code, view)
-  }, [code, viewMode])
-
-  useEffect(() => {
-    const roomCode = code ?? ''
-    if (!roomCode) return
-    let active = true
-
-    async function poll() {
-      try {
-        if (viewMode !== 'player') {
-          await tickConfinamento(roomCode)
-        }
-        const data = await getRoom(roomCode)
-        if (!active) return
-        setRoom(data)
-      } catch (err) {
-        if (!active) return
-        setError(err instanceof Error ? err.message : 'Failed to load room.')
-      } finally {
-        if (active) {
-          setLoadingRoom(false)
-        }
-      }
-    }
-
-    poll()
-    const interval = window.setInterval(poll, 5000)
-    return () => {
-      active = false
-      window.clearInterval(interval)
-    }
-  }, [code, viewMode])
-
-  const state = useMemo(() => (room?.state ?? {}) as Record<string, unknown>, [room])
   const round = typeof state.round === 'number' ? state.round : 1
-  const deadline = typeof state.deadline_ts === 'number' ? state.deadline_ts : null
-  const winners = Array.isArray(state.winners) ? (state.winners as number[]) : []
-  const lastEliminated = Array.isArray(state.last_round_eliminated_ids)
-    ? (state.last_round_eliminated_ids as number[])
-    : []
-  const lastSurvivors = Array.isArray(state.last_round_survivor_ids)
-    ? (state.last_round_survivor_ids as number[])
-    : []
+  const winners = readNumberArray(state, 'winners')
+  const lastEliminated = readNumberArray(state, 'last_round_eliminated_ids')
+  const lastSurvivors = readNumberArray(state, 'last_round_survivor_ids')
   const lastRoundTs = typeof state.last_round_ts === 'number' ? state.last_round_ts : null
 
-  const countdown = useCountdown(deadline)
-
-  const me = useMemo(() => {
-    if (!room?.players || !user?.id) return null
-    return room.players.find((player) => player.user?.id === user.id) ?? null
-  }, [room?.players, user?.id])
-
-  const meState = (me?.state ?? {}) as Record<string, unknown>
   const meEliminated = Boolean(meState.eliminated)
-  const isHost = Boolean(me?.is_host)
-  const canToggleView = viewMode !== 'tv' && isHost
+  const meGuessed = Boolean(me?.has_guessed)
 
-  function handleToggleView() {
-    if (!code) return
-    const nextView = viewMode === 'host' ? 'player' : 'host'
-    navigate(`/game/${code}?view=${nextView}`)
-  }
-
-  function handleBackToLobby() {
-    if (!code) return
-    setStayInLobby(code, true)
-    if (isHost) {
-      navigate(`/host/${code}`)
-      return
-    }
-    navigate(`/play/${code}`)
-  }
-
-  const players = room?.players ?? []
-  const activePlayers = players.filter((player) => !(player.state as Record<string, unknown>)?.eliminated)
+  const activePlayers = useMemo(
+    () => players.filter((player) => !playerState(player).eliminated),
+    [players],
+  )
   const allGuessed = activePlayers.length > 0 && activePlayers.every((player) => player.has_guessed)
+  const pendingCount = activePlayers.filter((player) => !player.has_guessed).length
 
+  // O palpite local só vale para a rodada atual.
   useEffect(() => {
-    setLastGuess(null)
-  }, [round, room?.status])
+    setPendingGuess(null)
+  }, [round, status])
 
-  async function handleGuess(guess: typeof SUITS[number]['key']) {
-    if (!code || !room || !me) return
+  async function handleGuess(suit: SuitKey) {
+    if (!code || !me || submitting) return
     setSubmitting(true)
     setError('')
+    haptic()
     try {
-      const data = await submitConfinamentoGuess(code, guess)
-      setRoom(data)
-      setLastGuess(guess)
+      setRoom(await submitConfinamentoGuess(code, suit))
+      setPendingGuess(suit)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit guess.')
+      setError(err instanceof Error ? err.message : 'Não foi possível enviar o palpite.')
     } finally {
       setSubmitting(false)
     }
   }
 
-  if (authLoading || loadingRoom) {
-    return (
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg-void)',
-        }}
-      >
-        <CircularProgress sx={{ color: 'var(--accent-gold)' }} />
-      </Box>
-    )
-  }
+  /**
+   * O que aparece na carta de cada jogador depende de quem está olhando:
+   * na TV mostramos o palpite público, nas telas de mão mostramos o naipe
+   * real dos outros — e o seu fica virado para baixo.
+   */
+  function cardFor(player: Player) {
+    const pState = playerState(player)
+    const isSelf = Boolean(me && player.id === me.id)
 
-  if (error && !room) {
-    return (
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg-void)',
-          p: 3,
-        }}
-      >
-        <Typography sx={{ color: 'var(--accent-red)' }}>{error}</Typography>
-      </Box>
-    )
+    if (isTv) {
+      const guess = player.public_guess as SuitKey | null | undefined
+      return { suit: guess ?? undefined, faceDown: !guess, caption: guess ? 'Palpite' : 'Sem palpite' }
+    }
+    if (isSelf) {
+      return { suit: undefined, faceDown: true, caption: 'Seu naipe' }
+    }
+    const suit = typeof pState.suit === 'string' ? (pState.suit as SuitKey) : undefined
+    return { suit, faceDown: !suit, caption: suit ? SUITS[suit].label : 'Oculto' }
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        background: `
-          radial-gradient(ellipse at top, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
-          var(--bg-void)
-        `,
-        p: { xs: 2, md: 3 },
-      }}
-    >
-      <Box sx={{ maxWidth: 1000, mx: 'auto' }}>
-        <Box sx={{ textAlign: 'center', mb: 3 }}>
-          <Typography variant="h4" sx={{ color: 'var(--neon-purple)' }}>
-            CONFINAMENTO SOLITARIO
-          </Typography>
-          <Typography sx={{ color: 'var(--text-muted)' }}>
-            Room {code?.toUpperCase()} {viewMode !== 'player' ? `• ${viewMode.toUpperCase()}` : ''}
-          </Typography>
-        </Box>
-
-        {viewMode !== 'tv' && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-            <Button variant="outlined" color="inherit" onClick={handleBackToLobby}>
-              Voltar ao lobby
-            </Button>
-            {canToggleView && (
-              <Button variant="outlined" color="secondary" onClick={handleToggleView}>
-                {viewMode === 'host' ? 'Ver como jogador' : 'Voltar ao host'}
-              </Button>
-            )}
-          </Box>
-        )}
-
-        {viewMode !== 'tv' && meEliminated && (
-          <Box
-            sx={{
-              mb: 2,
-              p: 2,
-              borderRadius: 'var(--radius-lg)',
-              border: '2px solid var(--accent-red)',
-              background: 'rgba(220, 38, 38, 0.2)',
-              textAlign: 'center',
-            }}
-          >
-            <Typography variant="h5" sx={{ color: '#fff' }}>
-              Você foi eliminado!
-            </Typography>
-          </Box>
-        )}
-
-        {room?.status === 'ended' && viewMode !== 'tv' && winners.length > 0 && (
-          <Box
-            sx={{
-              mb: 2,
-              p: 2,
-              borderRadius: 'var(--radius-lg)',
-              border: '2px solid var(--accent-gold)',
-              background: 'rgba(212, 165, 32, 0.2)',
-              textAlign: 'center',
-            }}
-          >
-            <Typography variant="h5" sx={{ color: '#fff' }}>
-              Vencedores: {winners.map((id) => players.find((p) => p.id === id)?.name || id).join(', ')}
-            </Typography>
-          </Box>
-        )}
-
-        {error && (
-          <Box
-            sx={{
-              mb: 2,
-              p: 2,
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid rgba(220, 38, 38, 0.4)',
-              background: 'rgba(220, 38, 38, 0.15)',
-            }}
-          >
-            <Typography sx={{ color: 'var(--accent-red)' }}>{error}</Typography>
-          </Box>
-        )}
-
+    <GameShell
+      title="CONFINAMENTO SOLITÁRIO"
+      tagline="Você enxerga o naipe de todo mundo, menos o seu. Errou, saiu. A partida acaba quando o Valete cai."
+      accent={ACCENT}
+      roomCode={code}
+      viewMode={viewMode}
+      status={status}
+      loading={loading}
+      error={error}
+      onBack={goBack}
+      onToggleView={canToggleView ? toggleView : undefined}
+      headerExtra={
         <Box
           sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-            gap: 2,
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: { xs: 2, md: 5 },
           }}
+        >
+          <CountdownRing
+            deadlineTs={deadline}
+            totalSeconds={TURN_SECONDS}
+            accent={ACCENT.main}
+            size={isTv ? 220 : 150}
+            frozen={allGuessed}
+            label="Tempo da rodada"
+          />
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <StatPill label="Rodada" value={round} accent={ACCENT.main} filled size={isTv ? 'lg' : 'md'} />
+            <StatPill
+              label="Na mesa"
+              value={activePlayers.length}
+              accent={ACCENT.main}
+              size={isTv ? 'lg' : 'md'}
+            />
+            <StatPill
+              label="Faltam votar"
+              value={pendingCount}
+              accent={pendingCount === 0 ? 'var(--status-ready)' : 'var(--status-waiting)'}
+              size={isTv ? 'lg' : 'md'}
+            />
+          </Box>
+        </Box>
+      }
+    >
+      {/* A mesa: uma carta por jogador */}
+      <GameCard
+        title={isTv ? 'A mesa' : 'O que você enxerga'}
+        hint={isTv ? 'Palpites revelados' : 'Sua carta está virada para baixo'}
+        accent={ACCENT.main}
+        highlight
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: { xs: 2, md: 3.5 },
+            py: 1,
+          }}
+        >
+          {players.map((player, index) => {
+            const pState = playerState(player)
+            const eliminated = Boolean(pState.eliminated)
+            const info = cardFor(player)
+            const isSelf = Boolean(me && player.id === me.id)
+
+            return (
+              <Box
+                key={player.id}
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 1,
+                  opacity: eliminated ? 0.3 : 1,
+                  filter: eliminated ? 'grayscale(1)' : 'none',
+                  transition: 'all 320ms ease',
+                }}
+              >
+                <Box sx={{ position: 'relative' }}>
+                  {/* Sem posto: neste jogo só o naipe importa. */}
+                  <PlayingCard
+                    suit={info.suit}
+                    faceDown={info.faceDown}
+                    size={isTv ? 'lg' : 'md'}
+                    dealDelay={index * 70}
+                    highlight={isSelf}
+                    tilt={(index % 2 === 0 ? -1 : 1) * 2}
+                  />
+                  {eliminated && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'grid',
+                        placeItems: 'center',
+                        fontSize: '2.4rem',
+                      }}
+                    >
+                      💀
+                    </Box>
+                  )}
+                </Box>
+
+                <Typography
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: isTv ? '1.05rem' : '0.9rem',
+                    color: isSelf ? ACCENT.main : 'var(--text-primary)',
+                    maxWidth: 130,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {isSelf ? 'Você' : playerLabel(player)}
+                </Typography>
+
+                <Typography
+                  sx={{
+                    fontSize: '0.62rem',
+                    letterSpacing: '0.14em',
+                    textTransform: 'uppercase',
+                    fontWeight: 700,
+                    color: eliminated
+                      ? 'var(--accent-red)'
+                      : player.has_guessed
+                        ? 'var(--status-ready)'
+                        : 'var(--text-muted)',
+                  }}
+                >
+                  {eliminated ? 'Eliminado' : player.has_guessed ? '✓ Votou' : info.caption}
+                </Typography>
+              </Box>
+            )
+          })}
+        </Box>
+      </GameCard>
+
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: lastRoundTs ? '1fr 1fr' : '1fr' },
+          gap: 2,
+          mt: 2,
+        }}
+      >
+        <GameCard title="Jogadores" accent={ACCENT.main} index={1}>
+          <PlayerRoster
+            players={players}
+            currentUserId={me?.user?.id}
+            accent={ACCENT.main}
+            describe={(player) => {
+              const pState = playerState(player)
+              const eliminated = Boolean(pState.eliminated)
+              return {
+                eliminated,
+                ready: !eliminated && Boolean(player.has_guessed),
+                status: eliminated
+                  ? 'Fora da partida'
+                  : player.has_guessed
+                    ? 'Palpite enviado'
+                    : 'Pensando...',
+                highlight: lastSurvivors.includes(player.id) && !eliminated,
+              }
+            }}
+          />
+        </GameCard>
+
+        {lastRoundTs && (lastEliminated.length > 0 || lastSurvivors.length > 0) && (
+          <GameCard title={`Resultado da rodada ${round - 1}`} accent={ACCENT.main} index={2}>
+            {lastEliminated.length > 0 && (
+              <Box sx={{ mb: 1.5 }}>
+                <Typography
+                  sx={{
+                    fontSize: '0.62rem',
+                    letterSpacing: '0.18em',
+                    color: 'var(--accent-red)',
+                    fontWeight: 800,
+                  }}
+                >
+                  💀 ELIMINADOS
+                </Typography>
+                <Typography sx={{ color: 'var(--text-primary)' }}>
+                  {namesFor(lastEliminated, players)}
+                </Typography>
+              </Box>
+            )}
+            {lastSurvivors.length > 0 && (
+              <Box>
+                <Typography
+                  sx={{
+                    fontSize: '0.62rem',
+                    letterSpacing: '0.18em',
+                    color: 'var(--status-ready)',
+                    fontWeight: 800,
+                  }}
+                >
+                  ✓ SOBREVIVERAM
+                </Typography>
+                <Typography sx={{ color: 'var(--text-primary)' }}>
+                  {namesFor(lastSurvivors, players)}
+                </Typography>
+              </Box>
+            )}
+          </GameCard>
+        )}
+      </Box>
+
+      {/* Controles do jogador */}
+      {viewMode === 'player' && (
+        <ActionPanel
+          title="Qual é o seu naipe?"
+          hint="Olhe o naipe dos outros e deduza o seu. Um erro e você está fora."
+          accent={ACCENT.main}
+          lockedReason={
+            meEliminated
+              ? 'Você foi eliminado desta partida.'
+              : !isLive
+                ? 'A partida não está em andamento.'
+                : undefined
+          }
         >
           <Box
             sx={{
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-lg)',
-              border: '2px solid var(--border-subtle)',
-              p: 3,
+              display: 'grid',
+              gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' },
+              gap: 1.5,
             }}
           >
-            <Typography sx={{ fontWeight: 600, mb: 2 }}>Status</Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              <Chip label={`Round ${round}`} sx={{ bgcolor: 'var(--accent-gold)', color: '#000' }} />
-              <Chip label={`Timer ${formatSeconds(countdown)}`} sx={{ bgcolor: 'var(--bg-surface)' }} />
-              {room?.status === 'ended' && (
-                <Chip label="ENDED" sx={{ bgcolor: 'var(--accent-red)', color: '#fff' }} />
-              )}
-            </Box>
-            {countdown !== null && (
-              <Box sx={{ mt: 2, textAlign: 'center' }}>
-                <Typography variant="h3" sx={{ color: 'var(--accent-gold)' }}>
-                  {allGuessed ? '00:00' : formatSeconds(countdown)}
-                </Typography>
-                <Typography sx={{ color: 'var(--text-muted)' }}>
-                  {allGuessed ? 'Todos votaram' : 'Tempo restante'}
-                </Typography>
-              </Box>
-            )}
-            {viewMode !== 'tv' && me?.is_valete && (
-              <Box
-                sx={{
-                  mt: 2,
-                  p: 2,
-                  borderRadius: 'var(--radius-md)',
-                  border: '2px solid var(--neon-purple)',
-                  background: 'rgba(168, 85, 247, 0.15)',
-                  textAlign: 'center',
-                }}
-              >
-                <Typography sx={{ color: 'var(--neon-purple)', fontWeight: 600 }}>
-                  Você é o Valete.
-                </Typography>
-              </Box>
-            )}
-            {room?.status === 'ended' && winners.length > 0 && (
-              <Typography sx={{ mt: 2, color: 'var(--status-ready)' }}>
-                Winners: {winners.map((id) => players.find((p) => p.id === id)?.name || id).join(', ')}
-              </Typography>
-            )}
-          </Box>
-
-          <Box
-            sx={{
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-lg)',
-              border: '2px solid var(--border-subtle)',
-              p: 3,
-            }}
-          >
-            <Typography sx={{ fontWeight: 600, mb: 2 }}>Players</Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {players.map((player) => {
-                const playerState = (player.state ?? {}) as Record<string, unknown>
-                const suit = typeof playerState.suit === 'string' ? playerState.suit : null
-                const eliminated = Boolean(playerState.eliminated)
-                const hasGuessed = Boolean(player.has_guessed)
-                const isSelf = Boolean(user?.id && player.user?.id === user.id)
-                const visibleSuit = viewMode === 'tv' ? null : isSelf ? null : suit
-                const guessKey = viewMode === 'tv' ? (player.public_guess ?? null) : null
-                const suitMeta = visibleSuit ? SUITS.find((item) => item.key === visibleSuit) : null
-                const guessMeta = guessKey ? SUITS.find((item) => item.key === guessKey) : null
-                return (
-                  <Box
-                    key={player.id}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      p: 1.5,
-                      borderRadius: 'var(--radius-md)',
-                      background: 'var(--bg-surface)',
-                      opacity: eliminated ? 0.6 : 1,
-                    }}
-                    >
-                    <Box>
-                      <Typography sx={{ fontWeight: 600 }}>{getPlayerLabel(player)}</Typography>
-                      <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                        {eliminated ? 'Eliminated' : hasGuessed ? 'Votou' : 'Aguardando voto'}
-                      </Typography>
-                    </Box>
-                    <Chip
-                      label={
-                        viewMode === 'tv'
-                          ? guessMeta
-                            ? `${guessMeta.symbol} ${guessMeta.label.toUpperCase()}`
-                            : '???'
-                          : suitMeta
-                            ? `${suitMeta.symbol} ${suitMeta.label.toUpperCase()}`
-                            : '???'
-                      }
-                      size="small"
-                      sx={{
-                        bgcolor: viewMode === 'tv'
-                          ? guessMeta
-                            ? 'var(--bg-elevated)'
-                            : 'var(--bg-void)'
-                          : suitMeta
-                            ? 'var(--bg-elevated)'
-                            : 'var(--bg-void)',
-                        color: viewMode === 'tv'
-                          ? guessMeta
-                            ? guessMeta.color
-                            : 'var(--text-muted)'
-                          : suitMeta
-                            ? suitMeta.color
-                            : 'var(--text-muted)',
-                        border: '1px solid var(--border-subtle)',
-                      }}
-                    />
+            {SUIT_ORDER.map((suitKey) => {
+              const suit = SUITS[suitKey]
+              const selected = pendingGuess === suitKey
+              const color = suit.red ? 'var(--accent-red-light)' : 'var(--text-primary)'
+              return (
+                <Button
+                  key={suitKey}
+                  onClick={() => handleGuess(suitKey)}
+                  disabled={submitting}
+                  sx={{
+                    flexDirection: 'column',
+                    gap: 0.25,
+                    py: 2,
+                    borderRadius: 'var(--radius-lg)',
+                    border: `2px solid ${selected ? ACCENT.main : 'rgba(255,255,255,0.12)'}`,
+                    background: selected
+                      ? `linear-gradient(150deg, ${ACCENT.main}33, transparent)`
+                      : 'rgba(255,255,255,0.03)',
+                    boxShadow: selected ? `0 0 26px ${ACCENT.glow}` : 'none',
+                    color,
+                    '&:hover': {
+                      borderColor: ACCENT.main,
+                      background: `linear-gradient(150deg, ${ACCENT.main}22, transparent)`,
+                      transform: 'translateY(-3px)',
+                    },
+                  }}
+                >
+                  <Box component="span" sx={{ fontSize: '2.4rem', lineHeight: 1 }}>
+                    {suit.symbol}
                   </Box>
-                )
-              })}
-            </Box>
-          </Box>
-        </Box>
-
-        {lastRoundTs && (lastEliminated.length || lastSurvivors.length) && (
-          <Box
-            sx={{
-              mt: 2,
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-lg)',
-              border: '2px solid var(--border-subtle)',
-              p: 2.5,
-            }}
-          >
-            <Typography sx={{ fontWeight: 600, mb: 1 }}>Resultado da rodada</Typography>
-            {lastEliminated.length > 0 && (
-              <Typography sx={{ color: 'var(--accent-red)', mb: 0.5 }}>
-                Eliminados: {lastEliminated.map((id) => players.find((p) => p.id === id)?.name || id).join(', ')}
-              </Typography>
-            )}
-            {lastSurvivors.length > 0 && (
-              <Typography sx={{ color: 'var(--status-ready)' }}>
-                Sobreviventes: {lastSurvivors.map((id) => players.find((p) => p.id === id)?.name || id).join(', ')}
-              </Typography>
-            )}
-          </Box>
-        )}
-
-        {viewMode === 'player' && (
-          <Box
-            sx={{
-              mt: 3,
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-lg)',
-              border: '2px solid var(--border-subtle)',
-              p: 3,
-            }}
-          >
-            <Typography sx={{ fontWeight: 600, mb: 1 }}>Make your guess</Typography>
-            <Typography sx={{ color: 'var(--text-muted)', mb: 2 }}>
-              Pick the suit you believe you have. One mistake and you are out.
-            </Typography>
-            {me && (me.state as Record<string, unknown>)?.eliminated ? (
-              <Typography sx={{ color: 'var(--accent-red)' }}>You are eliminated.</Typography>
-            ) : (
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
-                {SUITS.map((suit) => (
-                  <Button
-                    key={suit.key}
-                    variant="outlined"
-                    onClick={() => handleGuess(suit.key)}
-                    disabled={submitting || room?.status !== 'live'}
-                    sx={{
-                      borderColor: suit.color,
-                      color: suit.color,
-                      '&:hover': { borderColor: suit.color, background: 'rgba(255,255,255,0.05)' },
-                    }}
+                  <Box
+                    component="span"
+                    sx={{ fontSize: '0.7rem', letterSpacing: '0.14em', fontWeight: 800 }}
                   >
-                    {suit.label.toUpperCase()}
-                  </Button>
-                ))}
-              </Box>
-            )}
-            {lastGuess && (
-              <Typography sx={{ mt: 2, color: 'var(--status-ready)' }}>
-                Guess submitted: {lastGuess.toUpperCase()}
-              </Typography>
-            )}
+                    {suit.label}
+                  </Box>
+                </Button>
+              )
+            })}
           </Box>
-        )}
-      </Box>
-    </Box>
+
+          {(pendingGuess || meGuessed) && (
+            <Typography
+              className="animate-pop-in"
+              sx={{ mt: 2, textAlign: 'center', color: 'var(--status-ready)', fontWeight: 700 }}
+            >
+              {pendingGuess
+                ? `Palpite enviado: ${SUITS[pendingGuess].symbol} ${SUITS[pendingGuess].label}. Aguardando os outros...`
+                : 'Palpite registrado. Aguardando os outros...'}
+            </Typography>
+          )}
+        </ActionPanel>
+      )}
+
+      {/* Aviso do Valete */}
+      {!isTv && me?.is_valete && (
+        <GameCard accent={ACCENT.main} highlight sx={{ mt: 2 }} index={3}>
+          <Typography
+            sx={{
+              textAlign: 'center',
+              fontFamily: 'var(--font-display)',
+              fontSize: '1.5rem',
+              color: ACCENT.main,
+              letterSpacing: '0.1em',
+            }}
+          >
+            ♥ VOCÊ É O VALETE DE COPAS
+          </Typography>
+          <Typography sx={{ textAlign: 'center', color: 'var(--text-muted)', mt: 0.5 }}>
+            Se você cair, todos os outros vencem. Sobreviva sozinho até o fim.
+          </Typography>
+        </GameCard>
+      )}
+
+      {/* Cortinas de resultado */}
+      <ResultOverlay
+        open={isEnded && winners.length > 0}
+        tone="win"
+        title="FIM DE PARTIDA"
+        subtitle={`Vencedores: ${namesFor(winners, players)}`}
+      />
+      <ResultOverlay
+        open={!isTv && !isEnded && meEliminated}
+        tone="lose"
+        title="VOCÊ FOI ELIMINADO"
+        subtitle="Assista ao resto da partida — o Valete ainda está em jogo."
+      />
+    </GameShell>
   )
 }

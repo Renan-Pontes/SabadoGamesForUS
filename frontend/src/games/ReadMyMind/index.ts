@@ -1,7 +1,7 @@
-// Read My Mind - Exportações
+// Read My Mind — as três telas do jogo.
+// As regras são todas do servidor; aqui só existe apresentação.
 
 export * from './types'
-export { useReadMyMindGame } from './useGameState'
 export { default as TvView } from './TvView'
 export { default as PlayerView } from './PlayerView'
 export { default as HostView } from './HostView'

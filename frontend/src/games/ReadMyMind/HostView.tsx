@@ -1,14 +1,14 @@
-﻿import { useState } from 'react'
-import { Box, Typography, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'
-import {
-  PlayArrow as PlayIcon,
-  SkipNext as NextIcon,
-  Stop as StopIcon,
-  Refresh as RestartIcon,
-  Favorite as HeartIcon,
-} from '@mui/icons-material'
-import type { GameState, GameMode } from './types'
-import { useNow } from '../utils'
+import { Box, Typography, Button } from '@mui/material'
+import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded'
+import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded'
+import SwapHorizRoundedIcon from '@mui/icons-material/SwapHorizRounded'
+import SkipNextRoundedIcon from '@mui/icons-material/SkipNextRounded'
+import StopRoundedIcon from '@mui/icons-material/StopRounded'
+import FavoriteIcon from '@mui/icons-material/Favorite'
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
+import type { GameMode, GameState } from './types'
+import { getAccent } from '../theme'
+import { GameCard, GameShell, PlayingCard, StatPill } from '../ui'
 
 interface HostViewProps {
   roomCode: string
@@ -18,7 +18,27 @@ interface HostViewProps {
   onEndGame: () => void
   onRestartGame: () => void
   onChangeGame?: () => void
+  /** Alterna para a tela de jogo do host. */
+  onPlayAsHost?: () => void
+  onBack?: () => void
 }
+
+const ACCENT = getAccent('read-my-mind')
+
+const MODES: { key: GameMode; label: string; hint: string; color: string }[] = [
+  {
+    key: 'coop',
+    label: 'CO-OP',
+    hint: 'Time contra o baralho. 3 vidas, 10 rodadas.',
+    color: 'var(--status-ready)',
+  },
+  {
+    key: 'versus',
+    label: 'VERSUS',
+    hint: 'Quem cortar é eliminado. Último de pé vence.',
+    color: 'var(--neon-purple)',
+  },
+]
 
 export default function HostView({
   roomCode,
@@ -28,449 +48,314 @@ export default function HostView({
   onEndGame,
   onRestartGame,
   onChangeGame,
+  onPlayAsHost,
+  onBack,
 }: HostViewProps) {
-  const [modeDialogOpen, setModeDialogOpen] = useState(false)
-  const [confirmEndOpen, setConfirmEndOpen] = useState(false)
-  const now = useNow(250)
-
   const isCoop = gameState.mode === 'coop'
-  const activePlayers = gameState.players.filter(p => !p.isEliminated && p.connected)
-  const totalCardsInHands = activePlayers.reduce((sum, p) => sum + p.cards.length, 0)
-
-  function handleStartClick() {
-    setModeDialogOpen(true)
-  }
-
-  function handleSelectMode(mode: GameMode) {
-    setModeDialogOpen(false)
-    onStartGame(mode)
-  }
+  const notStarted = gameState.phase === 'waiting'
+  const isOver = gameState.phase === 'gameOver'
+  const activePlayers = gameState.players.filter((p) => !p.isEliminated && p.connected)
+  const played = gameState.playedCards
+  const lastCard = played[played.length - 1]
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        background: `
-          radial-gradient(ellipse at top, rgba(220, 38, 38, 0.1) 0%, transparent 50%),
-          var(--bg-void)
-        `,
-        p: 3,
-      }}
-    >
-      <Box sx={{ maxWidth: 600, mx: 'auto' }}>
-        {/* Header */}
-        <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography
-            variant="h4"
-            sx={{
-              fontFamily: 'var(--font-display)',
-              background: 'linear-gradient(90deg, var(--neon-cyan), var(--neon-purple))',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            READ MY MIND
-          </Typography>
-          <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            Controles do Host â€¢ Sala {roomCode}
-          </Typography>
-        </Box>
-
-        {/* Status do Jogo */}
-        <Box
-          sx={{
-            background: 'var(--bg-card)',
-            borderRadius: 'var(--radius-xl)',
-            border: '2px solid var(--border-subtle)',
-            p: 3,
-            mb: 3,
-          }}
-        >
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6" sx={{ color: 'var(--text-primary)' }}>
-              Status do Jogo
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              {gameState.phase !== 'waiting' && (
-                <>
-                  <Chip
-                    label={isCoop ? 'CO-OP' : 'VERSUS'}
-                    size="small"
-                    sx={{
-                      bgcolor: isCoop ? 'var(--status-ready)' : 'var(--neon-purple)',
-                      color: '#000',
-                      fontWeight: 700,
-                    }}
-                  />
-                  <Chip
-                    label={`R${gameState.round}`}
-                    size="small"
-                    sx={{ bgcolor: 'var(--accent-gold)', color: '#000', fontWeight: 700 }}
-                  />
-                </>
-              )}
-            </Box>
-          </Box>
-
-          {/* Info de status */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography sx={{ color: 'var(--text-muted)' }}>Fase:</Typography>
-              <Typography sx={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                {gameState.phase === 'waiting' && 'Aguardando inÃ­cio'}
-                {gameState.phase === 'dealing' && 'Distribuindo cartas'}
-                {gameState.phase === 'playing' && 'Em jogo'}
-                {gameState.phase === 'roundEnd' && 'Rodada concluÃ­da'}
-                {gameState.phase === 'gameOver' && 'Fim de jogo'}
-              </Typography>
-            </Box>
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography sx={{ color: 'var(--text-muted)' }}>Jogadores ativos:</Typography>
-              <Typography sx={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                {activePlayers.length} / {gameState.players.length}
-              </Typography>
-            </Box>
-
-            {gameState.phase !== 'waiting' && (
-              <>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography sx={{ color: 'var(--text-muted)' }}>Cartas jogadas:</Typography>
-                  <Typography sx={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                    {gameState.playedCards.length}
-                  </Typography>
-                </Box>
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography sx={{ color: 'var(--text-muted)' }}>Cartas restantes:</Typography>
-                  <Typography sx={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                    {totalCardsInHands}
-                  </Typography>
-                </Box>
-
-                {isCoop && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography sx={{ color: 'var(--text-muted)' }}>Vidas:</Typography>
-                    <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      {Array.from({ length: gameState.maxLives }).map((_, i) => (
-                        <HeartIcon
-                          key={i}
-                          sx={{
-                            color: i < gameState.lives ? 'var(--accent-red)' : 'var(--text-muted)',
-                            fontSize: '1.2rem',
-                          }}
-                        />
-                      ))}
-                    </Box>
-                  </Box>
-                )}
-              </>
-            )}
-          </Box>
-        </Box>
-
-        {/* Lista de Jogadores */}
-        <Box
-          sx={{
-            background: 'var(--bg-card)',
-            borderRadius: 'var(--radius-xl)',
-            border: '2px solid var(--border-subtle)',
-            p: 3,
-            mb: 3,
-          }}
-        >
-          <Typography variant="h6" sx={{ color: 'var(--text-primary)', mb: 2 }}>
-            Jogadores
-          </Typography>
-          
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {gameState.players.map((player) => (
+    <GameShell
+      title="READ MY MIND"
+      tagline="Painel do host: acompanhe a mesa e controle o ritmo da partida."
+      accent={ACCENT}
+      roomCode={roomCode}
+      viewMode="host"
+      onBack={onBack}
+      headerExtra={
+        !notStarted ? (
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <StatPill
+              label="Modo"
+              value={isCoop ? 'CO-OP' : 'VERSUS'}
+              accent={isCoop ? 'var(--status-ready)' : 'var(--neon-purple)'}
+              filled
+            />
+            <StatPill label="Rodada" value={`${gameState.round}/${gameState.maxRounds}`} accent={ACCENT.main} />
+            <StatPill label="Em jogo" value={activePlayers.length} accent={ACCENT.main} />
+            {isCoop && (
               <Box
-                key={player.id}
                 sx={{
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  p: 1.5,
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--bg-surface)',
-                  opacity: player.isEliminated ? 0.5 : 1,
+                  justifyContent: 'center',
+                  gap: 0.25,
+                  px: 1.75,
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'rgba(255,255,255,0.035)',
                 }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Box
-                    sx={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: '50%',
-                      background: player.isHost ? 'var(--accent-red)' : 'var(--accent-gold)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.9rem',
-                      fontWeight: 700,
-                      color: '#fff',
-                    }}
-                  >
-                    {player.name.charAt(0).toUpperCase()}
-                  </Box>
-                  <Box>
-                    <Typography sx={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                      {player.name}
-                      {player.isHost && (
-                        <Chip
-                          label="HOST"
-                          size="small"
-                          sx={{
-                            ml: 1,
-                            height: 18,
-                            fontSize: '0.6rem',
-                            bgcolor: 'var(--accent-red)',
-                            color: '#fff',
-                          }}
-                        />
-                      )}
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {player.isEliminated ? 'Eliminado' : `${player.cards.length} cartas`}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Box
+                <Typography
                   sx={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: '50%',
-                    bgcolor: !player.connected
-                      ? 'var(--status-offline)'
-                      : player.isEliminated
-                        ? 'var(--accent-red)'
-                        : player.cards.length === 0
-                          ? 'var(--status-ready)'
-                          : 'var(--status-waiting)',
+                    fontSize: '0.65rem',
+                    letterSpacing: '0.18em',
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
                   }}
-                />
+                >
+                  VIDAS
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 0.25 }}>
+                  {Array.from({ length: gameState.maxLives }).map((_, index) =>
+                    index < gameState.lives ? (
+                      <FavoriteIcon key={index} sx={{ color: 'var(--accent-red)', fontSize: '1.2rem' }} />
+                    ) : (
+                      <FavoriteBorderIcon
+                        key={index}
+                        sx={{ color: 'var(--text-muted)', fontSize: '1.2rem', opacity: 0.4 }}
+                      />
+                    ),
+                  )}
+                </Box>
+              </Box>
+            )}
+          </Box>
+        ) : undefined
+      }
+    >
+      {/* Antes de começar: escolher o modo */}
+      {notStarted && (
+        <GameCard title="ESCOLHA O MODO" accent={ACCENT.main} highlight>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+            {MODES.map((mode) => (
+              <Box
+                key={mode.key}
+                onClick={() => onStartGame(mode.key)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    onStartGame(mode.key)
+                  }
+                }}
+                sx={{
+                  cursor: 'pointer',
+                  p: 3,
+                  textAlign: 'center',
+                  borderRadius: 'var(--radius-lg)',
+                  border: `2px solid ${mode.color}`,
+                  background: `linear-gradient(150deg, ${mode.color}1f, transparent)`,
+                  transition: 'transform 220ms ease, box-shadow 220ms ease',
+                  '&:hover': { transform: 'translateY(-4px)', boxShadow: `0 0 30px ${mode.color}55` },
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: '2rem',
+                    letterSpacing: '0.1em',
+                    color: mode.color,
+                  }}
+                >
+                  {mode.label}
+                </Typography>
+                <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.9rem', mt: 0.5 }}>
+                  {mode.hint}
+                </Typography>
+                <Button
+                  variant="contained"
+                  startIcon={<PlayArrowRoundedIcon />}
+                  sx={{
+                    mt: 2,
+                    bgcolor: mode.color,
+                    backgroundImage: 'none',
+                    color: '#0a0a0f',
+                    '&:hover': { bgcolor: mode.color, backgroundImage: 'none', filter: 'brightness(1.1)' },
+                  }}
+                >
+                  Começar
+                </Button>
               </Box>
             ))}
           </Box>
-        </Box>
+        </GameCard>
+      )}
 
-        {/* Controles */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {/* Aguardando inÃ­cio */}
-          {gameState.phase === 'waiting' && (
-            <Button
-              fullWidth
-              variant="contained"
-              size="large"
-              startIcon={<PlayIcon />}
-              onClick={handleStartClick}
-              disabled={gameState.players.length < 2}
-              sx={{
-                py: 2,
-                fontSize: '1.1rem',
-                background: 'linear-gradient(135deg, var(--accent-red) 0%, #b91c1c 100%)',
-              }}
-            >
-              {gameState.players.length < 2 ? 'Aguardando jogadores...' : 'INICIAR JOGO'}
-            </Button>
-          )}
-
-          {/* Rodada concluÃ­da */}
-          {gameState.phase === 'roundEnd' && (
-            <Button
-              fullWidth
-              variant="contained"
-              size="large"
-              startIcon={<NextIcon />}
-              onClick={onNextRound}
-              sx={{
-                py: 2,
-                fontSize: '1.1rem',
-                background: 'linear-gradient(135deg, var(--status-ready) 0%, #16a34a 100%)',
-              }}
-            >
-              PRÃ“XIMA RODADA ({gameState.round + 1})
-            </Button>
-          )}
-
-          {/* Game Over */}
-          {gameState.phase === 'gameOver' && (
-            <Button
-              fullWidth
-              variant="contained"
-              size="large"
-              startIcon={<RestartIcon />}
-              onClick={onRestartGame}
-              sx={{
-                py: 2,
-                fontSize: '1.1rem',
-                background: 'linear-gradient(135deg, var(--accent-gold) 0%, #a16207 100%)',
-              }}
-            >
-              JOGAR NOVAMENTE
-            </Button>
-          )}
-
-          {/* Em jogo */}
-          {gameState.phase === 'playing' && (
-            <Typography sx={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-              ðŸŽ® Jogo em andamento... Aguarde os jogadores.
-            </Typography>
-          )}
-
-          {gameState.phase === 'roundBreak' && (
-            <Typography sx={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-              â³ Iniciando rodada {gameState.round + 1}...
-              {gameState.nextRoundTs ? (
-                <span> ({Math.max(0, Math.ceil((gameState.nextRoundTs - now) / 1000))}s)</span>
-              ) : null}
-            </Typography>
-          )}
-
-          {/* Encerrar */}
-          {gameState.phase !== 'waiting' && gameState.phase !== 'gameOver' && (
-            <Button
-              fullWidth
-              variant="outlined"
-              color="error"
-              startIcon={<StopIcon />}
-              onClick={() => setConfirmEndOpen(true)}
-              sx={{ borderWidth: 2 }}
-            >
-              Encerrar Jogo
-            </Button>
-          )}
-
-          {/* AÃ§Ãµes extras */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              color="secondary"
-              onClick={onRestartGame}
-            >
-              Reiniciar jogo
-            </Button>
-            {onChangeGame && (
-              <Button
-                fullWidth
-                variant="outlined"
-                color="inherit"
-                onClick={onChangeGame}
-              >
-                Mudar jogo
-              </Button>
-            )}
-          </Box>
-        </Box>
-      </Box>
-
-      {/* Dialog de seleÃ§Ã£o de modo */}
-      <Dialog
-        open={modeDialogOpen}
-        onClose={() => setModeDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 'var(--radius-xl)',
-            border: '2px solid var(--accent-gold)',
-          },
-        }}
-      >
-        <DialogTitle sx={{ textAlign: 'center' }}>
-          <Typography variant="h5" sx={{ color: 'var(--accent-gold)' }}>
-            SELECIONE O MODO
-          </Typography>
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => handleSelectMode('coop')}
-              sx={{
-                py: 3,
-                borderWidth: 2,
-                borderColor: 'var(--status-ready)',
-                color: 'var(--status-ready)',
-                flexDirection: 'column',
-                '&:hover': {
-                  borderWidth: 2,
-                  bgcolor: 'rgba(34, 197, 94, 0.1)',
-                },
-              }}
-            >
-              <Typography variant="h5">ðŸ¤ CO-OP</Typography>
-              <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-muted)', mt: 1 }}>
-                Trabalhem juntos! 3 vidas compartilhadas.
-              </Typography>
-            </Button>
-
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => handleSelectMode('versus')}
-              sx={{
-                py: 3,
-                borderWidth: 2,
-                borderColor: 'var(--neon-purple)',
-                color: 'var(--neon-purple)',
-                flexDirection: 'column',
-                '&:hover': {
-                  borderWidth: 2,
-                  bgcolor: 'rgba(168, 85, 247, 0.1)',
-                },
-              }}
-            >
-              <Typography variant="h5">âš”ï¸ VERSUS</Typography>
-              <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-muted)', mt: 1 }}>
-                Ãšltimo sobrevivente vence!
-              </Typography>
-            </Button>
-          </Box>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog de confirmaÃ§Ã£o */}
-      <Dialog
-        open={confirmEndOpen}
-        onClose={() => setConfirmEndOpen(false)}
-        PaperProps={{
-          sx: {
-            borderRadius: 'var(--radius-xl)',
-            border: '2px solid var(--accent-red)',
-          },
-        }}
-      >
-        <DialogTitle>
-          <Typography variant="h6" sx={{ color: 'var(--accent-red)' }}>
-            Encerrar Jogo?
-          </Typography>
-        </DialogTitle>
-        <DialogContent>
-          <Typography sx={{ color: 'var(--text-secondary)' }}>
-            Tem certeza que deseja encerrar o jogo atual?
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmEndOpen(false)}>
-            Cancelar
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={() => {
-              setConfirmEndOpen(false)
-              onEndGame()
-            }}
+      {/* Durante a partida */}
+      {!notStarted && (
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: '1.3fr 1fr' },
+            gap: 2,
+            alignItems: 'start',
+          }}
+        >
+          <GameCard
+            title="A MESA"
+            hint={played.length ? `${played.length} carta(s)` : 'vazia'}
+            accent={ACCENT.main}
+            highlight
           >
-            Encerrar
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+            {lastCard ? (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 1, alignItems: 'center' }}>
+                {played.slice(0, -1).map((card, index) => (
+                  <PlayingCard
+                    key={`${card.value}-${index}`}
+                    faceValue={card.value}
+                    size="sm"
+                    dimmed
+                    dealDelay={index * 40}
+                  />
+                ))}
+                <PlayingCard key={`last-${lastCard.value}`} faceValue={lastCard.value} size="md" highlight />
+              </Box>
+            ) : (
+              <Typography sx={{ textAlign: 'center', color: 'var(--text-muted)', py: 4 }}>
+                Nenhuma carta na mesa ainda.
+              </Typography>
+            )}
+          </GameCard>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <GameCard title="JOGADORES" accent={ACCENT.main} index={1}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {gameState.players.map((player) => (
+                  <Box
+                    key={player.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 1.5,
+                      p: 1.25,
+                      borderRadius: 'var(--radius-md)',
+                      background: 'rgba(255,255,255,0.035)',
+                      opacity: player.isEliminated ? 0.45 : 1,
+                    }}
+                  >
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.95rem' }}>
+                        {player.name}
+                        {player.isHost && (
+                          <Box
+                            component="span"
+                            sx={{
+                              ml: 0.75,
+                              fontSize: '0.6rem',
+                              fontWeight: 800,
+                              letterSpacing: '0.14em',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
+                            HOST
+                          </Box>
+                        )}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        {player.isEliminated
+                          ? 'Eliminado'
+                          : !player.connected
+                            ? 'Offline'
+                            : player.cards.length === 0
+                              ? 'Mão vazia'
+                              : `${player.cards.length} carta(s)`}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: '50%',
+                        flexShrink: 0,
+                        bgcolor: player.isEliminated
+                          ? 'var(--accent-red)'
+                          : !player.connected
+                            ? 'var(--status-offline)'
+                            : 'var(--status-ready)',
+                      }}
+                    />
+                  </Box>
+                ))}
+              </Box>
+            </GameCard>
+
+            <GameCard title="CONTROLES" accent="var(--accent-gold)" index={2}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                {!isOver && (
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    color="secondary"
+                    startIcon={<SkipNextRoundedIcon />}
+                    onClick={onNextRound}
+                  >
+                    Forçar próxima rodada
+                  </Button>
+                )}
+
+                {onPlayAsHost && (
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    color="secondary"
+                    startIcon={<SwapHorizRoundedIcon />}
+                    onClick={onPlayAsHost}
+                  >
+                    Jogar como host
+                  </Button>
+                )}
+
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<ReplayRoundedIcon />}
+                  onClick={onRestartGame}
+                >
+                  Reiniciar partida
+                </Button>
+
+                {onChangeGame && (
+                  <Button fullWidth variant="outlined" color="inherit" onClick={onChangeGame}>
+                    Trocar de jogo
+                  </Button>
+                )}
+
+                <Button
+                  fullWidth
+                  variant="text"
+                  color="error"
+                  startIcon={<StopRoundedIcon />}
+                  onClick={onEndGame}
+                >
+                  Encerrar
+                </Button>
+              </Box>
+            </GameCard>
+          </Box>
+        </Box>
+      )}
+
+      {/* Resultado, sem cobrir os controles do host */}
+      {isOver && (
+        <GameCard accent={gameState.winner ? 'var(--accent-gold)' : 'var(--accent-red)'} highlight sx={{ mt: 2 }} index={3}>
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography sx={{ fontSize: '3rem', lineHeight: 1, mb: 1 }}>
+              {gameState.winner ? '👑' : '💀'}
+            </Typography>
+            <Typography
+              sx={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '2.4rem',
+                letterSpacing: '0.06em',
+                color: gameState.winner ? 'var(--accent-gold)' : 'var(--accent-red)',
+              }}
+            >
+              {gameState.winner ? 'VITÓRIA' : 'GAME OVER'}
+            </Typography>
+            <Typography sx={{ color: 'var(--text-secondary)', mt: 0.5 }}>
+              {gameState.gameOverReason}
+            </Typography>
+          </Box>
+        </GameCard>
+      )}
+    </GameShell>
   )
 }
-

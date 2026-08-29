@@ -117,7 +117,10 @@ export async function sendHeartbeat(code: string, playerId: number): Promise<{ o
   })
 }
 
-export async function startRoom(code: string, payload?: { mode?: 'coop' | 'versus' }): Promise<Room> {
+export async function startRoom(
+  code: string,
+  payload?: { mode?: 'coop' | 'versus'; advanced?: boolean; themes?: string[]; rounds?: number },
+): Promise<Room> {
   return request<Room>(`/rooms/${code}/start/`, {
     method: 'POST',
     body: payload ? JSON.stringify(payload) : undefined,
@@ -285,4 +288,171 @@ export async function guessBlefJack(code: string, winner_player_id: number): Pro
     method: 'POST',
     body: JSON.stringify({ winner_player_id }),
   })
+}
+
+// --- A Caçada ---------------------------------------------------------------
+
+export async function cacadaSetup(code: string, hex: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/cacada_setup/`, {
+    method: 'POST',
+    body: JSON.stringify({ hex }),
+  })
+}
+
+export async function cacadaAsk(
+  code: string,
+  payload: { target_player_id: number; hex: string },
+): Promise<Room> {
+  return request<Room>(`/rooms/${code}/cacada_ask/`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function cacadaSearch(code: string, hex: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/cacada_search/`, {
+    method: 'POST',
+    body: JSON.stringify({ hex }),
+  })
+}
+
+export async function cacadaPenalty(code: string, hex: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/cacada_penalty/`, {
+    method: 'POST',
+    body: JSON.stringify({ hex }),
+  })
+}
+
+// --- Sintonia ---------------------------------------------------------------
+
+export async function sintoniaClue(code: string, clue: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/sintonia_clue/`, {
+    method: 'POST',
+    body: JSON.stringify({ clue }),
+  })
+}
+
+export async function sintoniaGuess(code: string, value: number): Promise<Room> {
+  return request<Room>(`/rooms/${code}/sintonia_guess/`, {
+    method: 'POST',
+    body: JSON.stringify({ value }),
+  })
+}
+
+export async function tickSintonia(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/sintonia_tick/`, { method: 'POST' })
+}
+
+// --- Caveira ----------------------------------------------------------------
+
+export async function caveiraPlace(code: string, card: 'rosa' | 'caveira'): Promise<Room> {
+  return request<Room>(`/rooms/${code}/caveira_place/`, {
+    method: 'POST',
+    body: JSON.stringify({ card }),
+  })
+}
+
+export async function caveiraBid(code: string, amount: number): Promise<Room> {
+  return request<Room>(`/rooms/${code}/caveira_bid/`, {
+    method: 'POST',
+    body: JSON.stringify({ amount }),
+  })
+}
+
+export async function caveiraPass(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/caveira_pass/`, { method: 'POST' })
+}
+
+export async function caveiraFlip(code: string, targetPlayerId?: number): Promise<Room> {
+  return request<Room>(`/rooms/${code}/caveira_flip/`, {
+    method: 'POST',
+    body: JSON.stringify(targetPlayerId ? { target_player_id: targetPlayerId } : {}),
+  })
+}
+
+// --- A Resistência ----------------------------------------------------------
+
+export async function resistenciaPropose(code: string, team: number[]): Promise<Room> {
+  return request<Room>(`/rooms/${code}/resistencia_propose/`, {
+    method: 'POST',
+    body: JSON.stringify({ team }),
+  })
+}
+
+export async function resistenciaVote(code: string, approve: boolean): Promise<Room> {
+  return request<Room>(`/rooms/${code}/resistencia_vote/`, {
+    method: 'POST',
+    body: JSON.stringify({ approve }),
+  })
+}
+
+export async function resistenciaMission(code: string, success: boolean): Promise<Room> {
+  return request<Room>(`/rooms/${code}/resistencia_mission/`, {
+    method: 'POST',
+    body: JSON.stringify({ success }),
+  })
+}
+
+// --- Palavra-Chave ----------------------------------------------------------
+
+export async function palavraChaveClue(code: string, word: string, count: number): Promise<Room> {
+  return request<Room>(`/rooms/${code}/palavra_chave_clue/`, {
+    method: 'POST',
+    body: JSON.stringify({ word, count }),
+  })
+}
+
+export async function palavraChaveGuess(code: string, index: number): Promise<Room> {
+  return request<Room>(`/rooms/${code}/palavra_chave_guess/`, {
+    method: 'POST',
+    body: JSON.stringify({ index }),
+  })
+}
+
+export async function palavraChavePass(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/palavra_chave_pass/`, { method: 'POST' })
+}
+
+// --- O Infiltrado -----------------------------------------------------------
+
+export async function infiltradoAccuse(code: string, accusedPlayerId: number): Promise<Room> {
+  return request<Room>(`/rooms/${code}/infiltrado_accuse/`, {
+    method: 'POST',
+    body: JSON.stringify({ accused_player_id: accusedPlayerId }),
+  })
+}
+
+export async function infiltradoVote(code: string, agree: boolean): Promise<Room> {
+  return request<Room>(`/rooms/${code}/infiltrado_vote/`, {
+    method: 'POST',
+    body: JSON.stringify({ agree }),
+  })
+}
+
+export async function infiltradoSpyGuess(code: string, location: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/infiltrado_spy_guess/`, {
+    method: 'POST',
+    body: JSON.stringify({ location }),
+  })
+}
+
+export async function tickInfiltrado(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/infiltrado_tick/`, { method: 'POST' })
+}
+
+// --- Perfil -----------------------------------------------------------------
+
+export async function perfilGuess(code: string, guess: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/perfil_guess/`, {
+    method: 'POST',
+    body: JSON.stringify({ guess }),
+  })
+}
+
+export async function perfilNext(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/perfil_next/`, { method: 'POST' })
+}
+
+export async function tickPerfil(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/perfil_tick/`, { method: 'POST' })
 }
