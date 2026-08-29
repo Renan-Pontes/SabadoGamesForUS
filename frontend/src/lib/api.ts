@@ -58,7 +58,13 @@ export async function loginAccount(payload: { email: string; password: string })
   })
 }
 
-export async function getMe(): Promise<{ user: { id?: number; email?: string; profile?: { nickname: string } } }> {
+/**
+ * `UserSerializer` sempre devolve id, username e email; só o perfil pode
+ * faltar, para uma conta criada fora do fluxo normal de cadastro.
+ */
+export async function getMe(): Promise<{
+  user: { id: number; username: string; email: string; profile?: { nickname: string } }
+}> {
   return request('/auth/me/')
 }
 

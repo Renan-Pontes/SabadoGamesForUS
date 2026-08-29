@@ -1,44 +1,51 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { AuthContext, type User } from './AuthContext'
+import {
+  clearToken,
+  getMe,
+  getToken,
+  loginAccount,
+  registerAccount,
+  setToken as persistToken,
+} from '../lib/api'
 
-const TOKEN_KEY = 'sabado_token'
-const API_URL = import.meta.env.VITE_API_URL || 'https://sabadogames.pythonanywhere.com/'
-
+/**
+ * Sessão do jogador.
+ *
+ * Toda chamada passa por `lib/api.ts`. Antes este arquivo tinha a própria
+ * cópia da URL da API e um `fetch` para cada rota de autenticação — e as duas
+ * cópias divergiram: o login apontava para um host que não existia mais
+ * enquanto o resto do app já usava o certo.
+ */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem(TOKEN_KEY)
-  })
+  const [token, setToken] = useState<string | null>(() => getToken())
   const [isLoading, setIsLoading] = useState(true)
+
+  const logout = useCallback(() => {
+    clearToken()
+    setToken(null)
+    setUser(null)
+  }, [])
 
   const fetchUser = useCallback(async () => {
     if (!token) return
     try {
-      const response = await fetch(`${API_URL}/api/auth/me/`, {
-        headers: {
-          Authorization: `Token ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const data = await getMe()
+      setUser({
+        id: data.user.id,
+        email: data.user.email,
+        nickname: data.user.profile?.nickname || 'Jogador',
       })
-
-      if (response.ok) {
-        const data = await response.json()
-        setUser({
-          id: data.user.id,
-          email: data.user.email,
-          nickname: data.user.profile?.nickname || 'Jogador',
-        })
-      } else {
-        logout()
-      }
-    } catch (err) {
-      console.error('Failed to fetch user:', err)
+    } catch {
+      // Token vencido ou revogado: derruba a sessão em vez de deixar o app
+      // preso numa identidade que o servidor não reconhece mais.
       logout()
     } finally {
       setIsLoading(false)
     }
-  }, [token])
+  }, [token, logout])
 
   useEffect(() => {
     if (token) {
@@ -49,47 +56,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [token, fetchUser])
 
   async function login(email: string, password: string) {
-    const response = await fetch(`${API_URL}/api/auth/login/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    })
-
-    if (!response.ok) {
-      const error = await response.text()
-      throw new Error(error || 'Falha no login')
-    }
-
-    const data = await response.json()
-    localStorage.setItem(TOKEN_KEY, data.token)
+    const data = await loginAccount({ email, password })
+    persistToken(data.token)
     setToken(data.token)
   }
 
   async function register(email: string, password: string, nickname: string) {
-    const response = await fetch(`${API_URL}/api/auth/register/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password, nickname }),
-    })
-
-    if (!response.ok) {
-      const error = await response.text()
-      throw new Error(error || 'Falha no registro')
-    }
-
-    const data = await response.json()
-    localStorage.setItem(TOKEN_KEY, data.token)
+    const data = await registerAccount({ email, password, nickname })
+    persistToken(data.token)
     setToken(data.token)
-  }
-
-  function logout() {
-    localStorage.removeItem(TOKEN_KEY)
-    setToken(null)
-    setUser(null)
   }
 
   async function refreshUser() {
