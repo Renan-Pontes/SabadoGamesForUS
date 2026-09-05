@@ -14,14 +14,19 @@ from . import (
     camaleao,
     camelos,
     caveira,
+    desenha,
     infiltrado,
     lobisomem,
+    manada,
+    muralhas,
     naopara,
     palavra_chave,
     palpite,
     perfil,
+    quiz,
     resistencia,
     sintonia,
+    souma,
 )
 from .serializers import (
     CacadaAskSerializer,
@@ -40,6 +45,15 @@ from .serializers import (
     ArtistaStrokeSerializer,
     ArtistaVoteSerializer,
     ArtistaGuessSerializer,
+    MuralhasMoveSerializer,
+    MuralhasWallSerializer,
+    DesenhaChooseSerializer,
+    DesenhaStrokeSerializer,
+    DesenhaGuessSerializer,
+    SoUmaClueSerializer,
+    SoUmaGuessSerializer,
+    ManadaAnswerSerializer,
+    QuizAnswerSerializer,
     CaveiraBidSerializer,
     CaveiraFlipSerializer,
     CaveiraPlaceSerializer,
@@ -125,6 +139,11 @@ NAOPARA_SLUG = naopara.NAOPARA_SLUG
 PALPITE_SLUG = palpite.PALPITE_SLUG
 ARTISTA_SLUG = artista.ARTISTA_SLUG
 BOMBA_SLUG = bomba.BOMBA_SLUG
+MURALHAS_SLUG = muralhas.MURALHAS_SLUG
+DESENHA_SLUG = desenha.DESENHA_SLUG
+SOUMA_SLUG = souma.SOUMA_SLUG
+MANADA_SLUG = manada.MANADA_SLUG
+QUIZ_SLUG = quiz.QUIZ_SLUG
 
 BLEF_JACK_SLUG = "blef-jack"
 BLEF_JACK_START_POINTS = 0
@@ -1230,6 +1249,44 @@ def _initialize_new_games(room: Room, request):
         _set_room_state(room, state)
         return None
 
+    if slug == MURALHAS_SLUG:
+        state = muralhas.initialize(players)
+        if state is None:
+            return "Muralhas é para 2 a 4 jogadores."
+        _set_room_state(room, state)
+        return None
+
+    if slug == DESENHA_SLUG:
+        state = desenha.initialize(players, _now_ts())
+        if state is None:
+            return "Desenha e Adivinha precisa de pelo menos 2 jogadores."
+        _set_room_state(room, state)
+        return None
+
+    if slug == SOUMA_SLUG:
+        rounds = request.data.get("rounds") or souma.ROUNDS
+        state = souma.initialize(players, _now_ts(), rounds=rounds)
+        if state is None:
+            return "Só Uma precisa de pelo menos 3 jogadores."
+        _set_room_state(room, state)
+        return None
+
+    if slug == MANADA_SLUG:
+        rounds = request.data.get("rounds") or manada.ROUNDS
+        state = manada.initialize(players, _now_ts(), rounds=rounds)
+        if state is None:
+            return "Manada precisa de pelo menos 2 jogadores."
+        _set_room_state(room, state)
+        return None
+
+    if slug == QUIZ_SLUG:
+        rounds = request.data.get("rounds") or quiz.ROUNDS
+        state = quiz.initialize(players, _now_ts(), rounds=rounds)
+        if state is None:
+            return "Quiz da Mesa precisa de pelo menos 1 jogador."
+        _set_room_state(room, state)
+        return None
+
     if slug == PERFIL_SLUG:
         if len(players) < 2:
             return "Perfil precisa de pelo menos 2 jogadores."
@@ -1269,6 +1326,14 @@ def _tick_new_games(room: Room):
         state = artista.tick(state, players, _now_ts())
     elif slug == BOMBA_SLUG:
         state = bomba.tick(state, players, _now_ts())
+    elif slug == DESENHA_SLUG:
+        state = desenha.tick(state, players, _now_ts())
+    elif slug == SOUMA_SLUG:
+        state = souma.tick(state, players, _now_ts())
+    elif slug == MANADA_SLUG:
+        state = manada.tick(state, players, _now_ts())
+    elif slug == QUIZ_SLUG:
+        state = quiz.tick(state, players, _now_ts())
     else:
         return state
 
@@ -1504,6 +1569,10 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             "palpite_tick",
             "artista_tick",
             "bomba_tick",
+            "desenha_tick",
+            "souma_tick",
+            "manada_tick",
+            "quiz_tick",
         }
         if self.action in open_actions:
             return [permissions.AllowAny()]
@@ -1561,6 +1630,16 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             "artista_vote",
             "artista_guess",
             "bomba_pass",
+            "muralhas_move",
+            "muralhas_wall",
+            "desenha_choose",
+            "desenha_stroke",
+            "desenha_clear",
+            "desenha_guess",
+            "souma_clue",
+            "souma_guess",
+            "manada_answer",
+            "quiz_answer",
         }:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
@@ -1662,6 +1741,24 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             return ArtistaVoteSerializer
         if self.action == "artista_guess":
             return ArtistaGuessSerializer
+        if self.action == "muralhas_move":
+            return MuralhasMoveSerializer
+        if self.action == "muralhas_wall":
+            return MuralhasWallSerializer
+        if self.action == "desenha_choose":
+            return DesenhaChooseSerializer
+        if self.action == "desenha_stroke":
+            return DesenhaStrokeSerializer
+        if self.action == "desenha_guess":
+            return DesenhaGuessSerializer
+        if self.action == "souma_clue":
+            return SoUmaClueSerializer
+        if self.action == "souma_guess":
+            return SoUmaGuessSerializer
+        if self.action == "manada_answer":
+            return ManadaAnswerSerializer
+        if self.action == "quiz_answer":
+            return QuizAnswerSerializer
         return RoomSerializer
 
     def create(self, request, *args, **kwargs):
@@ -2974,3 +3071,153 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
         _tick_new_games(room)
         return self._respond(room)
+
+    def _tick_action(self, slug):
+        room = self.get_object()
+        if room.game.slug != slug:
+            return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
+        _tick_new_games(room)
+        return self._respond(room)
+
+    def _simple_action(self, request, slug, run, finish=False):
+        """Acao padrao: contexto, payload validado, motor, salva, responde."""
+        room, player, failure = self._game_context(request, slug)
+        if failure:
+            return failure
+        data = {}
+        if self.get_serializer_class() is not RoomSerializer:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            data = serializer.validated_data
+        state = _room_state(room)
+        players, actor = self._players_and_actor(room, player)
+        error = run(state, actor, data, players)
+        if error:
+            return self._respond(room, error)
+        _set_room_state(room, state)
+        if finish:
+            self._finish_if_ended(room, state)
+        return self._respond(room)
+
+    # ------------------------------------------------------------------
+    # Muralhas
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"])
+    def muralhas_move(self, request, code=None):
+        return self._simple_action(
+            request,
+            MURALHAS_SLUG,
+            lambda state, actor, data, players: muralhas.move(state, actor, data["row"], data["col"]),
+            finish=True,
+        )
+
+    @action(detail=True, methods=["post"])
+    def muralhas_wall(self, request, code=None):
+        return self._simple_action(
+            request,
+            MURALHAS_SLUG,
+            lambda state, actor, data, players: muralhas.place_wall(
+                state, actor, data["row"], data["col"], data["orientation"]
+            ),
+        )
+
+    # ------------------------------------------------------------------
+    # Desenha e Adivinha
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"])
+    def desenha_choose(self, request, code=None):
+        return self._simple_action(
+            request,
+            DESENHA_SLUG,
+            lambda state, actor, data, players: desenha.choose(state, actor, data["index"], players, _now_ts()),
+        )
+
+    @action(detail=True, methods=["post"])
+    def desenha_stroke(self, request, code=None):
+        return self._simple_action(
+            request,
+            DESENHA_SLUG,
+            lambda state, actor, data, players: desenha.stroke(
+                state, actor, data["id"], data["points"], data.get("color") or "#111111", data.get("width") or 6
+            ),
+        )
+
+    @action(detail=True, methods=["post"])
+    def desenha_clear(self, request, code=None):
+        return self._simple_action(
+            request,
+            DESENHA_SLUG,
+            lambda state, actor, data, players: desenha.clear(state, actor),
+        )
+
+    @action(detail=True, methods=["post"])
+    def desenha_guess(self, request, code=None):
+        return self._simple_action(
+            request,
+            DESENHA_SLUG,
+            lambda state, actor, data, players: desenha.guess(state, actor, data["text"], players, _now_ts()),
+        )
+
+    @action(detail=True, methods=["post"])
+    def desenha_tick(self, request, code=None):
+        return self._tick_action(DESENHA_SLUG)
+
+    # ------------------------------------------------------------------
+    # Só Uma
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"])
+    def souma_clue(self, request, code=None):
+        return self._simple_action(
+            request,
+            SOUMA_SLUG,
+            lambda state, actor, data, players: souma.submit_clue(state, actor, data["word"], players, _now_ts()),
+        )
+
+    @action(detail=True, methods=["post"])
+    def souma_guess(self, request, code=None):
+        return self._simple_action(
+            request,
+            SOUMA_SLUG,
+            lambda state, actor, data, players: souma.submit_guess(
+                state, actor, data.get("word"), data.get("passed", False), players, _now_ts()
+            ),
+        )
+
+    @action(detail=True, methods=["post"])
+    def souma_tick(self, request, code=None):
+        return self._tick_action(SOUMA_SLUG)
+
+    # ------------------------------------------------------------------
+    # Manada
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"])
+    def manada_answer(self, request, code=None):
+        return self._simple_action(
+            request,
+            MANADA_SLUG,
+            lambda state, actor, data, players: manada.submit_answer(state, actor, data["text"], players, _now_ts()),
+        )
+
+    @action(detail=True, methods=["post"])
+    def manada_tick(self, request, code=None):
+        return self._tick_action(MANADA_SLUG)
+
+    # ------------------------------------------------------------------
+    # Quiz da Mesa
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"])
+    def quiz_answer(self, request, code=None):
+        return self._simple_action(
+            request,
+            QUIZ_SLUG,
+            lambda state, actor, data, players: quiz.submit_answer(state, actor, data["index"], players, _now_ts()),
+        )
+
+    @action(detail=True, methods=["post"])
+    def quiz_tick(self, request, code=None):
+        return self._tick_action(QUIZ_SLUG)

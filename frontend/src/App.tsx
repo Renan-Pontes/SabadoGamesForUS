@@ -37,6 +37,11 @@ import NaoParaGame from './pages/games/NaoParaGame'
 import PalpiteCertoGame from './pages/games/PalpiteCertoGame'
 import ArtistaFalsoGame from './pages/games/ArtistaFalsoGame'
 import BombaRelogioGame from './pages/games/BombaRelogioGame'
+import MuralhasGame from './pages/games/MuralhasGame'
+import DesenhaGame from './pages/games/DesenhaGame'
+import SoUmaGame from './pages/games/SoUmaGame'
+import ManadaGame from './pages/games/ManadaGame'
+import QuizGame from './pages/games/QuizGame'
 
 /**
  * Troca de tela com uma entrada curta. A `key` na rota faz o React remontar
@@ -79,6 +84,11 @@ function AnimatedRoutes() {
               <Route path="/game/:code/palpite-certo" element={<PalpiteCertoGame />} />
               <Route path="/game/:code/artista-falso" element={<ArtistaFalsoGame />} />
               <Route path="/game/:code/bomba-relogio" element={<BombaRelogioGame />} />
+              <Route path="/game/:code/muralhas" element={<MuralhasGame />} />
+              <Route path="/game/:code/desenha-e-adivinha" element={<DesenhaGame />} />
+              <Route path="/game/:code/so-uma" element={<SoUmaGame />} />
+              <Route path="/game/:code/manada" element={<ManadaGame />} />
+              <Route path="/game/:code/quiz-da-mesa" element={<QuizGame />} />
 
       <Route path="*" element={<NotFound />} />
       </Routes>

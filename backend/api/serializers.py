@@ -11,14 +11,19 @@ from . import (
     camaleao,
     camelos,
     caveira,
+    desenha,
     infiltrado,
     lobisomem,
+    manada,
+    muralhas,
     naopara,
     palavra_chave,
     palpite,
     perfil,
+    quiz,
     resistencia,
     sintonia,
+    souma,
 )
 from .models import Game, Player, Profile, Room
 
@@ -37,6 +42,11 @@ ROOM_REDACTORS = {
     palpite.PALPITE_SLUG: palpite.redact_state,
     artista.ARTISTA_SLUG: artista.redact_state,
     bomba.BOMBA_SLUG: bomba.redact_state,
+    muralhas.MURALHAS_SLUG: muralhas.redact_state,
+    desenha.DESENHA_SLUG: desenha.redact_state,
+    souma.SOUMA_SLUG: souma.redact_state,
+    manada.MANADA_SLUG: manada.redact_state,
+    quiz.QUIZ_SLUG: quiz.redact_state,
 }
 
 # Campos do estado de jogador que so o dono pode ver.
@@ -52,6 +62,10 @@ PRIVATE_PLAYER_FIELDS = {
     camelos.CAMELOS_SLUG: ["final_bets"],
     palpite.PALPITE_SLUG: ["answer", "bets"],
     artista.ARTISTA_SLUG: ["word", "is_fake", "vote"],
+    desenha.DESENHA_SLUG: ["word", "options"],
+    souma.SOUMA_SLUG: ["word", "clue"],
+    manada.MANADA_SLUG: ["answer"],
+    quiz.QUIZ_SLUG: ["choice"],
 }
 
 User = get_user_model()
@@ -702,3 +716,66 @@ class ArtistaVoteSerializer(serializers.Serializer):
 
 class ArtistaGuessSerializer(serializers.Serializer):
     word = serializers.CharField(max_length=60)
+
+
+# --- Muralhas ---------------------------------------------------------------
+
+
+class MuralhasMoveSerializer(serializers.Serializer):
+    row = serializers.IntegerField(min_value=0, max_value=muralhas.SIZE - 1)
+    col = serializers.IntegerField(min_value=0, max_value=muralhas.SIZE - 1)
+
+
+class MuralhasWallSerializer(serializers.Serializer):
+    row = serializers.IntegerField(min_value=0, max_value=muralhas.SIZE - 2)
+    col = serializers.IntegerField(min_value=0, max_value=muralhas.SIZE - 2)
+    orientation = serializers.ChoiceField(choices=["h", "v"])
+
+
+# --- Desenha e Adivinha -----------------------------------------------------
+
+
+class DesenhaChooseSerializer(serializers.Serializer):
+    index = serializers.IntegerField(min_value=0, max_value=desenha.OPTIONS - 1)
+
+
+class DesenhaStrokeSerializer(serializers.Serializer):
+    id = serializers.CharField(max_length=40)
+    points = serializers.ListField(
+        child=serializers.ListField(child=serializers.FloatField(), min_length=2, max_length=2),
+        min_length=1,
+        max_length=desenha.MAX_POINTS,
+    )
+    color = serializers.CharField(max_length=16, required=False, allow_blank=True)
+    width = serializers.IntegerField(min_value=1, max_value=40, required=False)
+
+
+class DesenhaGuessSerializer(serializers.Serializer):
+    text = serializers.CharField(max_length=60)
+
+
+# --- Só Uma -----------------------------------------------------------------
+
+
+class SoUmaClueSerializer(serializers.Serializer):
+    word = serializers.CharField(max_length=40)
+
+
+class SoUmaGuessSerializer(serializers.Serializer):
+    word = serializers.CharField(max_length=60, required=False, allow_blank=True)
+    # true = "passo": nao custa nada, mas nao pontua
+    passed = serializers.BooleanField(required=False, default=False)
+
+
+# --- Manada -----------------------------------------------------------------
+
+
+class ManadaAnswerSerializer(serializers.Serializer):
+    text = serializers.CharField(max_length=60)
+
+
+# --- Quiz da Mesa -----------------------------------------------------------
+
+
+class QuizAnswerSerializer(serializers.Serializer):
+    index = serializers.IntegerField(min_value=0, max_value=3)

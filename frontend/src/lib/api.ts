@@ -637,3 +637,100 @@ export async function bombaPass(code: string): Promise<Room> {
 export async function tickBomba(code: string): Promise<Room> {
   return request<Room>(`/rooms/${code}/bomba_tick/`, { method: 'POST' })
 }
+
+// --- Muralhas ---------------------------------------------------------------
+
+export type WallOrientation = 'h' | 'v'
+
+export async function muralhasMove(code: string, row: number, col: number): Promise<Room> {
+  return request<Room>(`/rooms/${code}/muralhas_move/`, {
+    method: 'POST',
+    body: JSON.stringify({ row, col }),
+  })
+}
+
+export async function muralhasWall(code: string, row: number, col: number, orientation: WallOrientation): Promise<Room> {
+  return request<Room>(`/rooms/${code}/muralhas_wall/`, {
+    method: 'POST',
+    body: JSON.stringify({ row, col, orientation }),
+  })
+}
+
+// --- Desenha e Adivinha -----------------------------------------------------
+
+export type DrawStroke = { id: string; points: number[][]; color: string; width: number }
+
+export async function desenhaChoose(code: string, index: number): Promise<Room> {
+  return request<Room>(`/rooms/${code}/desenha_choose/`, {
+    method: 'POST',
+    body: JSON.stringify({ index }),
+  })
+}
+
+export async function desenhaStroke(code: string, stroke: DrawStroke): Promise<Room> {
+  return request<Room>(`/rooms/${code}/desenha_stroke/`, {
+    method: 'POST',
+    body: JSON.stringify(stroke),
+  })
+}
+
+export async function desenhaClear(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/desenha_clear/`, { method: 'POST' })
+}
+
+export async function desenhaGuess(code: string, text: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/desenha_guess/`, {
+    method: 'POST',
+    body: JSON.stringify({ text }),
+  })
+}
+
+export async function tickDesenha(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/desenha_tick/`, { method: 'POST' })
+}
+
+// --- Só Uma -----------------------------------------------------------------
+
+export async function soUmaClue(code: string, word: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/souma_clue/`, {
+    method: 'POST',
+    body: JSON.stringify({ word }),
+  })
+}
+
+export async function soUmaGuess(code: string, word: string | null, passed = false): Promise<Room> {
+  return request<Room>(`/rooms/${code}/souma_guess/`, {
+    method: 'POST',
+    body: JSON.stringify({ word: word ?? '', passed }),
+  })
+}
+
+export async function tickSoUma(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/souma_tick/`, { method: 'POST' })
+}
+
+// --- Manada -----------------------------------------------------------------
+
+export async function manadaAnswer(code: string, text: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/manada_answer/`, {
+    method: 'POST',
+    body: JSON.stringify({ text }),
+  })
+}
+
+export async function tickManada(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/manada_tick/`, { method: 'POST' })
+}
+
+// --- Quiz da Mesa -----------------------------------------------------------
+
+export async function quizAnswer(code: string, index: number): Promise<Room> {
+  return request<Room>(`/rooms/${code}/quiz_answer/`, {
+    method: 'POST',
+    body: JSON.stringify({ index }),
+  })
+}
+
+export async function tickQuiz(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/quiz_tick/`, { method: 'POST' })
+}

@@ -216,6 +216,61 @@ class Command(BaseCommand):
                 "is_active": True,
             },
             {
+                "slug": "muralhas",
+                "name": "Muralhas",
+                "description": (
+                    "Chegue ao outro lado do tabuleiro antes dos outros. "
+                    "A cada vez, ande uma casa ou levante uma muralha no caminho de alguém."
+                ),
+                "min_players": 2,
+                "max_players": 4,
+                "is_active": True,
+            },
+            {
+                "slug": "desenha-e-adivinha",
+                "name": "Desenha e Adivinha",
+                "description": (
+                    "Um desenha no celular, aparece ao vivo na TV, os outros chutam. "
+                    "Quem acerta mais rápido ganha mais."
+                ),
+                "min_players": 2,
+                "max_players": 12,
+                "is_active": True,
+            },
+            {
+                "slug": "so-uma",
+                "name": "Só Uma",
+                "description": (
+                    "Cooperativo: cada um dá UMA palavra de dica, dicas repetidas se cancelam, "
+                    "e quem adivinha vê só o que sobrou na TV."
+                ),
+                "min_players": 3,
+                "max_players": 10,
+                "is_active": True,
+            },
+            {
+                "slug": "manada",
+                "name": "Manada",
+                "description": (
+                    "Responda igual à maioria para pontuar. Quem fica sozinho leva a vaca rosa, "
+                    "e com ela ninguém vence."
+                ),
+                "min_players": 2,
+                "max_players": 12,
+                "is_active": True,
+            },
+            {
+                "slug": "quiz-da-mesa",
+                "name": "Quiz da Mesa",
+                "description": (
+                    "Perguntas de múltipla escolha na TV, resposta no celular. "
+                    "Acertar rápido vale mais."
+                ),
+                "min_players": 1,
+                "max_players": 16,
+                "is_active": True,
+            },
+            {
                 "slug": "blef-jack",
                 "name": "Blef Jack",
                 "description": (

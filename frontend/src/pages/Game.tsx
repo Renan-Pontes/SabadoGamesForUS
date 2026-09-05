@@ -29,6 +29,11 @@ const GAME_ROUTES: Record<string, string> = {
   'palpite-certo': 'palpite-certo',
   'artista-falso': 'artista-falso',
   'bomba-relogio': 'bomba-relogio',
+  muralhas: 'muralhas',
+  'desenha-e-adivinha': 'desenha-e-adivinha',
+  'so-uma': 'so-uma',
+  manada: 'manada',
+  'quiz-da-mesa': 'quiz-da-mesa',
 }
 
 /**

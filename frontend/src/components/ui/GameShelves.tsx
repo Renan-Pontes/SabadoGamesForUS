@@ -35,6 +35,11 @@ const SHELVES: Shelf[] = [
         'palpite-certo',
         'artista-falso',
         'bomba-relogio',
+        'muralhas',
+        'desenha-e-adivinha',
+        'so-uma',
+        'manada',
+        'quiz-da-mesa',
       ].includes(game.slug),
   },
   {
@@ -43,6 +48,13 @@ const SHELVES: Shelf[] = [
     blurb: 'Sorte, risco e um tabuleiro que anda.',
     icon: '🎲',
     match: (_game, meta) => meta.vibe === 'Corrida',
+  },
+  {
+    key: 'strategy',
+    title: 'Estratégia',
+    blurb: 'Pense dois lances à frente. A sorte ajuda pouco aqui.',
+    icon: '♟️',
+    match: (game, meta) => meta.vibe === 'Estratégia' || ['a-cacada', 'palavra-chave', 'nao-para'].includes(game.slug),
   },
   {
     key: 'casino',

@@ -16,7 +16,7 @@ export type GameMeta = {
   /** Duração típica de uma partida. */
   duration: string
   /** Grau de traição envolvido — ajuda o host a escolher o clima da noite. */
-  vibe: 'Cooperativo' | 'Dedução' | 'Blefe' | 'Negociação' | 'Corrida' | 'Aposta' | 'Festa'
+  vibe: 'Cooperativo' | 'Dedução' | 'Blefe' | 'Negociação' | 'Corrida' | 'Aposta' | 'Festa' | 'Estratégia'
 }
 
 /** Temas das cartas do Perfil — o host escolhe quais entram no baralho. */
@@ -266,6 +266,70 @@ const CATALOG: Record<string, GameMeta> = {
       'Quem está com a bomba fala uma palavra da categoria em voz alta e aperta PASSAR. A bomba vai para o próximo da roda.',
       'A bomba explode num momento aleatório que ninguém conhece. Quem estiver segurando perde uma vida.',
       'Três vidas. Sem vidas, fora da roda. Último de pé vence.',
+    ],
+  },
+  muralhas: {
+    icon: '🧱',
+    pitch: 'Chegue ao outro lado. Ou levante um muro na frente de quem está chegando.',
+    duration: '15-25 min',
+    vibe: 'Estratégia',
+    howTo: [
+      'Tabuleiro 9×9 na TV. Cada um começa numa borda e precisa chegar à borda oposta.',
+      'Na sua vez, ou anda uma casa com o peão, ou coloca uma muralha de duas casas.',
+      'Peão na frente? Pule por cima. Se tiver muralha atrás dele, dá para pular na diagonal.',
+      'Muralhas não podem se cruzar nem fechar completamente o caminho de alguém. O celular só mostra as jogadas válidas.',
+      'Dez muralhas por pessoa em dois jogadores; sete em três; cinco em quatro. Gaste bem.',
+    ],
+  },
+  'desenha-e-adivinha': {
+    icon: '✏️',
+    pitch: 'Um desenha no celular, aparece na TV, a mesa grita palpites.',
+    duration: '15-25 min',
+    vibe: 'Festa',
+    howTo: [
+      'Quem desenha escolhe uma de três palavras e tem 75 segundos.',
+      'O desenho aparece ao vivo na TV. Os outros digitam palpites no celular.',
+      'Acertou, ganha pontos: quanto mais rápido, mais. Quem desenha ganha 25 por cada acerto.',
+      'A cada terço do tempo a TV revela uma letra. Palpites errados aparecem na TV para a mesa rir.',
+      'Cada um desenha duas vezes. Mais pontos vence.',
+    ],
+  },
+  'so-uma': {
+    icon: '☝️',
+    pitch: 'Todos dão uma dica. As repetidas somem. O que sobra tem que bastar.',
+    duration: '15-20 min',
+    vibe: 'Cooperativo',
+    howTo: [
+      'Um de vocês não vê a palavra. Os outros escrevem UMA palavra de dica cada, no celular, sem combinar.',
+      'Dicas iguais se cancelam. Dica que é a própria palavra, ou variante dela, também cai.',
+      'A TV mostra só as dicas que sobraram. Quem adivinha tem uma chance — ou passa.',
+      'Acertou, um ponto para a mesa. Passou, nada. Errou, a mesa perde esta carta e a próxima.',
+      'Dez cartas. No fim, a TV dá a nota da mesa.',
+    ],
+  },
+  manada: {
+    icon: '🐄',
+    pitch: 'Pense como o rebanho. Quem fica sozinho leva a vaca.',
+    duration: '10-15 min',
+    vibe: 'Festa',
+    howTo: [
+      'Uma pergunta boba na TV: "qual o melhor sabor de pizza?". Todo mundo responde no celular.',
+      'A TV agrupa as respostas. Quem respondeu igual à MAIORIA ganha um ponto.',
+      'Se exatamente uma pessoa ficou sozinha na resposta dela, ela leva a vaca rosa.',
+      'Com a vaca na mão ninguém vence — até que outro fique sozinho e ela mude de dono.',
+      'Oito perguntas. Mais pontos vence, desde que sem vaca.',
+    ],
+  },
+  'quiz-da-mesa': {
+    icon: '❓',
+    pitch: 'Quatro opções, vinte segundos, quem aperta primeiro leva mais.',
+    duration: '10-15 min',
+    vibe: 'Festa',
+    howTo: [
+      'A TV mostra a pergunta e quatro opções. Cada um toca a resposta no celular.',
+      'Acertou: 100 pontos mais um bônus pelo tempo que sobrou. Sem trocar depois de responder.',
+      'Na revelação a TV mostra quantos foram em cada opção.',
+      'Dez perguntas. Mais pontos vence.',
     ],
   },
   'future-sugoroku': {
