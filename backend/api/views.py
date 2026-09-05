@@ -7,10 +7,15 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import Game, Player, Room
-from . import cacada, caveira, infiltrado, palavra_chave, perfil, resistencia, sintonia
+from . import cacada, camaleao, caveira, infiltrado, lobisomem, palavra_chave, perfil, resistencia, sintonia
 from .serializers import (
     CacadaAskSerializer,
     CacadaHexSerializer,
+    CamaleaoClueSerializer,
+    CamaleaoGuessSerializer,
+    CamaleaoVoteSerializer,
+    LobisomemNightSerializer,
+    LobisomemVoteSerializer,
     CaveiraBidSerializer,
     CaveiraFlipSerializer,
     CaveiraPlaceSerializer,
@@ -89,6 +94,8 @@ RESISTENCIA_SLUG = resistencia.RESISTENCIA_SLUG
 PALAVRA_CHAVE_SLUG = palavra_chave.PALAVRA_CHAVE_SLUG
 INFILTRADO_SLUG = infiltrado.INFILTRADO_SLUG
 PERFIL_SLUG = perfil.PERFIL_SLUG
+CAMALEAO_SLUG = camaleao.CAMALEAO_SLUG
+LOBISOMEM_SLUG = lobisomem.LOBISOMEM_SLUG
 
 BLEF_JACK_SLUG = "blef-jack"
 BLEF_JACK_START_POINTS = 0
@@ -470,16 +477,28 @@ def _in_bounds(coord):
     return 0 <= x < SUGOROKU_SIZE and 0 <= y < SUGOROKU_SIZE
 
 
+SUGOROKU_CENTER = (SUGOROKU_SIZE // 2, SUGOROKU_SIZE // 2)
+SUGOROKU_CORNERS = [
+    (0, 0),
+    (SUGOROKU_SIZE - 1, 0),
+    (0, SUGOROKU_SIZE - 1),
+    (SUGOROKU_SIZE - 1, SUGOROKU_SIZE - 1),
+]
+
+
 def _initialize_sugoroku(room: Room) -> None:
+    """
+    Todos nascem no centro do labirinto. A saida e UMA das quatro quinas, e
+    ninguem sabe qual: pisar numa quina errada revela que ela nao e a saida.
+    E o que transforma o jogo de corrida com mapa aberto em exploracao.
+    """
     rng = secrets.SystemRandom()
-    exit_coord = (rng.randrange(SUGOROKU_SIZE), rng.randrange(SUGOROKU_SIZE))
-    if exit_coord == (0, 0):
-        exit_coord = (SUGOROKU_SIZE - 1, SUGOROKU_SIZE - 1)
+    exit_coord = rng.choice(SUGOROKU_CORNERS)
 
     penalties = {}
     for _ in range(5):
         coord = (rng.randrange(SUGOROKU_SIZE), rng.randrange(SUGOROKU_SIZE))
-        if coord == (0, 0):
+        if coord == SUGOROKU_CENTER or coord in SUGOROKU_CORNERS:
             continue
         penalties[_coord_key(coord)] = rng.choice([1, 2, 3])
 
@@ -487,7 +506,7 @@ def _initialize_sugoroku(room: Room) -> None:
         player_state = player.state or {}
         player_state.update(
             {
-                "position": [0, 0],
+                "position": list(SUGOROKU_CENTER),
                 "prev_position": None,
                 "points": SUGOROKU_START_POINTS,
                 "locked": False,
@@ -504,6 +523,10 @@ def _initialize_sugoroku(room: Room) -> None:
         "turn": 1,
         "max_turns": SUGOROKU_TURNS,
         "exit": list(exit_coord),
+        "start": list(SUGOROKU_CENTER),
+        "corners": [list(c) for c in SUGOROKU_CORNERS],
+        # Quinas ja visitadas que NAO eram a saida — informacao publica.
+        "dead_ends": [],
         "penalties": penalties,
         "pending_penalties": {},
         "dice": {},
@@ -663,6 +686,10 @@ def _resolve_sugoroku(room: Room) -> dict:
         if exit_coord and list(exit_coord) == pos:
             player_state["cleared"] = True
             winners.append(player.id)
+        elif list(pos) in [list(c) for c in SUGOROKU_CORNERS]:
+            dead_ends = state.setdefault("dead_ends", [])
+            if list(pos) not in dead_ends:
+                dead_ends.append(list(pos))
         points = player_state.get("points", SUGOROKU_START_POINTS)
         if points <= 0:
             player_state["eliminated"] = True
@@ -1124,6 +1151,20 @@ def _initialize_new_games(room: Room, request):
         _set_room_state(room, state)
         return None
 
+    if slug == CAMALEAO_SLUG:
+        state = camaleao.initialize(players, _now_ts())
+        if state is None:
+            return "Camaleão precisa de pelo menos 3 jogadores."
+        _set_room_state(room, state)
+        return None
+
+    if slug == LOBISOMEM_SLUG:
+        state = lobisomem.initialize(players, _now_ts())
+        if state is None:
+            return "Lobisomem funciona com 3 a 10 jogadores."
+        _set_room_state(room, state)
+        return None
+
     if slug == PERFIL_SLUG:
         if len(players) < 2:
             return "Perfil precisa de pelo menos 2 jogadores."
@@ -1153,6 +1194,10 @@ def _tick_new_games(room: Room):
         state = infiltrado.tick(state, _now_ts())
     elif slug == PERFIL_SLUG:
         state = perfil.tick(state, players, _now_ts())
+    elif slug == CAMALEAO_SLUG:
+        state = camaleao.tick(state, players, _now_ts())
+    elif slug == LOBISOMEM_SLUG:
+        state = lobisomem.tick(state, players, _now_ts())
     else:
         return state
 
@@ -1383,6 +1428,8 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             "infiltrado_tick",
             "perfil_tick",
             "perfil_next",
+            "camaleao_tick",
+            "lobisomem_tick",
         }
         if self.action in open_actions:
             return [permissions.AllowAny()]
@@ -1421,6 +1468,12 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             "infiltrado_vote",
             "infiltrado_spy_guess",
             "perfil_guess",
+            "camaleao_clue",
+            "camaleao_vote",
+            "camaleao_guess",
+            "lobisomem_night",
+            "lobisomem_vote",
+            "lobisomem_open_vote",
         }:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
@@ -1494,6 +1547,16 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             return InfiltradoSpyGuessSerializer
         if self.action == "perfil_guess":
             return PerfilGuessSerializer
+        if self.action == "camaleao_clue":
+            return CamaleaoClueSerializer
+        if self.action == "camaleao_vote":
+            return CamaleaoVoteSerializer
+        if self.action == "camaleao_guess":
+            return CamaleaoGuessSerializer
+        if self.action == "lobisomem_night":
+            return LobisomemNightSerializer
+        if self.action == "lobisomem_vote":
+            return LobisomemVoteSerializer
         return RoomSerializer
 
     def create(self, request, *args, **kwargs):
@@ -1647,6 +1710,31 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
         players = room.players.all()
         data = PlayerSerializer(players, many=True, context=self.get_serializer_context()).data
         return Response({"players": data})
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
+    def tutorial(self, request, code=None):
+        """
+        O host conduz o tutorial; a TV e os celulares acompanham pelo poll.
+        Guarda so o passo atual — o texto vem do catalogo no frontend.
+        """
+        room = self.get_object()
+        try:
+            player = room.players.get(user=request.user)
+        except Player.DoesNotExist:
+            return Response({"detail": "Player not in room."}, status=status.HTTP_400_BAD_REQUEST)
+        if not player.is_host:
+            return Response({"detail": "Só o host conduz o tutorial."}, status=status.HTTP_403_FORBIDDEN)
+
+        state = _room_state(room)
+        active = bool(request.data.get("active"))
+        step = request.data.get("step", 0)
+        try:
+            step = max(0, int(step))
+        except (TypeError, ValueError):
+            step = 0
+        state["tutorial"] = {"active": active, "step": step} if active else None
+        _set_room_state(room, state)
+        return Response({"tutorial": state["tutorial"]})
 
     @action(detail=True, methods=["post"])
     def tv_ping(self, request, code=None):
@@ -1924,6 +2012,10 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             state["deadline_ts"] = timezone.now().timestamp() + LEILAO_BID_SECONDS
         player.state = player_state
         player.save(update_fields=["state"])
+        # O tick rele o estado do banco. Sem salvar antes, ele enxergava o
+        # prazo ANTIGO — e um lance nos ultimos segundos fechava a rodada na
+        # hora, com o proprio lance como vencedor.
+        _set_room_state(room, state)
         state = _tick_leilao(room)
         _set_room_state(room, state)
         return Response({"ok": True})
@@ -2431,6 +2523,123 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
     def perfil_tick(self, request, code=None):
         room = self.get_object()
         if room.game.slug != PERFIL_SLUG:
+            return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
+        _tick_new_games(room)
+        return self._respond(room)
+
+    # ------------------------------------------------------------------
+    # Camaleão
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"])
+    def camaleao_clue(self, request, code=None):
+        room, player, failure = self._game_context(request, CAMALEAO_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = camaleao.submit_clue(state, player, serializer.validated_data["word"], _now_ts())
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def camaleao_vote(self, request, code=None):
+        room, player, failure = self._game_context(request, CAMALEAO_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = camaleao.cast_vote(state, player, serializer.validated_data["target_player_id"])
+        if error:
+            return self._respond(room, error)
+        players = _all_players(room)
+        if camaleao.votes_complete(state):
+            camaleao.resolve_vote(state, players, _now_ts())
+        _set_room_state(room, state)
+        return self._respond(room)
+
+    @action(detail=True, methods=["post"])
+    def camaleao_guess(self, request, code=None):
+        room, player, failure = self._game_context(request, CAMALEAO_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = camaleao.chameleon_guess(
+            state, player, serializer.validated_data["word"], _all_players(room), _now_ts()
+        )
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def camaleao_tick(self, request, code=None):
+        room = self.get_object()
+        if room.game.slug != CAMALEAO_SLUG:
+            return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
+        _tick_new_games(room)
+        return self._respond(room)
+
+    # ------------------------------------------------------------------
+    # Lobisomem de Uma Noite
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"])
+    def lobisomem_night(self, request, code=None):
+        room, player, failure = self._game_context(request, LOBISOMEM_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        players = _all_players(room)
+        # O jogador que age precisa ser o mesmo objeto da lista, senao as
+        # trocas de carta (ladrao, encrenqueira) escrevem em copias.
+        actor = next((p for p in players if p.id == player.id), player)
+        error = lobisomem.night_action(state, actor, serializer.validated_data, players, _now_ts())
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def lobisomem_vote(self, request, code=None):
+        room, player, failure = self._game_context(request, LOBISOMEM_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = lobisomem.cast_vote(state, player, serializer.validated_data.get("target_player_id"))
+        if error:
+            return self._respond(room, error)
+        players = _all_players(room)
+        if lobisomem.votes_complete(state):
+            lobisomem.resolve(state, players, _now_ts())
+        _set_room_state(room, state)
+        self._finish_if_ended(room, state)
+        return self._respond(room)
+
+    @action(detail=True, methods=["post"])
+    def lobisomem_open_vote(self, request, code=None):
+        room, player, failure = self._game_context(request, LOBISOMEM_SLUG)
+        if failure:
+            return failure
+        if not player.is_host:
+            return self._respond(room, "Só o host encerra a discussão.")
+        state = _room_state(room)
+        error = lobisomem.open_vote(state, _now_ts())
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def lobisomem_tick(self, request, code=None):
+        room = self.get_object()
+        if room.game.slug != LOBISOMEM_SLUG:
             return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
         _tick_new_games(room)
         return self._respond(room)

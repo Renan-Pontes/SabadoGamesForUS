@@ -22,6 +22,8 @@ const GAME_ROUTES: Record<string, string> = {
   'palavra-chave': 'palavra-chave',
   'o-infiltrado': 'o-infiltrado',
   perfil: 'perfil',
+  camaleao: 'camaleao',
+  lobisomem: 'lobisomem',
 }
 
 /**

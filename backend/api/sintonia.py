@@ -142,6 +142,9 @@ def _new_round(state, players, rng, now_ts):
     for player in players:
         player_state = player.state or {}
         player_state["guess"] = None
+        # O alvo sai do estado da sala na redacao, entao o vidente precisa de
+        # uma copia propria — e so ele, porque o campo e privado por jogador.
+        player_state["psychic_target"] = state["target"] if player.id == psychic_id else None
         player.state = player_state
         player.save(update_fields=["state"])
     return state

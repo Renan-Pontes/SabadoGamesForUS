@@ -80,8 +80,16 @@ export default function SugorokuGame() {
 
   const turn = typeof state.turn === 'number' ? state.turn : 1
   const maxTurns = typeof state.max_turns === 'number' ? state.max_turns : 15
-  const exitCoord = Array.isArray(state.exit) ? (state.exit as number[]) : [0, 0]
-  const exitKey = coordKey(exitCoord)
+  // A saida so chega ao cliente quando a partida acaba: ate la e uma das quinas.
+  const exitCoord = Array.isArray(state.exit) ? (state.exit as number[]) : null
+  const exitKey = exitCoord ? coordKey(exitCoord) : null
+  const startKey = Array.isArray(state.start) ? coordKey(state.start as number[]) : '2,2'
+  const cornerKeys = new Set(
+    (Array.isArray(state.corners) ? (state.corners as number[][]) : []).map(coordKey),
+  )
+  const deadEndKeys = new Set(
+    (Array.isArray(state.dead_ends) ? (state.dead_ends as number[][]) : []).map(coordKey),
+  )
   const winners = readNumberArray(state, 'winners')
 
   const dice = (state.dice ?? {}) as Record<string, Partial<Record<Direction, number>>>
@@ -161,7 +169,7 @@ export default function SugorokuGame() {
   return (
     <GameShell
       title="FUTURE SUGOROKU"
-      tagline="Encontre a saída em 15 turnos. Cada passo custa 1 ponto, e os dados limitam quantos passam por cada porta."
+      tagline="A saída é uma das quatro quinas — ninguém sabe qual. Cada passo custa 1 ponto, e os dados limitam quantos passam por cada porta."
       accent={ACCENT}
       roomCode={code}
       viewMode={viewMode}
@@ -225,7 +233,12 @@ export default function SugorokuGame() {
         }}
       >
         {/* Tabuleiro */}
-        <GameCard title="O labirinto" hint="🚪 saída · ⚠️ armadilha" accent={ACCENT.main} highlight>
+        <GameCard
+          title="O labirinto"
+          hint={`? quina · ✕ beco · ⚠️ armadilha · ${deadEndKeys.size}/4 quinas descartadas`}
+          accent={ACCENT.main}
+          highlight
+        >
           <Box
             sx={{
               display: 'grid',
@@ -241,7 +254,9 @@ export default function SugorokuGame() {
               const key = `${x},${y}`
               const here = occupants[key] ?? []
               const isExit = key === exitKey
-              const isStart = key === '0,0'
+              const isStart = key === startKey
+              const isDeadEnd = deadEndKeys.has(key)
+              const isMysteryCorner = cornerKeys.has(key) && !isExit && !isDeadEnd
               const isMine = key === meKey && !isTv
               const penalty = penalties[key]
               const roomLocked = (lockedRooms[key]?.unlockers ?? []).length > 0
@@ -256,7 +271,15 @@ export default function SugorokuGame() {
                     aspectRatio: '1',
                     borderRadius: 'var(--radius-md)',
                     border: `2px solid ${
-                      isMine ? ACCENT.main : isExit ? 'var(--accent-gold)' : 'rgba(255,255,255,0.08)'
+                      isMine
+                        ? ACCENT.main
+                        : isExit
+                          ? 'var(--accent-gold)'
+                          : isMysteryCorner
+                            ? 'rgba(212,165,32,0.45)'
+                            : isDeadEnd
+                              ? 'rgba(220,38,38,0.5)'
+                              : 'rgba(255,255,255,0.08)'
                     }`,
                     background: isExit
                       ? 'linear-gradient(150deg, rgba(212,165,32,0.24), rgba(10,10,15,0.9))'
@@ -311,9 +334,17 @@ export default function SugorokuGame() {
                     )}
                   </Box>
 
-                  {(isExit || isStart) && (
-                    <Typography sx={{ fontSize: { xs: '1.2rem', md: '1.7rem' }, lineHeight: 1 }}>
-                      {isExit ? '🚪' : '⚑'}
+                  {(isExit || isStart || isMysteryCorner || isDeadEnd) && (
+                    <Typography
+                      sx={{
+                        fontSize: { xs: '1.2rem', md: '1.7rem' },
+                        lineHeight: 1,
+                        color: isMysteryCorner ? 'var(--accent-gold)' : isDeadEnd ? 'var(--accent-red)' : undefined,
+                        fontFamily: isMysteryCorner || isDeadEnd ? 'var(--font-display)' : undefined,
+                        opacity: isMysteryCorner ? 0.8 : 1,
+                      }}
+                    >
+                      {isExit ? '🚪' : isDeadEnd ? '✕' : isMysteryCorner ? '?' : '⚑'}
                     </Typography>
                   )}
 
@@ -542,7 +573,9 @@ export default function SugorokuGame() {
                   const available = capacity !== undefined
                   const selected = meChoice?.action === 'move' && meChoice.direction === key
                   const target: [number, number] = [mePos[0] + delta[0], mePos[1] + delta[1]]
-                  const targetIsExit = coordKey(target) === exitKey
+                  const targetKey = coordKey(target)
+                  const targetIsExit = exitKey !== null && targetKey === exitKey
+                  const targetIsMystery = cornerKeys.has(targetKey) && !deadEndKeys.has(targetKey) && !targetIsExit
                   // Posição na cruz direcional
                   const area =
                     key === 'N' ? '1 / 2' : key === 'W' ? '2 / 1' : key === 'E' ? '2 / 3' : '3 / 2'
@@ -559,14 +592,18 @@ export default function SugorokuGame() {
                         minWidth: 0,
                         borderRadius: 'var(--radius-md)',
                         border: `2px solid ${
-                          selected ? ACCENT.main : targetIsExit ? 'var(--accent-gold)' : 'rgba(255,255,255,0.1)'
+                          selected
+                            ? ACCENT.main
+                            : targetIsExit || targetIsMystery
+                              ? 'var(--accent-gold)'
+                              : 'rgba(255,255,255,0.1)'
                         }`,
                         background: selected ? `${ACCENT.main}2e` : 'rgba(255,255,255,0.03)',
                         color: 'var(--text-primary)',
                       }}
                     >
                       <Box component="span" sx={{ fontSize: '1.4rem', lineHeight: 1 }}>
-                        {targetIsExit ? '🚪' : arrow}
+                        {targetIsExit ? '🚪' : targetIsMystery ? '?' : arrow}
                       </Box>
                       <Box component="span" sx={{ fontSize: '0.55rem', letterSpacing: '0.1em', opacity: 0.75 }}>
                         {available ? `${label.toUpperCase()} · ${capacity}` : 'PAREDE'}

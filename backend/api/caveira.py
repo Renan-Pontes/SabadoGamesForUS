@@ -64,6 +64,7 @@ def initialize(players, rng=None):
         "eliminated": [],
         # Só a contagem das pilhas é pública; o conteúdo é o segredo do jogo.
         "stack_sizes": {str(pid): 0 for pid in order},
+        "hand_sizes": {str(pid): len(STARTING_HAND) for pid in order},
         "bids": {},
         "passed": [],
         "highest_bid": 0,
@@ -124,6 +125,12 @@ def total_on_table(state):
     return sum(state.get("stack_sizes", {}).values())
 
 
+def everyone_placed(state):
+    """A primeira volta da mesa e obrigatoria: ninguem aposta antes dela."""
+    sizes = state.get("stack_sizes") or {}
+    return all(sizes.get(str(pid), 0) >= 1 for pid in _active(state))
+
+
 def open_bidding(state, player, amount):
     """Primeiro lance: encerra a fase de empilhar e abre o leilão."""
     if state.get("phase") != "placing":
@@ -132,6 +139,8 @@ def open_bidding(state, player, amount):
         return "Não é a sua vez."
     if not (player.state or {}).get("stack"):
         return "Você precisa ter pelo menos uma carta na mesa para apostar."
+    if not everyone_placed(state):
+        return "O leilão só abre depois que todo mundo colocar a primeira carta."
     if amount < 1 or amount > total_on_table(state):
         return "Aposte entre 1 e o total de cartas na mesa."
 
@@ -182,20 +191,24 @@ def pass_bid(state, player):
     state["passed"] = passed
     _log(state, {"type": "pass", "player_id": player.id})
 
-    remaining = [pid for pid in _active(state) if pid not in passed]
-    if len(remaining) <= 1:
-        return _start_flipping(state)
-
     _advance_turn(state)
     return _skip_to_next_bidder(state)
 
 
 def _skip_to_next_bidder(state):
-    """Pula quem já passou até achar alguém que ainda pode cobrir."""
-    passed = state.get("passed") or []
+    """
+    Pula quem ja passou — e tambem o dono do maior lance, que nao tem como
+    cobrir a si mesmo. Se nao sobrou ninguem para cobrir, comeca a virar.
+    """
+    passed = set(state.get("passed") or [])
+    leader = state.get("highest_bidder_id")
     active = _active(state)
+    contenders = [pid for pid in active if pid not in passed and pid != leader]
+    if not contenders:
+        return _start_flipping(state)
     for _ in range(len(active)):
-        if current_player_id(state) not in passed:
+        current = current_player_id(state)
+        if current not in passed and current != leader:
             return None
         _advance_turn(state)
     return _start_flipping(state)

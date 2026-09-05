@@ -8,7 +8,7 @@ import { getRoom, joinRoom, sendHeartbeat, setReady } from '../lib/api'
 import { clearStayInLobby, getStayInLobby, saveLastRoom } from '../lib/roomHistory'
 import { gameRoute, getGameColor, getGameMeta } from '../lib/gameCatalog'
 import type { Player, Room } from '../lib/types'
-import { AppShell, LoadingScreen, Panel, RoomCode } from '../components/ui'
+import { AppShell, LoadingScreen, Panel, RoomCode, TutorialOverlay } from '../components/ui'
 import { PlayerRoster } from '../games/ui'
 import { haptic } from '../games/utils'
 
@@ -123,6 +123,7 @@ export default function PlayerController() {
   const accent = game ? getGameColor(game.slug) : 'var(--accent-gold)'
   const meta = game ? getGameMeta(game.slug) : null
   const isLive = room?.status === 'live'
+  const tutorial = (room?.state?.tutorial ?? null) as { active: boolean; step: number } | null
 
   return (
     <AppShell
@@ -263,6 +264,19 @@ export default function PlayerController() {
           Sair da sala
         </Button>
       </Box>
+
+      {meta && game && (
+        <TutorialOverlay
+          open={Boolean(tutorial?.active)}
+          title={game.name}
+          icon={meta.icon}
+          pitch={meta.pitch}
+          steps={meta.howTo}
+          step={tutorial?.step ?? 0}
+          accent={accent}
+          narrate={false}
+        />
+      )}
     </AppShell>
   )
 }

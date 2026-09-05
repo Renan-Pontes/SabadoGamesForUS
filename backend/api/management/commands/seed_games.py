@@ -139,6 +139,28 @@ class Command(BaseCommand):
                 "is_active": True,
             },
             {
+                "slug": "camaleao",
+                "name": "Camaleão",
+                "description": (
+                    "Todos sabem a palavra secreta, menos o camaleão. "
+                    "Cada um diz uma palavra; descubram quem está blefando."
+                ),
+                "min_players": 3,
+                "max_players": 10,
+                "is_active": True,
+            },
+            {
+                "slug": "lobisomem",
+                "name": "Lobisomem de Uma Noite",
+                "description": (
+                    "Uma noite de trocas secretas e uma manhã para descobrir quem é lobisomem. "
+                    "O app narra; ninguém precisa dormir."
+                ),
+                "min_players": 3,
+                "max_players": 10,
+                "is_active": True,
+            },
+            {
                 "slug": "blef-jack",
                 "name": "Blef Jack",
                 "description": (

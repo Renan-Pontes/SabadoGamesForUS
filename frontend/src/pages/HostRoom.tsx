@@ -13,11 +13,13 @@ import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded'
 import StopRoundedIcon from '@mui/icons-material/StopRounded'
 import TvRoundedIcon from '@mui/icons-material/TvRounded'
 import { useAuth } from '../context/useAuth'
-import { changeRoomGame, endRoom, getRoom, listGames, setReady, startRoom } from '../lib/api'
+import { changeRoomGame, endRoom, getRoom, listGames, setReady, setTutorial, startRoom } from '../lib/api'
 import { saveLastRoom } from '../lib/roomHistory'
 import { gameRoute, getGameColor, getGameMeta, PERFIL_THEMES } from '../lib/gameCatalog'
 import type { Game, Player, Room } from '../lib/types'
-import { AppShell, GameTile, LoadingScreen, Panel, RoomCode } from '../components/ui'
+import { AppShell, GameTile, LoadingScreen, Panel, RoomCode, TutorialOverlay } from '../components/ui'
+import { hasSeenTutorial, markTutorialSeen } from '../lib/narrator'
+import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded'
 import { PlayerRoster } from '../games/ui'
 
 export default function HostRoom() {
@@ -36,6 +38,9 @@ export default function HostRoom() {
   // Temas do Perfil: a mesa escolhe de onde as cartas saem.
   const [perfilThemes, setPerfilThemes] = useState<string[]>([...PERFIL_THEMES])
   const [perfilRounds, setPerfilRounds] = useState(8)
+  // Tutorial narrado: o host conduz, a TV fala, os celulares acompanham.
+  const [tutorialStep, setTutorialStep] = useState<number | null>(null)
+  const [narrateHere, setNarrateHere] = useState(false)
   const [readyLoading, setReadyLoading] = useState(false)
   const [loadingRoom, setLoadingRoom] = useState(true)
   const [starting, setStarting] = useState(false)
@@ -150,6 +155,17 @@ export default function HostRoom() {
     }
   }
 
+  async function pushTutorial(step: number | null) {
+    if (!code) return
+    setTutorialStep(step)
+    try {
+      await setTutorial(code, step === null ? { active: false } : { active: true, step })
+    } catch {
+      // Se a sala nao aceitar, o tutorial segue so neste aparelho.
+    }
+    if (step === null && selectedGame) markTutorialSeen(selectedGame.slug)
+  }
+
   async function handleEndRoom() {
     if (!code) return
     try {
@@ -198,6 +214,52 @@ export default function HostRoom() {
       error={error}
       headerRight={<RoomCode code={code ?? ''} copyable size="md" />}
     >
+      {selectedGame && !hasSeenTutorial(selectedGame.slug) && tutorialStep === null && (
+        <Panel accent={accent} highlight sx={{ mb: 2.5 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: { xs: 'stretch', md: 'center' },
+              justifyContent: 'space-between',
+              flexDirection: { xs: 'column', md: 'row' },
+              gap: 2,
+            }}
+          >
+            <Box>
+              <Typography
+                sx={{ fontFamily: 'var(--font-display)', fontSize: '1.35rem', letterSpacing: '0.06em', color: accent }}
+              >
+                PRIMEIRA VEZ COM {selectedGame.name.toUpperCase()}?
+              </Typography>
+              <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+                A TV narra as regras em voz alta enquanto você passa os passos daqui.
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+              <Button
+                variant="text"
+                color="inherit"
+                onClick={() => {
+                  markTutorialSeen(selectedGame.slug)
+                  setTutorialStep(null)
+                  setNarrateHere(false)
+                }}
+              >
+                Já sei jogar
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<SchoolRoundedIcon />}
+                onClick={() => pushTutorial(0)}
+                sx={{ backgroundImage: 'none', bgcolor: accent, color: '#0a0a0f', '&:hover': { bgcolor: accent } }}
+              >
+                Ver tutorial
+              </Button>
+            </Box>
+          </Box>
+        </Panel>
+      )}
+
       <Box
         sx={{
           display: 'grid',
@@ -569,6 +631,17 @@ export default function HostRoom() {
         </DialogContent>
 
         <DialogActions sx={{ px: 3.5, pb: 3.5, gap: 1 }}>
+          <Button
+            onClick={() => {
+              setRulesOpen(false)
+              pushTutorial(0)
+            }}
+            color="inherit"
+            startIcon={<SchoolRoundedIcon />}
+            sx={{ mr: 'auto' }}
+          >
+            Tutorial narrado
+          </Button>
           <Button onClick={() => setRulesOpen(false)} color="inherit">
             Voltar
           </Button>
@@ -587,6 +660,31 @@ export default function HostRoom() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {selectedGame && meta && (
+        <TutorialOverlay
+          open={tutorialStep !== null}
+          title={selectedGame.name}
+          icon={meta.icon}
+          pitch={meta.pitch}
+          steps={meta.howTo}
+          step={tutorialStep ?? 0}
+          accent={accent}
+          narrate={narrateHere || !tvConnected}
+          controls={{
+            onNext: () => pushTutorial(Math.min((tutorialStep ?? 0) + 1, meta.howTo.length)),
+            onPrev: () => pushTutorial(Math.max((tutorialStep ?? 0) - 1, 0)),
+            onClose: () => pushTutorial(null),
+          }}
+        />
+      )}
+      {tutorialStep !== null && tvConnected && (
+        <Box sx={{ position: 'fixed', bottom: 12, left: 0, right: 0, textAlign: 'center', zIndex: 56 }}>
+          <Button size="small" variant="text" color="inherit" onClick={() => setNarrateHere((v) => !v)}>
+            {narrateHere ? 'Narrar só na TV' : 'Narrar aqui também'}
+          </Button>
+        </Box>
+      )}
     </AppShell>
   )
 }

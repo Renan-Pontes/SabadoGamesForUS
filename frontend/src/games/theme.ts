@@ -103,6 +103,20 @@ export const GAME_ACCENTS = {
     contrast: '#1a0d04',
     sigil: '?',
   },
+  camaleao: {
+    main: '#facc15',
+    light: '#4ade80',
+    glow: 'rgba(250, 204, 21, 0.42)',
+    contrast: '#1a1504',
+    sigil: '◆',
+  },
+  lobisomem: {
+    main: '#c084fc',
+    light: '#f8fafc',
+    glow: 'rgba(192, 132, 252, 0.45)',
+    contrast: '#12041f',
+    sigil: '☽',
+  },
   'future-sugoroku': {
     main: '#38bdf8',
     light: '#818cf8',

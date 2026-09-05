@@ -462,3 +462,74 @@ export async function perfilNext(code: string): Promise<Room> {
 export async function tickPerfil(code: string): Promise<Room> {
   return request<Room>(`/rooms/${code}/perfil_tick/`, { method: 'POST' })
 }
+
+// --- Tutorial narrado (o host conduz; TV e celulares acompanham) ---------------
+
+export async function setTutorial(
+  code: string,
+  payload: { active: boolean; step?: number },
+): Promise<{ tutorial: { active: boolean; step: number } | null }> {
+  return request(`/rooms/${code}/tutorial/`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+// --- Camaleão ----------------------------------------------------------------
+
+export async function camaleaoClue(code: string, word: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/camaleao_clue/`, {
+    method: 'POST',
+    body: JSON.stringify({ word }),
+  })
+}
+
+export async function camaleaoVote(code: string, targetPlayerId: number): Promise<Room> {
+  return request<Room>(`/rooms/${code}/camaleao_vote/`, {
+    method: 'POST',
+    body: JSON.stringify({ target_player_id: targetPlayerId }),
+  })
+}
+
+export async function camaleaoGuess(code: string, word: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/camaleao_guess/`, {
+    method: 'POST',
+    body: JSON.stringify({ word }),
+  })
+}
+
+export async function tickCamaleao(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/camaleao_tick/`, { method: 'POST' })
+}
+
+// --- Lobisomem de Uma Noite -------------------------------------------------
+
+export type LobisomemNightPayload = {
+  target_player_id?: number | null
+  first_player_id?: number | null
+  second_player_id?: number | null
+  center_index?: number | null
+  center_indexes?: number[]
+}
+
+export async function lobisomemNight(code: string, payload: LobisomemNightPayload): Promise<Room> {
+  return request<Room>(`/rooms/${code}/lobisomem_night/`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function lobisomemVote(code: string, targetPlayerId: number | null): Promise<Room> {
+  return request<Room>(`/rooms/${code}/lobisomem_vote/`, {
+    method: 'POST',
+    body: JSON.stringify({ target_player_id: targetPlayerId }),
+  })
+}
+
+export async function lobisomemOpenVote(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/lobisomem_open_vote/`, { method: 'POST' })
+}
+
+export async function tickLobisomem(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/lobisomem_tick/`, { method: 'POST' })
+}

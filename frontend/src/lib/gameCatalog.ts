@@ -176,6 +176,33 @@ const CATALOG: Record<string, GameMeta> = {
       'Errou? Fica alguns segundos travado enquanto os outros tentam.',
     ],
   },
+  camaleao: {
+    icon: '🦎',
+    pitch: 'Todos sabem a palavra secreta, menos um. E ele vai fingir que sabe.',
+    duration: '15-25 min',
+    vibe: 'Blefe',
+    howTo: [
+      'A TV mostra uma grade de 16 palavras de um tema.',
+      'Todo mundo vê no celular qual delas é a secreta — menos o camaleão, que só vê a grade.',
+      'Na sua vez, diga UMA palavra relacionada à secreta. Vaga demais e você parece o camaleão; clara demais e entrega o jogo para ele.',
+      'Depois de todos falarem, votem em quem está blefando.',
+      'Camaleão pego ainda pode chutar a palavra: acertou, leva 1 ponto. Escapou, leva 2. Pego e errou, os outros levam 2.',
+    ],
+  },
+  lobisomem: {
+    icon: '🐺',
+    pitch: 'Uma noite só. De manhã, ninguém tem certeza nem da própria carta.',
+    duration: '10-15 min',
+    vibe: 'Blefe',
+    howTo: [
+      'Cada um recebe um papel secreto no celular. Três cartas ficam no centro, sem dono.',
+      'O app conduz a noite: lobisomens se reconhecem, o vidente espia, o ladrão troca de carta, a encrenqueira embaralha dois jogadores.',
+      'Ninguém precisa fechar os olhos — cada ação é secreta no celular de quem age.',
+      'De manhã, cinco minutos de conversa. Quem é lobisomem? Você ainda é o que era?',
+      'Votem. Morre quem tiver mais votos (com pelo menos dois). Se um lobisomem morrer, a aldeia vence.',
+      'Você vence com o time da carta que está na sua mão AO AMANHECER, não da que recebeu.',
+    ],
+  },
   'future-sugoroku': {
     icon: '🎲',
     pitch: 'Um labirinto onde as portas só deixam passar alguns de vocês.',

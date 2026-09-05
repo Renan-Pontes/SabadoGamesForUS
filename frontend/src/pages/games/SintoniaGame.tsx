@@ -60,6 +60,8 @@ export default function SintoniaGame() {
   const psychicId = typeof state.psychic_id === 'number' ? state.psychic_id : null
   const clue = typeof state.clue === 'string' ? state.clue : null
   const target = typeof state.target === 'number' ? state.target : null
+  // O alvo e privado do vidente: vem no estado dele, nao no da sala.
+  const myTarget = typeof meState.psychic_target === 'number' ? meState.psychic_target : null
   const spectrum = (state.spectrum ?? { left: '', right: '' }) as { left: string; right: string }
   const scores = (state.scores ?? {}) as Record<string, number>
   const winners = readNumberArray(state, 'winners')
@@ -174,7 +176,7 @@ export default function SintoniaGame() {
           left={spectrum.left}
           right={spectrum.right}
           target={revealTarget}
-          myTarget={amPsychic && !isReveal ? target : null}
+          myTarget={amPsychic && !isReveal ? myTarget : null}
           results={results}
           players={players}
           big={isTv}

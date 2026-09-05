@@ -4,7 +4,7 @@ import { Box, Typography } from '@mui/material'
 import { getRoom, tvPing } from '../lib/api'
 import { gameRoute, getGameColor, getGameMeta } from '../lib/gameCatalog'
 import type { Room } from '../lib/types'
-import { Brand, LoadingScreen, Panel, RoomCode, SeatGrid } from '../components/ui'
+import { Brand, LoadingScreen, Panel, RoomCode, SeatGrid, TutorialOverlay } from '../components/ui'
 import { pageBackdrop } from '../components/ui/surfaces'
 
 const TV_DEVICE_KEY = 'sabado_tv_device'
@@ -65,6 +65,7 @@ export default function TvDisplay() {
   const meta = game ? getGameMeta(game.slug) : null
   const readyCount = players.filter((player) => player.ready).length
   const everyoneReady = players.length > 0 && readyCount === players.length
+  const tutorial = (room?.state?.tutorial ?? null) as { active: boolean; step: number } | null
 
   return (
     <Box
@@ -209,6 +210,20 @@ export default function TvDisplay() {
           </Panel>
         )}
       </Box>
+
+      {meta && game && (
+        <TutorialOverlay
+          open={Boolean(tutorial?.active)}
+          title={game.name}
+          icon={meta.icon}
+          pitch={meta.pitch}
+          steps={meta.howTo}
+          step={tutorial?.step ?? 0}
+          accent={accent}
+          narrate
+          big
+        />
+      )}
 
       {/* Rodapé: a mesa se enchendo */}
       <Box sx={{ mt: { xs: 4, md: 6 }, pt: 3, borderTop: '1px solid var(--border-subtle)' }}>

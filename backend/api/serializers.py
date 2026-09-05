@@ -4,7 +4,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
-from . import cacada, caveira, infiltrado, palavra_chave, perfil, resistencia, sintonia
+from . import cacada, camaleao, caveira, infiltrado, lobisomem, palavra_chave, perfil, resistencia, sintonia
 from .models import Game, Player, Profile, Room
 
 # Cada jogo sabe o que precisa esconder do estado publico da sala.
@@ -15,16 +15,20 @@ ROOM_REDACTORS = {
     palavra_chave.PALAVRA_CHAVE_SLUG: palavra_chave.redact_state,
     infiltrado.INFILTRADO_SLUG: infiltrado.redact_state,
     perfil.PERFIL_SLUG: perfil.redact_state,
+    camaleao.CAMALEAO_SLUG: camaleao.redact_state,
+    lobisomem.LOBISOMEM_SLUG: lobisomem.redact_state,
 }
 
 # Campos do estado de jogador que so o dono pode ver.
 PRIVATE_PLAYER_FIELDS = {
     cacada.CACADA_SLUG: ["clue"],
-    sintonia.SINTONIA_SLUG: ["guess"],
+    sintonia.SINTONIA_SLUG: ["guess", "psychic_target"],
     caveira.CAVEIRA_SLUG: ["hand", "stack"],
     resistencia.RESISTENCIA_SLUG: ["role", "mission_card"],
     palavra_chave.PALAVRA_CHAVE_SLUG: ["key", "words"],
     infiltrado.INFILTRADO_SLUG: ["location", "role", "is_spy"],
+    camaleao.CAMALEAO_SLUG: ["secret_word", "is_chameleon", "vote"],
+    lobisomem.LOBISOMEM_SLUG: ["role", "current_role", "night_info", "night_done", "vote"],
 }
 
 User = get_user_model()
@@ -256,6 +260,10 @@ class RoomSerializer(serializers.ModelSerializer):
                 # Depois que alguém encontra a criatura, revelar é o desfecho.
                 if state.get("phase") != "ended":
                     state.pop("solution", None)
+            if instance.game.slug == "future-sugoroku":
+                # A saida e o segredo do labirinto: so se revela no fim.
+                if instance.status != Room.STATUS_ENDED:
+                    state.pop("exit", None)
             redactor = ROOM_REDACTORS.get(instance.game.slug)
             if redactor:
                 state = redactor(state)
@@ -582,3 +590,36 @@ class InfiltradoSpyGuessSerializer(serializers.Serializer):
 
 class PerfilGuessSerializer(serializers.Serializer):
     guess = serializers.CharField(max_length=120)
+
+
+# --- Camaleao ---------------------------------------------------------------
+
+
+class CamaleaoClueSerializer(serializers.Serializer):
+    word = serializers.CharField(max_length=30)
+
+
+class CamaleaoVoteSerializer(serializers.Serializer):
+    target_player_id = serializers.IntegerField()
+
+
+class CamaleaoGuessSerializer(serializers.Serializer):
+    word = serializers.CharField(max_length=40)
+
+
+# --- Lobisomem de Uma Noite -------------------------------------------------
+
+
+class LobisomemNightSerializer(serializers.Serializer):
+    target_player_id = serializers.IntegerField(required=False, allow_null=True)
+    first_player_id = serializers.IntegerField(required=False, allow_null=True)
+    second_player_id = serializers.IntegerField(required=False, allow_null=True)
+    center_index = serializers.IntegerField(required=False, allow_null=True, min_value=0, max_value=2)
+    center_indexes = serializers.ListField(
+        child=serializers.IntegerField(min_value=0, max_value=2), required=False
+    )
+
+
+class LobisomemVoteSerializer(serializers.Serializer):
+    # null = "ninguem"
+    target_player_id = serializers.IntegerField(required=False, allow_null=True)
