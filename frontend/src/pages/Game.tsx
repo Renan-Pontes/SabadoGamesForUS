@@ -24,6 +24,8 @@ const GAME_ROUTES: Record<string, string> = {
   perfil: 'perfil',
   camaleao: 'camaleao',
   lobisomem: 'lobisomem',
+  'corrida-de-camelos': 'corrida-de-camelos',
+  'nao-para': 'nao-para',
 }
 
 /**

@@ -117,6 +117,20 @@ export const GAME_ACCENTS = {
     contrast: '#12041f',
     sigil: '☽',
   },
+  'corrida-de-camelos': {
+    main: '#f59e0b',
+    light: '#fde68a',
+    glow: 'rgba(245, 158, 11, 0.45)',
+    contrast: '#1c1203',
+    sigil: '≋',
+  },
+  'nao-para': {
+    main: '#f43f5e',
+    light: '#fda4af',
+    glow: 'rgba(244, 63, 94, 0.45)',
+    contrast: '#1f0509',
+    sigil: '⚄',
+  },
   'future-sugoroku': {
     main: '#38bdf8',
     light: '#818cf8',

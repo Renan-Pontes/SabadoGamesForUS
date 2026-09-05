@@ -32,6 +32,8 @@ import InfiltradoGame from './pages/games/InfiltradoGame'
 import PerfilGame from './pages/games/PerfilGame'
 import CamaleaoGame from './pages/games/CamaleaoGame'
 import LobisomemGame from './pages/games/LobisomemGame'
+import CorridaDeCamelosGame from './pages/games/CorridaDeCamelosGame'
+import NaoParaGame from './pages/games/NaoParaGame'
 
 /**
  * Troca de tela com uma entrada curta. A `key` na rota faz o React remontar
@@ -69,6 +71,8 @@ function AnimatedRoutes() {
               <Route path="/game/:code/perfil" element={<PerfilGame />} />
               <Route path="/game/:code/camaleao" element={<CamaleaoGame />} />
               <Route path="/game/:code/lobisomem" element={<LobisomemGame />} />
+              <Route path="/game/:code/corrida-de-camelos" element={<CorridaDeCamelosGame />} />
+              <Route path="/game/:code/nao-para" element={<NaoParaGame />} />
 
       <Route path="*" element={<NotFound />} />
       </Routes>

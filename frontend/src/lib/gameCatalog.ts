@@ -203,6 +203,33 @@ const CATALOG: Record<string, GameMeta> = {
       'Você vence com o time da carta que está na sua mão AO AMANHECER, não da que recebeu.',
     ],
   },
+  'corrida-de-camelos': {
+    icon: '🐪',
+    pitch: 'Ninguém controla os camelos. Você aposta — e arma a pista.',
+    duration: '20-30 min',
+    vibe: 'Corrida',
+    howTo: [
+      'Cinco camelos largam numa pista de 16 casas na TV. Ninguém é dono de nenhum.',
+      'Na sua vez, faça UMA coisa: rolar a pirâmide (um camelo aleatório anda 1 a 3 casas e você ganha 1 moeda), apostar na etapa, colocar uma armadilha ou fazer a aposta final secreta.',
+      'Camelo que para em cima de outro vira pilha — e a pilha anda junta. Quem está em cima lidera.',
+      'A etapa acaba quando os cinco dados foram rolados: quem apostou no líder ganha a ficha (5, 3 ou 2), no segundo ganha 1, no resto perde 1.',
+      'Oásis empurra +1 casa; miragem puxa −1 e joga a pilha para baixo. O dono da armadilha ganha 1 moeda quando ela pega alguém.',
+      'Quando um camelo cruza a linha, pagam-se as apostas finais: 8, 5, 3, 2, 1 para quem acertou primeiro. Errou, perde 1. Quem tiver mais moedas vence.',
+    ],
+  },
+  'nao-para': {
+    icon: '🎯',
+    pitch: 'Mais uma rolada? Pare agora ou perca tudo que subiu na vez.',
+    duration: '15-25 min',
+    vibe: 'Corrida',
+    howTo: [
+      'A TV mostra onze colunas, de 2 a 12. As do meio são longas porque saem sempre; as pontas são curtas.',
+      'Na sua vez, role quatro dados e junte-os em dois pares. Cada soma sobe uma casa na coluna daquele número.',
+      'Você só pode ter três corredores por vez. Se nenhum par servir, estourou: perde tudo que subiu nesta vez.',
+      'Pare quando quiser e o progresso vira permanente. Chegou ao topo? A coluna é sua e ninguém mais usa.',
+      'Feche três colunas e venceu.',
+    ],
+  },
   'future-sugoroku': {
     icon: '🎲',
     pitch: 'Um labirinto onde as portas só deixam passar alguns de vocês.',

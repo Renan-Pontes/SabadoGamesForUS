@@ -7,7 +7,19 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import Game, Player, Room
-from . import cacada, camaleao, caveira, infiltrado, lobisomem, palavra_chave, perfil, resistencia, sintonia
+from . import (
+    cacada,
+    camaleao,
+    camelos,
+    caveira,
+    infiltrado,
+    lobisomem,
+    naopara,
+    palavra_chave,
+    perfil,
+    resistencia,
+    sintonia,
+)
 from .serializers import (
     CacadaAskSerializer,
     CacadaHexSerializer,
@@ -16,6 +28,10 @@ from .serializers import (
     CamaleaoVoteSerializer,
     LobisomemNightSerializer,
     LobisomemVoteSerializer,
+    CamelosBetFinalSerializer,
+    CamelosBetLegSerializer,
+    CamelosTileSerializer,
+    NaoParaChooseSerializer,
     CaveiraBidSerializer,
     CaveiraFlipSerializer,
     CaveiraPlaceSerializer,
@@ -96,6 +112,8 @@ INFILTRADO_SLUG = infiltrado.INFILTRADO_SLUG
 PERFIL_SLUG = perfil.PERFIL_SLUG
 CAMALEAO_SLUG = camaleao.CAMALEAO_SLUG
 LOBISOMEM_SLUG = lobisomem.LOBISOMEM_SLUG
+CAMELOS_SLUG = camelos.CAMELOS_SLUG
+NAOPARA_SLUG = naopara.NAOPARA_SLUG
 
 BLEF_JACK_SLUG = "blef-jack"
 BLEF_JACK_START_POINTS = 0
@@ -1165,6 +1183,20 @@ def _initialize_new_games(room: Room, request):
         _set_room_state(room, state)
         return None
 
+    if slug == CAMELOS_SLUG:
+        state = camelos.initialize(players)
+        if state is None:
+            return "Corrida de Camelos precisa de pelo menos 2 jogadores."
+        _set_room_state(room, state)
+        return None
+
+    if slug == NAOPARA_SLUG:
+        state = naopara.initialize(players)
+        if state is None:
+            return "Não Para precisa de pelo menos 2 jogadores."
+        _set_room_state(room, state)
+        return None
+
     if slug == PERFIL_SLUG:
         if len(players) < 2:
             return "Perfil precisa de pelo menos 2 jogadores."
@@ -1474,6 +1506,13 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             "lobisomem_night",
             "lobisomem_vote",
             "lobisomem_open_vote",
+            "camelos_roll",
+            "camelos_bet_leg",
+            "camelos_tile",
+            "camelos_bet_final",
+            "naopara_roll",
+            "naopara_choose",
+            "naopara_stop",
         }:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
@@ -1557,6 +1596,14 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             return LobisomemNightSerializer
         if self.action == "lobisomem_vote":
             return LobisomemVoteSerializer
+        if self.action == "camelos_bet_leg":
+            return CamelosBetLegSerializer
+        if self.action == "camelos_tile":
+            return CamelosTileSerializer
+        if self.action == "camelos_bet_final":
+            return CamelosBetFinalSerializer
+        if self.action == "naopara_choose":
+            return NaoParaChooseSerializer
         return RoomSerializer
 
     def create(self, request, *args, **kwargs):
@@ -2642,4 +2689,111 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
         if room.game.slug != LOBISOMEM_SLUG:
             return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
         _tick_new_games(room)
+        return self._respond(room)
+
+    # ------------------------------------------------------------------
+    # Corrida de Camelos
+    # ------------------------------------------------------------------
+
+    def _players_and_actor(self, room, player):
+        """O ator precisa ser o mesmo objeto da lista: as moedas sao salvas nos dois."""
+        players = _all_players(room)
+        actor = next((p for p in players if p.id == player.id), player)
+        return players, actor
+
+    @action(detail=True, methods=["post"])
+    def camelos_roll(self, request, code=None):
+        room, player, failure = self._game_context(request, CAMELOS_SLUG)
+        if failure:
+            return failure
+        state = _room_state(room)
+        players, actor = self._players_and_actor(room, player)
+        error = camelos.roll(state, actor, players)
+        if error:
+            return self._respond(room, error)
+        _set_room_state(room, state)
+        self._finish_if_ended(room, state)
+        return self._respond(room)
+
+    @action(detail=True, methods=["post"])
+    def camelos_bet_leg(self, request, code=None):
+        room, player, failure = self._game_context(request, CAMELOS_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = camelos.bet_leg(state, player, serializer.validated_data["camel"])
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def camelos_tile(self, request, code=None):
+        room, player, failure = self._game_context(request, CAMELOS_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        state = _room_state(room)
+        error = camelos.place_tile(state, player, data["space"], data["kind"])
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def camelos_bet_final(self, request, code=None):
+        room, player, failure = self._game_context(request, CAMELOS_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        state = _room_state(room)
+        error = camelos.bet_final(state, player, data["camel"], data["kind"])
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    # ------------------------------------------------------------------
+    # Não Para
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"])
+    def naopara_roll(self, request, code=None):
+        room, player, failure = self._game_context(request, NAOPARA_SLUG)
+        if failure:
+            return failure
+        state = _room_state(room)
+        error = naopara.roll(state, player)
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def naopara_choose(self, request, code=None):
+        room, player, failure = self._game_context(request, NAOPARA_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = naopara.choose(state, player, serializer.validated_data["option_index"])
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def naopara_stop(self, request, code=None):
+        room, player, failure = self._game_context(request, NAOPARA_SLUG)
+        if failure:
+            return failure
+        state = _room_state(room)
+        players, actor = self._players_and_actor(room, player)
+        error = naopara.stop(state, actor, players)
+        if error:
+            return self._respond(room, error)
+        _set_room_state(room, state)
+        self._finish_if_ended(room, state)
         return self._respond(room)

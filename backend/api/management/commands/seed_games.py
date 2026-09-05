@@ -161,6 +161,28 @@ class Command(BaseCommand):
                 "is_active": True,
             },
             {
+                "slug": "corrida-de-camelos",
+                "name": "Corrida de Camelos",
+                "description": (
+                    "Cinco camelos, uma pista na TV e ninguém no controle. "
+                    "Aposte em quem lidera, em quem vence e arme a pista."
+                ),
+                "min_players": 2,
+                "max_players": 8,
+                "is_active": True,
+            },
+            {
+                "slug": "nao-para",
+                "name": "Não Para",
+                "description": (
+                    "Role quatro dados e suba nas colunas da TV. Pare a tempo "
+                    "ou perca tudo que avançou na vez. Feche três colunas e vença."
+                ),
+                "min_players": 2,
+                "max_players": 6,
+                "is_active": True,
+            },
+            {
                 "slug": "blef-jack",
                 "name": "Blef Jack",
                 "description": (

@@ -533,3 +533,50 @@ export async function lobisomemOpenVote(code: string): Promise<Room> {
 export async function tickLobisomem(code: string): Promise<Room> {
   return request<Room>(`/rooms/${code}/lobisomem_tick/`, { method: 'POST' })
 }
+
+// --- Corrida de Camelos ----------------------------------------------------
+
+export type CamelosTileKind = 'oasis' | 'miragem'
+export type CamelosFinalKind = 'winner' | 'loser'
+
+export async function camelosRoll(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/camelos_roll/`, { method: 'POST' })
+}
+
+export async function camelosBetLeg(code: string, camel: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/camelos_bet_leg/`, {
+    method: 'POST',
+    body: JSON.stringify({ camel }),
+  })
+}
+
+export async function camelosTile(code: string, space: number, kind: CamelosTileKind): Promise<Room> {
+  return request<Room>(`/rooms/${code}/camelos_tile/`, {
+    method: 'POST',
+    body: JSON.stringify({ space, kind }),
+  })
+}
+
+export async function camelosBetFinal(code: string, camel: string, kind: CamelosFinalKind): Promise<Room> {
+  return request<Room>(`/rooms/${code}/camelos_bet_final/`, {
+    method: 'POST',
+    body: JSON.stringify({ camel, kind }),
+  })
+}
+
+// --- Não Para ---------------------------------------------------------------
+
+export async function naoParaRoll(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/naopara_roll/`, { method: 'POST' })
+}
+
+export async function naoParaChoose(code: string, optionIndex: number): Promise<Room> {
+  return request<Room>(`/rooms/${code}/naopara_choose/`, {
+    method: 'POST',
+    body: JSON.stringify({ option_index: optionIndex }),
+  })
+}
+
+export async function naoParaStop(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/naopara_stop/`, { method: 'POST' })
+}

@@ -61,7 +61,7 @@ python -c "import secrets; print(secrets.token_urlsafe(50))"
 
 ### Conta de administrador
 
-Os 13 jogos entram pelo `seed_games` — **não é preciso admin para tê-los**. A
+Os 17 jogos entram pelo `seed_games` — **não é preciso admin para tê-los**. A
 conta de administrador serve para o painel do Django: ver salas em andamento,
 inspecionar jogadores, desativar um jogo do catálogo.
 
@@ -109,5 +109,5 @@ bloqueado.
 curl https://api.sabadogames.app/api/games/
 ```
 
-Deve listar os 13 jogos. Se der 500, o erro está em
+Deve listar os 17 jogos. Se der 500, o erro está em
 `/var/log/api.sabadogames.app.error.log`, acessível pela aba Files.

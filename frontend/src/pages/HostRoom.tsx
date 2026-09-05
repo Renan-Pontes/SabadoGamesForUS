@@ -17,7 +17,7 @@ import { changeRoomGame, endRoom, getRoom, listGames, setReady, setTutorial, sta
 import { saveLastRoom } from '../lib/roomHistory'
 import { gameRoute, getGameColor, getGameMeta, PERFIL_THEMES } from '../lib/gameCatalog'
 import type { Game, Player, Room } from '../lib/types'
-import { AppShell, GameTile, LoadingScreen, Panel, RoomCode, TutorialOverlay } from '../components/ui'
+import { AppShell, GameShelves, LoadingScreen, Panel, RoomCode, TutorialOverlay } from '../components/ui'
 import { hasSeenTutorial, markTutorialSeen } from '../lib/narrator'
 import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded'
 import { PlayerRoster } from '../games/ui'
@@ -275,28 +275,16 @@ export default function HostRoom() {
           accent={accent}
           highlight
         >
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', xl: 'repeat(3, 1fr)' },
-              gap: 2,
-            }}
-          >
-            {games.map((game, index) => (
-              <GameTile
-                key={game.id}
-                game={game}
-                index={index}
-                selected={game.id === selectedGame?.id}
-                disabledReason={
-                  onlinePlayers.length > game.max_players
-                    ? `Máximo de ${game.max_players} jogadores`
-                    : undefined
-                }
-                onSelect={handleSelectGame}
-              />
-            ))}
-          </Box>
+          <GameShelves
+            games={games}
+            selectedId={selectedGame?.id ?? null}
+            disabledReason={(game) =>
+              onlinePlayers.length > game.max_players
+                ? `Máximo de ${game.max_players} jogadores`
+                : undefined
+            }
+            onSelect={handleSelectGame}
+          />
         </Panel>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>

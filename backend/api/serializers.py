@@ -4,7 +4,19 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
-from . import cacada, camaleao, caveira, infiltrado, lobisomem, palavra_chave, perfil, resistencia, sintonia
+from . import (
+    cacada,
+    camaleao,
+    camelos,
+    caveira,
+    infiltrado,
+    lobisomem,
+    naopara,
+    palavra_chave,
+    perfil,
+    resistencia,
+    sintonia,
+)
 from .models import Game, Player, Profile, Room
 
 # Cada jogo sabe o que precisa esconder do estado publico da sala.
@@ -17,6 +29,8 @@ ROOM_REDACTORS = {
     perfil.PERFIL_SLUG: perfil.redact_state,
     camaleao.CAMALEAO_SLUG: camaleao.redact_state,
     lobisomem.LOBISOMEM_SLUG: lobisomem.redact_state,
+    camelos.CAMELOS_SLUG: camelos.redact_state,
+    naopara.NAOPARA_SLUG: naopara.redact_state,
 }
 
 # Campos do estado de jogador que so o dono pode ver.
@@ -29,6 +43,7 @@ PRIVATE_PLAYER_FIELDS = {
     infiltrado.INFILTRADO_SLUG: ["location", "role", "is_spy"],
     camaleao.CAMALEAO_SLUG: ["secret_word", "is_chameleon", "vote"],
     lobisomem.LOBISOMEM_SLUG: ["role", "current_role", "night_info", "night_done", "vote"],
+    camelos.CAMELOS_SLUG: ["final_bets"],
 }
 
 User = get_user_model()
@@ -623,3 +638,27 @@ class LobisomemNightSerializer(serializers.Serializer):
 class LobisomemVoteSerializer(serializers.Serializer):
     # null = "ninguem"
     target_player_id = serializers.IntegerField(required=False, allow_null=True)
+
+
+# --- Corrida de Camelos ----------------------------------------------------
+
+
+class CamelosBetLegSerializer(serializers.Serializer):
+    camel = serializers.ChoiceField(choices=camelos.CAMELS)
+
+
+class CamelosTileSerializer(serializers.Serializer):
+    space = serializers.IntegerField(min_value=1, max_value=camelos.TRACK_LENGTH)
+    kind = serializers.ChoiceField(choices=["oasis", "miragem"])
+
+
+class CamelosBetFinalSerializer(serializers.Serializer):
+    camel = serializers.ChoiceField(choices=camelos.CAMELS)
+    kind = serializers.ChoiceField(choices=["winner", "loser"])
+
+
+# --- Não Para ---------------------------------------------------------------
+
+
+class NaoParaChooseSerializer(serializers.Serializer):
+    option_index = serializers.IntegerField(min_value=0)

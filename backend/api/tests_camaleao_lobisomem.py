@@ -175,8 +175,8 @@ class LobisomemTests(Base):
             self.assertNotIn("center", view["state"], "o centro e segredo ate o amanhecer")
             self.assertEqual(view["state"]["center_count"], 3)
 
-    def run_night(self):
-        """Faz cada papel agir de forma simples ate amanhecer."""
+    def run_night(self, stop_after=None):
+        """Faz cada papel agir de forma simples ate amanhecer (ou ate `stop_after` agir)."""
         for _ in range(12):
             state = self.refresh()
             if state["phase"] != "night":
@@ -198,6 +198,8 @@ class LobisomemTests(Base):
                     payload = {"center_index": 0}
                 response = self.post(pid, "lobisomem_night", payload)
                 self.assertEqual(response.status_code, 200, (role, response.content))
+            if stop_after is not None and role == stop_after:
+                return self.refresh()
         return self.refresh()
 
     def test_night_runs_in_order_and_reaches_the_day(self):
@@ -253,7 +255,9 @@ class LobisomemTests(Base):
             self.force_role(self.fresh()[villager], lobisomem.LADRAO)
         robbers = self.by_role(lobisomem.LADRAO)
         self.assertTrue(robbers)
-        self.run_night()
+        # Para logo depois do ladrao: a encrenqueira, que age depois, pode
+        # embaralhar justamente as cartas dele e da vitima.
+        self.run_night(stop_after=lobisomem.LADRAO)
         players = self.fresh()
         robber = players[robbers[0]]
         info = robber.state["night_info"]

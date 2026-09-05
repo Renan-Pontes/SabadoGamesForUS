@@ -413,7 +413,7 @@ class PalavraChaveTests(GameTestBase):
         master = next(p for p in master if p.id == self.spymaster_of(turn))
         key = master.state["key"]
 
-        self.post(master.id, "palavra_chave_clue", {"word": "PISTA", "count": 2})
+        self.post(master.id, "palavra_chave_clue", {"word": "QWERTY", "count": 2})
         agent = next(
             p.id
             for p in self.fresh_players()
@@ -435,7 +435,7 @@ class PalavraChaveTests(GameTestBase):
         master = next(p for p in self.fresh_players() if p.id == self.spymaster_of(turn))
         assassin = master.state["key"].index(palavra_chave.ASSASSIN)
 
-        self.post(master.id, "palavra_chave_clue", {"word": "PISTA", "count": 1})
+        self.post(master.id, "palavra_chave_clue", {"word": "QWERTY", "count": 1})
         agent = next(
             p.id
             for p in self.fresh_players()
@@ -453,7 +453,7 @@ class PalavraChaveTests(GameTestBase):
         state = self.room.state
         turn = state["turn_team"]
         master = self.spymaster_of(turn)
-        self.post(master, "palavra_chave_clue", {"word": "PISTA", "count": 1})
+        self.post(master, "palavra_chave_clue", {"word": "QWERTY", "count": 1})
         self.assertEqual(
             self.post(master, "palavra_chave_guess", {"index": 0}).status_code, 400
         )

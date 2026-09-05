@@ -10,7 +10,7 @@ import { createRoom, getRoom, listGames } from '../lib/api'
 import { clearLastRoom, loadLastRoom } from '../lib/roomHistory'
 import { gameRoute } from '../lib/gameCatalog'
 import type { Game } from '../lib/types'
-import { AppShell, Brand, GameTile, LoadingScreen, Panel } from '../components/ui'
+import { AppShell, Brand, GameShelves, LoadingScreen, Panel } from '../components/ui'
 
 type ResumeInfo = {
   code: string
@@ -264,23 +264,11 @@ export default function Lobby() {
               Nenhum jogo cadastrado no servidor.
             </Typography>
           ) : (
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
-                gap: 2,
-              }}
-            >
-              {games.map((game, index) => (
-                <GameTile
-                  key={game.id}
-                  game={game}
-                  index={index}
-                  selected={game.id === selectedGameId}
-                  onSelect={() => setSelectedGameId(game.id)}
-                />
-              ))}
-            </Box>
+            <GameShelves
+              games={games}
+              selectedId={selectedGameId}
+              onSelect={(game) => setSelectedGameId(game.id)}
+            />
           )}
         </Panel>
 
