@@ -16,7 +16,7 @@ export type GameMeta = {
   /** Duração típica de uma partida. */
   duration: string
   /** Grau de traição envolvido — ajuda o host a escolher o clima da noite. */
-  vibe: 'Cooperativo' | 'Dedução' | 'Blefe' | 'Negociação' | 'Corrida'
+  vibe: 'Cooperativo' | 'Dedução' | 'Blefe' | 'Negociação' | 'Corrida' | 'Aposta' | 'Festa'
 }
 
 /** Temas das cartas do Perfil — o host escolhe quais entram no baralho. */
@@ -228,6 +228,44 @@ const CATALOG: Record<string, GameMeta> = {
       'Você só pode ter três corredores por vez. Se nenhum par servir, estourou: perde tudo que subiu nesta vez.',
       'Pare quando quiser e o progresso vira permanente. Chegou ao topo? A coluna é sua e ninguém mais usa.',
       'Feche três colunas e venceu.',
+    ],
+  },
+  'palpite-certo': {
+    icon: '🎰',
+    pitch: 'Ninguém sabe a resposta. Aposte no palpite de quem parece saber.',
+    duration: '15-20 min',
+    vibe: 'Aposta',
+    howTo: [
+      'A TV mostra uma pergunta com resposta numérica. Ninguém precisa saber: cada um chuta um número no celular.',
+      'Os palpites vão para a mesa em ordem crescente, cada um com uma cota. O do meio paga 2:1; quanto mais para a ponta, mais paga.',
+      'Todo mundo aposta duas fichas nos palpites que acha certos — pode ser no seu, no de outra pessoa, ou em "todos passaram".',
+      'Vence o maior palpite que NÃO ultrapassa a resposta. Quem apostou nele ganha a cota; quem deu esse palpite ainda leva bônus.',
+      'Sete perguntas. Mais pontos vence.',
+    ],
+  },
+  'artista-falso': {
+    icon: '🎨',
+    pitch: 'Um traço por vez na TV. Um de vocês não faz ideia do que está desenhando.',
+    duration: '15-20 min',
+    vibe: 'Dedução',
+    howTo: [
+      'Todos recebem a mesma palavra secreta no celular — menos o artista falso, que só sabe a categoria.',
+      'Na sua vez, desenhe UM traço contínuo no celular. Ele aparece na TV na sua cor. Duas voltas na mesa.',
+      'Artistas: mostrem que sabem a palavra sem entregá-la. Falso: finja que sabe, olhando o que os outros fazem.',
+      'Depois, votem em quem é o falso. Se ele não for o mais votado (ou empatar), ele vence.',
+      'Pego? Ele ainda pode chutar a palavra. Acertou, vence mesmo assim.',
+    ],
+  },
+  'bomba-relogio': {
+    icon: '💣',
+    pitch: 'Fale, passe, reze. Ela explode sem avisar.',
+    duration: '10-15 min',
+    vibe: 'Festa',
+    howTo: [
+      'A TV mostra uma categoria: "marcas de carro", "coisas que são vermelhas"...',
+      'Quem está com a bomba fala uma palavra da categoria em voz alta e aperta PASSAR. A bomba vai para o próximo da roda.',
+      'A bomba explode num momento aleatório que ninguém conhece. Quem estiver segurando perde uma vida.',
+      'Três vidas. Sem vidas, fora da roda. Último de pé vence.',
     ],
   },
   'future-sugoroku': {

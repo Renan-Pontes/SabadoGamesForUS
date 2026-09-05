@@ -580,3 +580,60 @@ export async function naoParaChoose(code: string, optionIndex: number): Promise<
 export async function naoParaStop(code: string): Promise<Room> {
   return request<Room>(`/rooms/${code}/naopara_stop/`, { method: 'POST' })
 }
+
+// --- Palpite Certo ----------------------------------------------------------
+
+export async function palpiteAnswer(code: string, value: number): Promise<Room> {
+  return request<Room>(`/rooms/${code}/palpite_answer/`, {
+    method: 'POST',
+    body: JSON.stringify({ value }),
+  })
+}
+
+export async function palpiteBet(code: string, slots: number[]): Promise<Room> {
+  return request<Room>(`/rooms/${code}/palpite_bet/`, {
+    method: 'POST',
+    body: JSON.stringify({ slots }),
+  })
+}
+
+export async function tickPalpite(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/palpite_tick/`, { method: 'POST' })
+}
+
+// --- Artista Falso ----------------------------------------------------------
+
+export async function artistaStroke(code: string, points: number[][]): Promise<Room> {
+  return request<Room>(`/rooms/${code}/artista_stroke/`, {
+    method: 'POST',
+    body: JSON.stringify({ points }),
+  })
+}
+
+export async function artistaVote(code: string, targetPlayerId: number): Promise<Room> {
+  return request<Room>(`/rooms/${code}/artista_vote/`, {
+    method: 'POST',
+    body: JSON.stringify({ target_player_id: targetPlayerId }),
+  })
+}
+
+export async function artistaGuess(code: string, word: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/artista_guess/`, {
+    method: 'POST',
+    body: JSON.stringify({ word }),
+  })
+}
+
+export async function tickArtista(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/artista_tick/`, { method: 'POST' })
+}
+
+// --- Bomba-Relógio ----------------------------------------------------------
+
+export async function bombaPass(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/bomba_pass/`, { method: 'POST' })
+}
+
+export async function tickBomba(code: string): Promise<Room> {
+  return request<Room>(`/rooms/${code}/bomba_tick/`, { method: 'POST' })
+}

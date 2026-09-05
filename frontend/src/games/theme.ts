@@ -131,6 +131,27 @@ export const GAME_ACCENTS = {
     contrast: '#1f0509',
     sigil: '⚄',
   },
+  'palpite-certo': {
+    main: '#e879f9',
+    light: '#f0abfc',
+    glow: 'rgba(232, 121, 249, 0.45)',
+    contrast: '#1d0620',
+    sigil: '¤',
+  },
+  'artista-falso': {
+    main: '#34d399',
+    light: '#a7f3d0',
+    glow: 'rgba(52, 211, 153, 0.45)',
+    contrast: '#03150e',
+    sigil: '✎',
+  },
+  'bomba-relogio': {
+    main: '#ef4444',
+    light: '#fca5a5',
+    glow: 'rgba(239, 68, 68, 0.5)',
+    contrast: '#1c0505',
+    sigil: '✸',
+  },
   'future-sugoroku': {
     main: '#38bdf8',
     light: '#818cf8',

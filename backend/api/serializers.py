@@ -5,6 +5,8 @@ from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
 from . import (
+    artista,
+    bomba,
     cacada,
     camaleao,
     camelos,
@@ -13,6 +15,7 @@ from . import (
     lobisomem,
     naopara,
     palavra_chave,
+    palpite,
     perfil,
     resistencia,
     sintonia,
@@ -31,6 +34,9 @@ ROOM_REDACTORS = {
     lobisomem.LOBISOMEM_SLUG: lobisomem.redact_state,
     camelos.CAMELOS_SLUG: camelos.redact_state,
     naopara.NAOPARA_SLUG: naopara.redact_state,
+    palpite.PALPITE_SLUG: palpite.redact_state,
+    artista.ARTISTA_SLUG: artista.redact_state,
+    bomba.BOMBA_SLUG: bomba.redact_state,
 }
 
 # Campos do estado de jogador que so o dono pode ver.
@@ -44,6 +50,8 @@ PRIVATE_PLAYER_FIELDS = {
     camaleao.CAMALEAO_SLUG: ["secret_word", "is_chameleon", "vote"],
     lobisomem.LOBISOMEM_SLUG: ["role", "current_role", "night_info", "night_done", "vote"],
     camelos.CAMELOS_SLUG: ["final_bets"],
+    palpite.PALPITE_SLUG: ["answer", "bets"],
+    artista.ARTISTA_SLUG: ["word", "is_fake", "vote"],
 }
 
 User = get_user_model()
@@ -662,3 +670,35 @@ class CamelosBetFinalSerializer(serializers.Serializer):
 
 class NaoParaChooseSerializer(serializers.Serializer):
     option_index = serializers.IntegerField(min_value=0)
+
+
+# --- Palpite Certo ----------------------------------------------------------
+
+
+class PalpiteAnswerSerializer(serializers.Serializer):
+    value = serializers.FloatField()
+
+
+class PalpiteBetSerializer(serializers.Serializer):
+    slots = serializers.ListField(
+        child=serializers.IntegerField(min_value=0), min_length=1, max_length=palpite.CHIPS_PER_ROUND
+    )
+
+
+# --- Artista Falso ----------------------------------------------------------
+
+
+class ArtistaStrokeSerializer(serializers.Serializer):
+    points = serializers.ListField(
+        child=serializers.ListField(child=serializers.FloatField(), min_length=2, max_length=2),
+        min_length=2,
+        max_length=artista.MAX_POINTS,
+    )
+
+
+class ArtistaVoteSerializer(serializers.Serializer):
+    target_player_id = serializers.IntegerField()
+
+
+class ArtistaGuessSerializer(serializers.Serializer):
+    word = serializers.CharField(max_length=60)

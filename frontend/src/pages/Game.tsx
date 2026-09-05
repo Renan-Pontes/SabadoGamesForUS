@@ -26,6 +26,9 @@ const GAME_ROUTES: Record<string, string> = {
   lobisomem: 'lobisomem',
   'corrida-de-camelos': 'corrida-de-camelos',
   'nao-para': 'nao-para',
+  'palpite-certo': 'palpite-certo',
+  'artista-falso': 'artista-falso',
+  'bomba-relogio': 'bomba-relogio',
 }
 
 /**

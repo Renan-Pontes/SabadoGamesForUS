@@ -25,7 +25,17 @@ const SHELVES: Shelf[] = [
     blurb: 'A TV é o tabuleiro de verdade. O celular é o seu controle.',
     icon: '📺',
     match: (game) =>
-      ['a-cacada', 'palavra-chave', 'perfil', 'future-sugoroku', 'corrida-de-camelos', 'nao-para'].includes(game.slug),
+      [
+        'a-cacada',
+        'palavra-chave',
+        'perfil',
+        'future-sugoroku',
+        'corrida-de-camelos',
+        'nao-para',
+        'palpite-certo',
+        'artista-falso',
+        'bomba-relogio',
+      ].includes(game.slug),
   },
   {
     key: 'race',
@@ -33,6 +43,21 @@ const SHELVES: Shelf[] = [
     blurb: 'Sorte, risco e um tabuleiro que anda.',
     icon: '🎲',
     match: (_game, meta) => meta.vibe === 'Corrida',
+  },
+  {
+    key: 'casino',
+    title: 'Cassino',
+    blurb: 'Fichas na mesa. Quem aposta melhor leva.',
+    icon: '🎰',
+    match: (game, meta) =>
+      meta.vibe === 'Aposta' || ['corrida-de-camelos', 'leilao-de-cem-votos', 'blef-jack'].includes(game.slug),
+  },
+  {
+    key: 'party',
+    title: 'Festa',
+    blurb: 'Barulho, pressa e risada. Sem regra para decorar.',
+    icon: '🎉',
+    match: (game, meta) => meta.vibe === 'Festa' || ['artista-falso', 'sintonia'].includes(game.slug),
   },
   {
     key: 'bluff',

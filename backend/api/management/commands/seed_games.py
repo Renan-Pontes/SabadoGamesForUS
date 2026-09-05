@@ -183,6 +183,39 @@ class Command(BaseCommand):
                 "is_active": True,
             },
             {
+                "slug": "palpite-certo",
+                "name": "Palpite Certo",
+                "description": (
+                    "Ninguém sabe a resposta, todo mundo chuta um número. "
+                    "Depois, aposte nos palpites da mesa: o mais longe do meio paga mais."
+                ),
+                "min_players": 2,
+                "max_players": 12,
+                "is_active": True,
+            },
+            {
+                "slug": "artista-falso",
+                "name": "Artista Falso",
+                "description": (
+                    "Todos desenham um traço por vez na TV. Um deles não sabe a palavra "
+                    "e precisa fingir que sabe."
+                ),
+                "min_players": 3,
+                "max_players": 12,
+                "is_active": True,
+            },
+            {
+                "slug": "bomba-relogio",
+                "name": "Bomba-Relógio",
+                "description": (
+                    "Uma categoria na TV, uma bomba passando de mão em mão. "
+                    "Fale uma palavra, passe adiante — ela explode sem aviso."
+                ),
+                "min_players": 2,
+                "max_players": 16,
+                "is_active": True,
+            },
+            {
                 "slug": "blef-jack",
                 "name": "Blef Jack",
                 "description": (

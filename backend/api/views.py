@@ -8,6 +8,8 @@ from rest_framework.response import Response
 
 from .models import Game, Player, Room
 from . import (
+    artista,
+    bomba,
     cacada,
     camaleao,
     camelos,
@@ -16,6 +18,7 @@ from . import (
     lobisomem,
     naopara,
     palavra_chave,
+    palpite,
     perfil,
     resistencia,
     sintonia,
@@ -32,6 +35,11 @@ from .serializers import (
     CamelosBetLegSerializer,
     CamelosTileSerializer,
     NaoParaChooseSerializer,
+    PalpiteAnswerSerializer,
+    PalpiteBetSerializer,
+    ArtistaStrokeSerializer,
+    ArtistaVoteSerializer,
+    ArtistaGuessSerializer,
     CaveiraBidSerializer,
     CaveiraFlipSerializer,
     CaveiraPlaceSerializer,
@@ -114,6 +122,9 @@ CAMALEAO_SLUG = camaleao.CAMALEAO_SLUG
 LOBISOMEM_SLUG = lobisomem.LOBISOMEM_SLUG
 CAMELOS_SLUG = camelos.CAMELOS_SLUG
 NAOPARA_SLUG = naopara.NAOPARA_SLUG
+PALPITE_SLUG = palpite.PALPITE_SLUG
+ARTISTA_SLUG = artista.ARTISTA_SLUG
+BOMBA_SLUG = bomba.BOMBA_SLUG
 
 BLEF_JACK_SLUG = "blef-jack"
 BLEF_JACK_START_POINTS = 0
@@ -1197,6 +1208,28 @@ def _initialize_new_games(room: Room, request):
         _set_room_state(room, state)
         return None
 
+    if slug == PALPITE_SLUG:
+        rounds = request.data.get("rounds") or palpite.ROUNDS
+        state = palpite.initialize(players, _now_ts(), rounds=rounds)
+        if state is None:
+            return "Palpite Certo precisa de pelo menos 2 jogadores."
+        _set_room_state(room, state)
+        return None
+
+    if slug == ARTISTA_SLUG:
+        state = artista.initialize(players, _now_ts())
+        if state is None:
+            return "Artista Falso precisa de pelo menos 3 jogadores."
+        _set_room_state(room, state)
+        return None
+
+    if slug == BOMBA_SLUG:
+        state = bomba.initialize(players, _now_ts())
+        if state is None:
+            return "Bomba-Relógio precisa de pelo menos 2 jogadores."
+        _set_room_state(room, state)
+        return None
+
     if slug == PERFIL_SLUG:
         if len(players) < 2:
             return "Perfil precisa de pelo menos 2 jogadores."
@@ -1230,6 +1263,12 @@ def _tick_new_games(room: Room):
         state = camaleao.tick(state, players, _now_ts())
     elif slug == LOBISOMEM_SLUG:
         state = lobisomem.tick(state, players, _now_ts())
+    elif slug == PALPITE_SLUG:
+        state = palpite.tick(state, players, _now_ts())
+    elif slug == ARTISTA_SLUG:
+        state = artista.tick(state, players, _now_ts())
+    elif slug == BOMBA_SLUG:
+        state = bomba.tick(state, players, _now_ts())
     else:
         return state
 
@@ -1462,6 +1501,9 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             "perfil_next",
             "camaleao_tick",
             "lobisomem_tick",
+            "palpite_tick",
+            "artista_tick",
+            "bomba_tick",
         }
         if self.action in open_actions:
             return [permissions.AllowAny()]
@@ -1513,6 +1555,12 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             "naopara_roll",
             "naopara_choose",
             "naopara_stop",
+            "palpite_answer",
+            "palpite_bet",
+            "artista_stroke",
+            "artista_vote",
+            "artista_guess",
+            "bomba_pass",
         }:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
@@ -1604,6 +1652,16 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             return CamelosBetFinalSerializer
         if self.action == "naopara_choose":
             return NaoParaChooseSerializer
+        if self.action == "palpite_answer":
+            return PalpiteAnswerSerializer
+        if self.action == "palpite_bet":
+            return PalpiteBetSerializer
+        if self.action == "artista_stroke":
+            return ArtistaStrokeSerializer
+        if self.action == "artista_vote":
+            return ArtistaVoteSerializer
+        if self.action == "artista_guess":
+            return ArtistaGuessSerializer
         return RoomSerializer
 
     def create(self, request, *args, **kwargs):
@@ -2796,4 +2854,123 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             return self._respond(room, error)
         _set_room_state(room, state)
         self._finish_if_ended(room, state)
+        return self._respond(room)
+
+    # ------------------------------------------------------------------
+    # Palpite Certo
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"])
+    def palpite_answer(self, request, code=None):
+        room, player, failure = self._game_context(request, PALPITE_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        players, actor = self._players_and_actor(room, player)
+        error = palpite.submit_answer(state, actor, serializer.validated_data["value"], players, _now_ts())
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def palpite_bet(self, request, code=None):
+        room, player, failure = self._game_context(request, PALPITE_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        players, actor = self._players_and_actor(room, player)
+        error = palpite.place_bets(state, actor, serializer.validated_data["slots"], players, _now_ts())
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def palpite_tick(self, request, code=None):
+        room = self.get_object()
+        if room.game.slug != PALPITE_SLUG:
+            return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
+        _tick_new_games(room)
+        return self._respond(room)
+
+    # ------------------------------------------------------------------
+    # Artista Falso
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"])
+    def artista_stroke(self, request, code=None):
+        room, player, failure = self._game_context(request, ARTISTA_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        error = artista.draw(state, player, serializer.validated_data["points"], _now_ts())
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def artista_vote(self, request, code=None):
+        room, player, failure = self._game_context(request, ARTISTA_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        players, actor = self._players_and_actor(room, player)
+        error = artista.vote(state, actor, serializer.validated_data["target_player_id"], players, _now_ts())
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def artista_guess(self, request, code=None):
+        room, player, failure = self._game_context(request, ARTISTA_SLUG)
+        if failure:
+            return failure
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        state = _room_state(room)
+        players, actor = self._players_and_actor(room, player)
+        error = artista.guess(state, actor, serializer.validated_data["word"], players, _now_ts())
+        if not error:
+            _set_room_state(room, state)
+        return self._respond(room, error)
+
+    @action(detail=True, methods=["post"])
+    def artista_tick(self, request, code=None):
+        room = self.get_object()
+        if room.game.slug != ARTISTA_SLUG:
+            return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
+        _tick_new_games(room)
+        return self._respond(room)
+
+    # ------------------------------------------------------------------
+    # Bomba-Relógio
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["post"])
+    def bomba_pass(self, request, code=None):
+        room, player, failure = self._game_context(request, BOMBA_SLUG)
+        if failure:
+            return failure
+        state = _room_state(room)
+        error = bomba.pass_bomb(state, player, _now_ts())
+        if error:
+            return self._respond(room, error)
+        if state.get("phase") == "boom":
+            bomba._sync_lives(state, _all_players(room))
+        _set_room_state(room, state)
+        return self._respond(room)
+
+    @action(detail=True, methods=["post"])
+    def bomba_tick(self, request, code=None):
+        room = self.get_object()
+        if room.game.slug != BOMBA_SLUG:
+            return Response({"detail": "Invalid game."}, status=status.HTTP_400_BAD_REQUEST)
+        _tick_new_games(room)
         return self._respond(room)
