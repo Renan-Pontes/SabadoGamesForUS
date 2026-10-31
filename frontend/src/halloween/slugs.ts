@@ -30,14 +30,6 @@ export function isHalloweenSlug(slug: string | null | undefined): slug is Hallow
  * em que fica pronto e testado.
  */
 export const HALLOWEEN_WIP: readonly HalloweenSlug[] = [
-  'espiao-assombrado',
-  'cidade-dorme',
-  'retrato-assombrado',
-  'mentira-macabra',
-  'resposta-do-alem',
-  'abobora-bomba',
-  'portas-do-alem',
-  'quiz-do-terror',
   'corrida-de-vassouras',
 ]
 

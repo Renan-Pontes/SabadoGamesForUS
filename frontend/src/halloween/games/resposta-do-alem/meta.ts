@@ -5,14 +5,14 @@ export const meta: HalloweenGameMeta = {
   name: 'Resposta do Além',
   icon: '💬',
   tagline: 'Complete a frase. Faça a mesa gargalhar.',
-  pitch: 'Respostas anônimas, votos sinceros e muita risada de outro mundo.',
+  pitch: 'Todo mundo completa a mesma frase e a mesa vota na mais engraçada — sem saber de quem é.',
   howTo: [
-    'A TV mostra uma frase para completar.',
-    'Escreva a resposta mais engraçada no celular.',
-    'Vote na melhor — sem saber de quem é.',
-    'Cada voto vale ponto. A mais votada leva bônus.',
+    'A TV mostra uma frase com uma lacuna.',
+    'Complete no celular com a resposta mais engraçada.',
+    'Vote na melhor — sem saber de quem é. Na sua não vale.',
+    'Cada voto vale 1 ponto. A mais votada ganha +2.',
   ],
-  duration: '15-20 min',
+  duration: '10-15 min',
   vibe: 'Festa',
   minPlayers: 3,
   maxPlayers: 15,
@@ -27,6 +27,7 @@ export const meta: HalloweenGameMeta = {
     {
       key: 'rounds',
       label: 'Rodadas',
+      help: 'Cada rodada é uma frase para completar.',
       choices: [
         { value: 3, label: '3' },
         { value: 5, label: '5' },

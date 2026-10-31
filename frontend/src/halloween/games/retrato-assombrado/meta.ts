@@ -8,11 +8,11 @@ export const meta: HalloweenGameMeta = {
   pitch: 'Desenhe a palavra sem entregar — e descubra quem está só copiando.',
   howTo: [
     'Todos veem a categoria; só quem não é impostor vê a palavra.',
-    'Todo mundo desenha ao mesmo tempo no celular.',
-    'No meio, a TV mostra os desenhos: chance de o impostor copiar.',
-    'Votem no impostor. Pego, ele ainda pode chutar a palavra.',
+    'Todo mundo desenha junto no celular, em duas etapas.',
+    'No meio, a TV mostra os desenhos: a chance de o impostor copiar.',
+    'Votem no impostor. Escapou, ganha 2 pontos; pego, ainda chuta a palavra.',
   ],
-  duration: '15-20 min',
+  duration: '10-15 min',
   vibe: 'Blefe',
   minPlayers: 3,
   maxPlayers: 15,
@@ -27,6 +27,7 @@ export const meta: HalloweenGameMeta = {
     {
       key: 'rounds',
       label: 'Rodadas',
+      help: 'Cada rodada: palavra secreta, desenho em duas etapas e votação (~3 min).',
       choices: [
         { value: 3, label: '3' },
         { value: 4, label: '4' },
