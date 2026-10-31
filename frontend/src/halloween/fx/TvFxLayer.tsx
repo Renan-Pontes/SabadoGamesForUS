@@ -1,20 +1,26 @@
 import { useEffect } from 'react'
 import { getSoundState, setMusicEnabled, setRandomScaresEnabled } from '../audio'
 import {
+  RARE_SCARE,
   SCARES_WITH_NAME,
   isScareShowing,
   isScareSuppressed,
+  pickAutoScare,
   resolveScareKind,
   scareNames,
   triggerScare,
 } from '../scare'
+import { loadCustomJumpscare } from '../scare/customJumpscare'
 import { getRoomFx } from './api'
 import type { RoomFx } from './api'
+import { canRollRareScare, isNarrating, randomScareDecision } from './autoScare'
+import type { AutoScareState } from './autoScare'
 import { decideFx } from './decide'
 import type { FxAction } from './decide'
 import { loadSeenFx, saveSeenFx } from './memory'
 import { roomPlayerNames } from './names'
 import { startRandomScares } from './randomScares'
+import { startRareScare } from './rareScare'
 import TvControl from './TvControl'
 
 /** Consulta leve do `fx` da sala (o host manda susto / liga a música). */
@@ -29,6 +35,17 @@ async function scareWithName(code: string, requested: string, name?: string) {
     if (names.length) chosen = names[Math.floor(Math.random() * names.length)]
   }
   triggerScare(kind, chosen ? { name: chosen } : undefined)
+}
+
+/** O estado do app que decide se um susto automático pode sair agora. */
+function autoScareState(): AutoScareState {
+  return {
+    enabled: getSoundState().randomScares,
+    hidden: document.hidden,
+    suppressed: isScareSuppressed(),
+    showing: isScareShowing(),
+    narrating: isNarrating(),
+  }
 }
 
 function runAction(action: FxAction, code: string) {
@@ -86,14 +103,27 @@ export default function TvFxLayer({ code }: { code: string }) {
   useEffect(
     () =>
       startRandomScares({
-        check: () => {
-          if (!getSoundState().randomScares) return 'skip'
-          if (document.hidden || isScareSuppressed() || isScareShowing()) return 'wait'
-          return 'fire'
-        },
-        fire: () => void scareWithName(code, 'random'),
+        // Espera também a narração do jogo acabar (o susto alto engoliria a frase).
+        check: () => randomScareDecision(autoScareState()),
+        // Assustador só de 15 em 15 min; no meio, meme (pickAutoScare).
+        fire: () => void scareWithName(code, pickAutoScare()),
       }),
     [code],
+  )
+
+  // O susto raro: 1 chance em 5000 a cada segundo, por fora dos sustos de 4–9 min.
+  // Já deixa carregado o jumpscare próprio de public/jumpscare/, se houver.
+  useEffect(() => {
+    void loadCustomJumpscare()
+  }, [])
+
+  useEffect(
+    () =>
+      startRareScare({
+        canRoll: () => canRollRareScare(autoScareState()),
+        fire: () => triggerScare(RARE_SCARE),
+      }),
+    [],
   )
 
   return <TvControl />

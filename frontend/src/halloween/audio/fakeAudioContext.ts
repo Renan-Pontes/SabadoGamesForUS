@@ -7,7 +7,8 @@
  * cada trilha desliga todos os nós que criou — nada vaza na festa.
  */
 
-type Automation = { kind: string; time: number; duration?: number }
+/** `value`: o alvo do evento (os testes conferem para onde o ganho vai). */
+type Automation = { kind: string; time: number; duration?: number; value?: number }
 
 export class FakeParam {
   value: number
@@ -33,27 +34,27 @@ export class FakeParam {
 
   setValueAtTime(value: number, time: number) {
     this.check('setValueAtTime', time, [value])
-    this.automation.push({ kind: 'set', time })
+    this.automation.push({ kind: 'set', time, value })
     return this
   }
 
   linearRampToValueAtTime(value: number, time: number) {
     this.check('linearRamp', time, [value])
-    this.automation.push({ kind: 'linear', time })
+    this.automation.push({ kind: 'linear', time, value })
     return this
   }
 
   exponentialRampToValueAtTime(value: number, time: number) {
     this.check('exponentialRamp', time, [value])
     if (value === 0) throw new RangeError('exponentialRamp até zero')
-    this.automation.push({ kind: 'exp', time })
+    this.automation.push({ kind: 'exp', time, value })
     return this
   }
 
   setTargetAtTime(value: number, time: number, timeConstant: number) {
     this.check('setTarget', time, [value, timeConstant])
     if (timeConstant < 0) throw new RangeError('setTarget: constante negativa')
-    this.automation.push({ kind: 'target', time })
+    this.automation.push({ kind: 'target', time, value })
     return this
   }
 

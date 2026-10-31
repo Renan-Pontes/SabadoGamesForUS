@@ -3,7 +3,9 @@ import type { CSSProperties } from 'react'
 import PumpkinSvg from '../ui/PumpkinSvg'
 import SpiderSvg from '../ui/SpiderSvg'
 import type { ConcreteScare } from './bus'
-import { scareCaption } from './config'
+import { PENETRA_CUT_MS, scareCaption } from './config'
+import { customJumpscare, mountCustomVideo } from './customJumpscare'
+import { AnimatronicScene, FaceScene } from './scary'
 import './scare.css'
 
 type SceneProps = { kind: ConcreteScare; name?: string; reduced: boolean; duration: number }
@@ -35,6 +37,94 @@ function GhostFace({ className }: { className?: string }) {
       <ellipse cx="68" cy="100" rx="22" ry="30" fill="url(#hws-socket)" />
       <ellipse cx="132" cy="100" rx="22" ry="30" fill="url(#hws-socket)" />
       <ellipse cx="100" cy="172" rx="20" ry="40" fill="#050505" />
+    </svg>
+  )
+}
+
+/**
+ * O Penetra: cara cinzenta, olhos fundos com uma brasa no meio e uma bocarra
+ * cuja mandíbula (grupo separado) treme aberta. Original, em SVG; a altura
+ * extra do viewBox é a folga da mandíbula descendo.
+ */
+function PenetraFace() {
+  const teeth = { fill: '#e8e1c8', stroke: '#6f6550', strokeWidth: 1.5, strokeLinejoin: 'round' as const }
+  return (
+    <svg className="hws-penetra-face" viewBox="0 0 300 420" aria-hidden>
+      <defs>
+        <radialGradient id="hws-pen-skin" cx="50%" cy="34%" r="70%">
+          <stop offset="0%" stopColor="#e3e5d3" />
+          <stop offset="55%" stopColor="#a3aa90" />
+          <stop offset="100%" stopColor="#3e4535" />
+        </radialGradient>
+        <radialGradient id="hws-pen-throat" cx="50%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#000" />
+          <stop offset="70%" stopColor="#1a0000" />
+          <stop offset="100%" stopColor="#5c0a0a" />
+        </radialGradient>
+        <radialGradient id="hws-pen-socket" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#000" />
+          <stop offset="70%" stopColor="#0b0a08" />
+          <stop offset="100%" stopColor="#2f3327" />
+        </radialGradient>
+        <radialGradient id="hws-pen-ember" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#fffbe6" />
+          <stop offset="35%" stopColor="#fde68a" />
+          <stop offset="100%" stopColor="rgba(220, 38, 38, 0)" />
+        </radialGradient>
+      </defs>
+      <g stroke="#07070a" strokeWidth={11} strokeLinecap="round" fill="none">
+        <path d="M84 44 C 52 120 46 210 26 320" />
+        <path d="M104 28 C 74 120 70 230 52 350" />
+        <path d="M196 28 C 226 120 232 230 250 350" />
+        <path d="M216 44 C 250 120 256 210 276 320" />
+      </g>
+      <path d="M58 150 C 60 225 82 292 118 330 L 182 330 C 218 292 240 225 242 150 Z" fill="#6b7360" />
+      <path
+        d="M90 208 Q 150 226 210 208 C 214 270 196 318 150 326 C 104 318 86 270 90 208 Z"
+        fill="url(#hws-pen-throat)"
+      />
+      <g className="hws-penetra-jaw">
+        <path
+          d="M88 262 Q 150 280 212 262 C 212 320 186 368 150 372 C 114 368 88 320 88 262 Z"
+          fill="url(#hws-pen-skin)"
+          stroke="#2c3125"
+          strokeWidth={2}
+        />
+        <path
+          d="M92 263 L99 240 L107 266 L116 236 L125 268 L134 242 L143 270 L152 234 L161 270 L170 242 L179 268 L188 238 L196 266 L204 244 L210 262 Q 150 280 92 263 Z"
+          {...teeth}
+        />
+      </g>
+      <path
+        d="M150 18 C 222 18 250 80 244 150 C 240 190 228 208 210 214 Q 150 230 90 214 C 72 208 60 190 56 150 C 50 80 78 18 150 18 Z"
+        fill="url(#hws-pen-skin)"
+        stroke="#2c3125"
+        strokeWidth={2}
+      />
+      <path
+        d="M94 214 L102 244 L110 217 L118 250 L127 219 L136 247 L145 221 L154 254 L163 221 L172 247 L181 219 L190 250 L198 217 L206 240 L210 213 Q 150 230 94 214 Z"
+        {...teeth}
+      />
+      <g stroke="#2c3125" strokeWidth={1.6} fill="none" opacity={0.7}>
+        <path d="M150 20 L144 42 L153 60 L146 78" />
+        <path d="M226 60 L210 72 L214 88" />
+        <path d="M70 170 L84 178 L80 196" />
+        <path d="M232 168 L220 182" />
+      </g>
+      <g stroke="#262b1f" strokeWidth={7} strokeLinecap="round" fill="none">
+        <path d="M76 94 Q 106 80 138 100" />
+        <path d="M162 98 Q 194 76 228 90" />
+      </g>
+      <ellipse cx="108" cy="124" rx="27" ry="31" fill="url(#hws-pen-socket)" />
+      <ellipse cx="192" cy="120" rx="30" ry="35" fill="url(#hws-pen-socket)" />
+      <circle cx="112" cy="128" r="11" fill="url(#hws-pen-ember)" />
+      <circle cx="188" cy="116" r="14" fill="url(#hws-pen-ember)" />
+      <path d="M140 160 L133 178 M160 160 L167 178" stroke="#1a1d15" strokeWidth={5} strokeLinecap="round" />
+      <g stroke="#07070a" strokeWidth={8} strokeLinecap="round" fill="none">
+        <path d="M132 20 C 122 56 114 84 104 112" />
+        <path d="M150 18 C 152 40 146 60 150 80" />
+        <path d="M170 20 C 178 58 192 80 200 104" />
+      </g>
     </svg>
   )
 }
@@ -93,7 +183,16 @@ function Skeleton() {
   )
 }
 
-/** TV fora do ar: ruído cinza (nunca preto/branco puro) em baixa resolução. */
+/**
+ * Cinza do chiado: 100–130 de 255. A luminância de cada ponto varia menos de
+ * 0,1 (≈ 0,096) de um quadro para o outro, abaixo do que conta como clarão —
+ * o chiado troca 25 vezes por segundo na tela inteira, então contraste maior
+ * (era 40–190) piscava em 98% do campo de visão (fotossensibilidade).
+ */
+export const STATIC_GRAY_MIN = 100
+export const STATIC_GRAY_RANGE = 30
+
+/** TV fora do ar: ruído cinza de baixo contraste, em baixa resolução. */
 function StaticCanvas() {
   const ref = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
@@ -108,7 +207,7 @@ function StaticCanvas() {
         last = timestamp
         const data = image.data
         for (let i = 0; i < data.length; i += 4) {
-          const value = 40 + Math.random() * 150
+          const value = STATIC_GRAY_MIN + Math.random() * STATIC_GRAY_RANGE
           data[i] = value
           data[i + 1] = value
           data[i + 2] = value
@@ -299,7 +398,41 @@ function Scene({ kind, name }: { kind: ConcreteScare; name?: string }) {
           <div className="hws-whisper">{name ? `...${name}...` : '...eu tô te vendo...'}</div>
         </>
       )
+    case 'animatronic':
+      return <AnimatronicScene />
+    case 'face':
+      return <FaceScene />
+    case 'penetra':
+      return <Penetra />
   }
+}
+
+/** Vídeo do jumpscare próprio: o elemento já carregado entra na tela e toca do começo. */
+function CustomVideo() {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => (ref.current ? mountCustomVideo(ref.current) : undefined), [])
+  return <div ref={ref} className="hws-custom-video" />
+}
+
+/** O susto raro: o jumpscare próprio (public/jumpscare/) ou o Penetra desenhado. */
+function Penetra() {
+  const custom = customJumpscare()
+  if (custom?.video) return <CustomVideo />
+  return (
+    <>
+      <div className="hws-penetra-bg" />
+      <div className="hws-redflash" />
+      <div className="hws-penetra">
+        {custom?.image ? <img className="hws-penetra-img" src={custom.image} alt="" /> : <PenetraFace />}
+      </div>
+      <div className="hws-penetra-vignette" />
+      <div className="hws-scanlines" />
+      <div className="hws-penetra-cut" style={delay(PENETRA_CUT_MS)}>
+        <StaticCanvas />
+        <div className="hws-scanlines" />
+      </div>
+    </>
+  )
 }
 
 /** Um susto inteiro (ou a versão calma, para quem pediu menos movimento). */

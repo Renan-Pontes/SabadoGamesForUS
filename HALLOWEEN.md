@@ -236,11 +236,12 @@ useMusic(track: 'lobby'|'tension'|'night'|'day'|'party'|'race'|'quiz'|'chase'|'v
   // só toca na TV; vale o pedido mais recente (o jogo vence a moldura); null = silêncio
 playSfx(name: 'scream'|'thunder'|'creak'|'door'|'heartbeat'|'bell'|'ghost'|'doot'|'boom'|'clang'|'tick'|
         'explosion'|'win'|'fail'|'reveal'|'whoosh'|'pop'|'laugh'|'organ'|'drumroll'|'buzzer'|'ding'|
-        'fuse'|'monster'|'gong'|'bones'|'hiss'|'static'|'whisper',
+        'fuse'|'monster'|'gong'|'bones'|'hiss'|'static'|'whisper'|'jumpscare',
         { volume?: 0..2, delay?: segundos }): number   // duração em s; 0 = não tocou
 speakSpooky(text, { pitch?, rate? }): () => void       // devolve o cancelador
 // halloween/scare
-triggerScare(kind?: 'random'|'doot'|'zoom'|'scream'|'pumpkin'|'pipe'|'skeletons'|'spider'|'static'|'bruh'|'eyes', { name? })
+triggerScare(kind?: 'random'|'doot'|'zoom'|'scream'|'pumpkin'|'pipe'|'skeletons'|'spider'|'static'|'bruh'|'eyes'|'penetra', { name? })
+  // 'penetra' (RARE_SCARE) nunca sai no 'random': é o susto raro, 1 em 5000 por segundo
 useSuppressScares(active: boolean)   // segura só os sustos ALEATÓRIOS
 useScareNames(names: string[])       // nomes para zoom/olhos (a tela do jogo já informa)
 // halloween/fx/api (host → TV)
@@ -269,6 +270,14 @@ setRoomMusic(code, on), setRoomRandomScares(code, on)
 - Sustos aleatórios na TV a cada 4–9 minutos (liga/desliga na própria TV e
   pelo host), suspensos durante revelações. O host pode mandar um susto na
   hora pelo celular ("😱 Assustar a TV").
+- O susto raro (`fx/rareScare.ts`), à la "Foxy 1 em 10.000": a cada segundo a
+  TV tem 1 chance em 5000 de soltar o **Penetra**, um jumpscare de verdade
+  (entra sem aviso, grita ~1 s, corta para estática). Média de 83 min entre
+  aparições; ~51% de chance em 1 h, ~88% em 3 h. Mesmo liga/desliga dos
+  sustos aleatórios, não rola durante revelação nem com outro susto na tela.
+  Testar: fantasminha da TV → "Testar o susto raro". Jumpscare próprio:
+  vídeo/imagem/som em `frontend/public/jumpscare/` trocam o Penetra
+  (`scare/customJumpscare.ts`; nomes no LEIA-ME da pasta).
 - Sustos são memes originais: esqueleto do "doot doot" 🎺, zoom suspeito 🤨
   no nome de alguém com "vine boom", cano de metal caindo, aranha descendo,
   TV chiando "ELE ESTÁ AQUI", olhos no escuro sussurrando um nome... Curtos

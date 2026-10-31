@@ -846,6 +846,17 @@ const SCARES: ScareButton[] = [
   },
 ]
 
+/** Os sustos de verdade (som bem alto na TV): destaque em vermelho, acima dos de meme. */
+const SCARY_BUTTONS: ScareButton[] = [
+  {
+    kind: 'animatronic',
+    label: 'Animatrônico',
+    icon: '🤖',
+    done: () => '🤖 Ele ainda funciona... olhe a cara da galera!',
+  },
+  { kind: 'face', label: 'Rosto', icon: '👁️', done: () => '👁️ Não olha... o rosto está indo para a TV!' },
+]
+
 /** Espera entre sustos: cada um dura uns 2 s na TV, e evita rajada de cliques. */
 const FX_COOLDOWN_MS = 2500
 const MUSIC_KEY_PREFIX = 'sabado_tv_music_'
@@ -942,7 +953,35 @@ function TvFxPanel({ code, players, tvConnected }: { code: string; players: Play
         😱&nbsp;&nbsp;Assustar a TV
       </Button>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1, mt: 1.5 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1, mt: 1.5 }}>
+        {SCARY_BUTTONS.map((button) => (
+          <Button
+            key={button.kind}
+            variant="outlined"
+            color="error"
+            disabled={busy}
+            onClick={() => scare(button)}
+            aria-label={button.label}
+            sx={{
+              gap: 1,
+              py: 1.1,
+              minWidth: 0,
+              textTransform: 'none',
+              fontWeight: 800,
+              fontSize: '0.92rem',
+              borderWidth: 2,
+              '&:hover': { borderWidth: 2 },
+            }}
+          >
+            <Box component="span" sx={{ fontSize: '1.4rem', lineHeight: 1 }}>
+              {button.icon}
+            </Box>
+            {button.label}
+          </Button>
+        ))}
+      </Box>
+
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1, mt: 1 }}>
         {SCARES.map((button) => (
           <Button
             key={button.kind}

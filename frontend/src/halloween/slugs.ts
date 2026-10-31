@@ -30,7 +30,6 @@ export function isHalloweenSlug(slug: string | null | undefined): slug is Hallow
  * em que fica pronto e testado.
  */
 export const HALLOWEEN_WIP: readonly HalloweenSlug[] = [
-  'corrida-de-vassouras',
 ]
 
 export function isHalloweenWip(slug: string | null | undefined): boolean {

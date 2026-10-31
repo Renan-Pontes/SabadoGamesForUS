@@ -9,9 +9,10 @@ import { EndBar, HostBar } from './framework/HostControls'
 import { HostSetupScreen, PlayerSetupScreen, TvSetupScreen } from './framework/SetupScreen'
 import { useHalloweenRoom, type HalloweenRoomApi } from './framework/useHalloweenRoom'
 import { ViewBoundary } from './framework/ViewBoundary'
+import { useWakeLock } from './framework/wakeLock'
 import { sendRoomFx } from './fx/api'
 import { getHalloweenGame } from './registry'
-import { useScareNames } from './scare'
+import { SCARY_RANDOM, useScareNames } from './scare'
 import { isHalloweenSlug } from './slugs'
 
 /**
@@ -64,6 +65,9 @@ function GameRunner({ code, view, game }: { code: string; view: HalloweenView; g
   // Os sustos com nome (zoom suspeito, olhos no escuro) usam a mesa do jogo,
   // sem a TV precisar buscar a sala de novo.
   useScareNames(isTv ? room.players.map((player) => player.name) : [])
+  // Tela acesa durante a partida: celular bloqueado vira "offline" e perde a
+  // vez; notebook ligado na TV apaga no descanso de tela.
+  useWakeLock(status === 'live')
 
   // A sala voltou para o lobby (ou fechou), ou trocou de jogo: cada tela
   // volta para o seu lugar.
@@ -160,7 +164,7 @@ function GameRunner({ code, view, game }: { code: string; view: HalloweenView; g
         <HostBar
           onSkip={() => room.command('skip')}
           onEnd={() => room.command('end')}
-          onScare={() => sendRoomFx(code, { scare: 'random' })}
+          onScare={() => sendRoomFx(code, { scare: SCARY_RANDOM })}
         />
       )
     ) : undefined

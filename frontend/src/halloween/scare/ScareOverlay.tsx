@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useReducedMotion } from '../ui/motion'
 import { onScare, setScareShowing } from './bus'
 import type { ScareRequest } from './bus'
-import { SCARE_DURATION_MS, playScareSound } from './config'
+import { playScareSound, scareDurationMs } from './config'
 import ScareScene from './scenes'
 
 /**
@@ -46,7 +46,7 @@ export default function ScareOverlay() {
       busy.current = false
       setScareShowing(false)
       setScare(null)
-    }, SCARE_DURATION_MS[scare.kind])
+    }, scareDurationMs(scare.kind))
     return () => {
       window.clearTimeout(timer)
       stopSound()
@@ -69,7 +69,7 @@ export default function ScareOverlay() {
         kind={scare.kind}
         name={scare.name}
         reduced={reduced}
-        duration={SCARE_DURATION_MS[scare.kind]}
+        duration={scareDurationMs(scare.kind)}
       />
     </div>,
     document.body,

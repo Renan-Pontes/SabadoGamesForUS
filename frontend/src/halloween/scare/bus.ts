@@ -14,10 +14,40 @@ export const SCARE_KINDS = [
   'static',
   'bruh',
   'eyes',
+  'animatronic',
+  'face',
 ] as const
 
-export type ConcreteScare = (typeof SCARE_KINDS)[number]
-export type ScareKind = 'random' | ConcreteScare
+/**
+ * O susto raro: o Penetra da festa. Fica fora do sorteio (nem os sustos de
+ * 4–9 min nem o botão do host o escolhem) — só aparece pela chance de 1 em
+ * 5000 por segundo (fx/rareScare.ts) ou se alguém pedir pelo nome.
+ */
+export const RARE_SCARE = 'penetra'
+
+export type ConcreteScare = (typeof SCARE_KINDS)[number] | typeof RARE_SCARE
+/** 'random' = sorteio com peso; 'scary' = só entre os assustadores de verdade. */
+export type ScareKind = 'random' | 'scary' | ConcreteScare
+
+/** Pedido de susto assustador sorteado (botão "Susto" do host, "Testar susto" da TV). */
+export const SCARY_RANDOM = 'scary'
+
+/** Os que assustam de verdade (som alto, sem meme). */
+export const SCARY_SCARES = ['animatronic', 'face', 'scream', 'static'] as const satisfies readonly (typeof SCARE_KINDS)[number][]
+
+/** Os de meme: o resto do sorteio. */
+export const MEME_SCARES = SCARE_KINDS.filter((kind) => !(SCARY_SCARES as readonly string[]).includes(kind))
+
+/** No 'random', a chance de sair um dos assustadores (o resto é meme). */
+export const SCARY_SHARE = 2 / 3
+
+/**
+ * Sustos automáticos da TV (4–9 min): um assustador só sai se o último
+ * assustador (de qualquer origem: host, jogo, teste, o raro) foi há pelo menos
+ * este tempo; antes disso sai um de meme. Susto alto toda hora vira rotina e
+ * a sala se acostuma — os grandes ficam para os botões do host.
+ */
+export const AUTO_SCARY_GAP_MS = 15 * 60_000
 
 /** Sustos que ficam melhores com o nome de alguém da sala. */
 export const SCARES_WITH_NAME: readonly ConcreteScare[] = ['zoom', 'eyes']
@@ -29,29 +59,68 @@ type Listener = (request: ScareRequest) => void
 const listeners = new Set<Listener>()
 let sequence = 0
 let lastKind: ConcreteScare | null = null
+let lastScaryAt = Number.NEGATIVE_INFINITY
 let suppressCount = 0
 let showing = false
 const nameSources = new Map<string, string[]>()
 
 export function isConcreteScare(value: unknown): value is ConcreteScare {
+  if (value === RARE_SCARE) return true
   return typeof value === 'string' && (SCARE_KINDS as readonly string[]).includes(value)
 }
 
-/** Sorteia um susto, evitando repetir o último. */
-export function pickScare(random: () => number = Math.random, avoid: ConcreteScare | null = lastKind) {
-  const pool = avoid ? SCARE_KINDS.filter((kind) => kind !== avoid) : [...SCARE_KINDS]
+function pickFrom<T extends ConcreteScare>(group: readonly T[], random: () => number, avoid: ConcreteScare | null): T {
+  const pool = avoid ? group.filter((kind) => kind !== avoid) : [...group]
   return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))]
 }
 
-/** 'random' (ou um nome desconhecido vindo da rede) vira um susto de verdade. */
+/**
+ * Sorteia um susto com peso: ~2/3 das vezes um assustador de verdade
+ * (animatrônico, rosto, grito, estática), ~1/3 um de meme. Nunca repete o
+ * último.
+ */
+export function pickScare(random: () => number = Math.random, avoid: ConcreteScare | null = lastKind) {
+  const group: readonly (typeof SCARE_KINDS)[number][] = random() < SCARY_SHARE ? SCARY_SCARES : MEME_SCARES
+  return pickFrom(group, random, avoid)
+}
+
+/** Sorteia só entre os assustadores de verdade, sem repetir o último. */
+export function pickScaryScare(random: () => number = Math.random, avoid: ConcreteScare | null = lastKind) {
+  return pickFrom(SCARY_SCARES, random, avoid)
+}
+
+/** Assusta de verdade (som alto): os de SCARY_SCARES e o raro. */
+export function isScaryScare(kind: ConcreteScare): boolean {
+  return kind === RARE_SCARE || (SCARY_SCARES as readonly string[]).includes(kind)
+}
+
+/**
+ * Sorteio do agendador automático da TV: igual ao 'random', mas só de meme
+ * enquanto o último assustador tiver menos de AUTO_SCARY_GAP_MS.
+ */
+export function pickAutoScare(
+  random: () => number = Math.random,
+  now: number = Date.now(),
+  avoid: ConcreteScare | null = lastKind,
+): ConcreteScare {
+  if (now - lastScaryAt < AUTO_SCARY_GAP_MS) return pickFrom(MEME_SCARES, random, avoid)
+  return pickScare(random, avoid)
+}
+
+/**
+ * 'random' (ou um nome desconhecido vindo da rede) vira um susto de verdade;
+ * 'scary' vira um dos assustadores.
+ */
 export function resolveScareKind(kind: unknown, random: () => number = Math.random): ConcreteScare {
-  return isConcreteScare(kind) ? kind : pickScare(random)
+  if (isConcreteScare(kind)) return kind
+  return kind === SCARY_RANDOM ? pickScaryScare(random) : pickScare(random)
 }
 
 /** Emite um susto para o overlay. Devolve o pedido (ou null se ninguém está ouvindo). */
 export function emitScare(kind: unknown, options: { name?: string | null } = {}): ScareRequest | null {
   const concrete = resolveScareKind(kind)
   lastKind = concrete
+  if (isScaryScare(concrete)) lastScaryAt = Date.now()
   let name = options.name?.trim() || undefined
   if (!name && SCARES_WITH_NAME.includes(concrete)) name = randomScareName()
   const request: ScareRequest = { id: (sequence += 1), kind: concrete, name }

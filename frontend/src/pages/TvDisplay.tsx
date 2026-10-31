@@ -6,6 +6,7 @@ import { friendlyError, getRoom, tvPing } from '../lib/api'
 import { gameRoute, getGameColor, getGameMeta } from '../lib/gameCatalog'
 import type { Room } from '../lib/types'
 import { useMusic } from '../halloween/audio'
+import { useWakeLock } from '../halloween/framework/wakeLock'
 import {
   Brand,
   LoadingScreen,
@@ -52,6 +53,9 @@ export default function TvDisplay() {
   // Trilha do lobby: a camada de som decide quando pode tocar (a TV precisa
   // de um clique para destravar o áudio — o aviso é dela).
   useMusic('lobby')
+  // A TV fica no lobby entre um jogo e outro: notebook ligado nela não pode
+  // entrar no descanso de tela.
+  useWakeLock(true)
 
   useEffect(() => {
     if (!code) return

@@ -12,13 +12,19 @@ import type { MusicTrack } from './types'
  *   playSfx('clang', { delay: 0.4 })    // agendado no relógio de áudio
  *   speakSpooky('Alguém morreu esta noite...')
  *
+ * Os efeitos de susto ('screech', 'shriek', 'jumpscare') tocam MUITO mais
+ * alto, por um caminho próprio, e calam a música enquanto soam — use com
+ * parcimônia nos jogos. 'scream' e 'static' tocam no nível normal; só as
+ * cenas de susto (triggerScare) os pedem com `{ loud: true }`.
+ *
  * Tudo é sintetizado na hora (Web Audio). Na TV o som nasce ligado; nos
  * celulares, mudo (dá para ligar no botão flutuante). Música só toca na TV.
  */
 
 export type { MusicTrack, SfxName } from './types'
 export { MUSIC_TRACKS, SFX_NAMES, isMusicTrack, isSfxName } from './types'
-export { playSfx, speakSpooky, unlockAudio, initAudio, currentTrack } from './engine'
+export { playSfx, speakSpooky, unlockAudio, initAudio, currentTrack, hushMusic } from './engine'
+export { LOUD_SFX, isLoudSfx } from './loud'
 export type { SfxOptions, SpookyVoiceOptions } from './engine'
 export {
   SOUND_DEFAULTS,
