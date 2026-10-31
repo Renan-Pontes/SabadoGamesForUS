@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { Box } from '@mui/material'
+import { withAlpha } from '../../components/ui/surfaces'
 
 export const BOARD_W = 1000
 export const BOARD_H = 625
@@ -99,7 +100,7 @@ export default function DrawingBoard({
         overflow: 'hidden',
         aspectRatio: '16 / 10',
         touchAction: 'none',
-        boxShadow: interactive ? `0 0 30px ${accent}66` : '0 14px 34px rgba(0,0,0,0.4)',
+        boxShadow: interactive ? `0 0 30px ${withAlpha(accent, 0.4)}` : '0 14px 34px rgba(0,0,0,0.4)',
         transition: 'border-color 260ms ease',
       }}
     >

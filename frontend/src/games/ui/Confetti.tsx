@@ -3,8 +3,9 @@ import { Box } from '@mui/material'
 import { prefersReducedMotion } from '../utils'
 
 const PIECES = 46
-const COLORS = ['#fbbf24', '#dc2626', '#22d3ee', '#a855f7', '#4ade80', '#f472b6']
-const SHAPES = ['♠', '♥', '♦', '♣', '★', '●']
+const COLORS = ['#ff7b1c', '#8cf045', '#b06bff', '#e0213a', '#ffc94a', '#f3eeff']
+// Emoji ignora a cor; os símbolos (★ ●) pegam a cor da paleta.
+const SHAPES = ['🎃', '★', '🦇', '●', '👻', '🍬']
 
 /**
  * Dispersão determinística a partir do índice.
@@ -17,7 +18,7 @@ function scatter(index: number, salt: number) {
   return hashed - Math.floor(hashed)
 }
 
-/** Chuva de naipes na vitória. */
+/** Chuva de doces e assombrações na vitória. */
 export default function Confetti() {
   const pieces = useMemo(
     () =>

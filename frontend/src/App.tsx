@@ -43,6 +43,11 @@ import SoUmaGame from './pages/games/SoUmaGame'
 import ManadaGame from './pages/games/ManadaGame'
 import QuizGame from './pages/games/QuizGame'
 
+// Noite do Terror: camada global (cenário, som, sustos) e a tela única que
+// roda os jogos de Halloween — a lista deles está em `halloween/slugs.ts`.
+import HalloweenLayer from './halloween/HalloweenLayer'
+import HalloweenGameScreen from './halloween/HalloweenGameScreen'
+
 /**
  * Troca de tela com uma entrada curta. A `key` na rota faz o React remontar
  * o container a cada navegação, que é o que dispara a animação de novo.
@@ -90,6 +95,9 @@ function AnimatedRoutes() {
               <Route path="/game/:code/manada" element={<ManadaGame />} />
               <Route path="/game/:code/quiz-da-mesa" element={<QuizGame />} />
 
+              {/* Rotas fixas acima vencem; o que sobrar é jogo de Halloween */}
+              <Route path="/game/:code/:slug" element={<HalloweenGameScreen />} />
+
       <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
@@ -102,6 +110,7 @@ function App() {
       <CssBaseline />
       <AuthProvider>
         <BrowserRouter>
+          <HalloweenLayer />
           <AnimatedRoutes />
         </BrowserRouter>
       </AuthProvider>

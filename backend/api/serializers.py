@@ -1,5 +1,7 @@
+import secrets
+
 from django.contrib.auth import get_user_model
-from datetime import timedelta
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
@@ -11,6 +13,7 @@ from . import (
     camaleao,
     camelos,
     caveira,
+    deposito,
     desenha,
     infiltrado,
     lobisomem,
@@ -25,6 +28,7 @@ from . import (
     sintonia,
     souma,
 )
+from .halloween import is_halloween
 from .models import Game, Player, Profile, Room
 
 # Cada jogo sabe o que precisa esconder do estado publico da sala.
@@ -70,6 +74,38 @@ PRIVATE_PLAYER_FIELDS = {
 
 User = get_user_model()
 
+# Tamanho de Profile.nickname e Player.name.
+NICKNAME_MAX = 80
+GUEST_EMAIL_DOMAIN = "convidado.sabadogames"
+GUEST_NICKNAME_ERROR = "Diga um apelido para entrar."
+
+
+def redact_room_state(slug, status, state):
+    """
+    O estado da sala como qualquer tela (TV ou celular) pode ver. Usado pelo
+    GET antigo e pelo sync. Os jogos de Halloween passam inteiros: lá a TV é o
+    juiz e o estado é dela.
+    """
+    # Copia obrigatoria: o estado e o proprio dict do modelo.
+    state = dict(state or {})
+    if is_halloween(slug):
+        return state
+    if slug == "confinamento-solitario":
+        state.pop("valete_player_id", None)
+    if slug == "a-cacada":
+        # O esconderijo nunca sai do servidor enquanto a caçada corre.
+        # Depois que alguém encontra a criatura, revelar é o desfecho.
+        if state.get("phase") != "ended":
+            state.pop("solution", None)
+    if slug == "future-sugoroku":
+        # A saida e o segredo do labirinto: so se revela no fim.
+        if status != Room.STATUS_ENDED:
+            state.pop("exit", None)
+    redactor = ROOM_REDACTORS.get(slug)
+    if redactor:
+        state = redactor(state)
+    return state
+
 
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -110,6 +146,70 @@ class RegisterSerializer(serializers.Serializer):
         Profile.objects.create(user=user, nickname=nickname)
         token, _ = Token.objects.get_or_create(user=user)
         return {"user": user, "token": token}
+
+
+class GuestSerializer(serializers.Serializer):
+    """
+    Entrada rápida da festa: só o apelido. Cria uma conta sem e-mail nem
+    senha (e-mail sintético, senha inutilizável) e devolve o token, como o
+    cadastro. Apelido repetido vira "Apelido 2", "Apelido 3"...
+    """
+
+    nickname = serializers.CharField(
+        allow_blank=True,
+        error_messages={
+            "required": GUEST_NICKNAME_ERROR,
+            "null": GUEST_NICKNAME_ERROR,
+            "invalid": GUEST_NICKNAME_ERROR,
+        },
+    )
+
+    def validate_nickname(self, value):
+        # Espaços repetidos viram um só, e o apelido é cortado para caber.
+        nickname = " ".join(value.split())[:NICKNAME_MAX].strip()
+        if not nickname:
+            raise serializers.ValidationError(GUEST_NICKNAME_ERROR)
+        return nickname
+
+    def create(self, validated_data):
+        with transaction.atomic():
+            # O INSERT do usuário vem primeiro: no SQLite ele já pega a trava
+            # de escrita, e a busca de apelido livre roda protegida por ela.
+            handle = f"convidado-{secrets.token_hex(8)}@{GUEST_EMAIL_DOMAIN}"
+            user = User.objects.create_user(username=handle, email=handle, password=None)
+            _create_guest_profile(user, validated_data["nickname"])
+            token = Token.objects.create(user=user)
+        return {"user": user, "token": token}
+
+
+def _free_nickname(base):
+    """'Ana' se estiver livre; senão 'Ana 2', 'Ana 3'... (sem ligar para maiúsculas)."""
+    for number in range(1, 200):
+        if number == 1:
+            candidate = base
+        else:
+            suffix = f" {number}"
+            candidate = base[: NICKNAME_MAX - len(suffix)].rstrip() + suffix
+        if not Profile.objects.filter(nickname__iexact=candidate).exists():
+            return candidate
+    return _random_nickname(base)
+
+
+def _random_nickname(base):
+    suffix = f" {secrets.token_hex(3)}"
+    return base[: NICKNAME_MAX - len(suffix)].rstrip() + suffix
+
+
+def _create_guest_profile(user, base):
+    for _ in range(3):
+        try:
+            # Savepoint: se outro convidado levou o mesmo apelido entre a
+            # busca e a gravação, tenta o próximo número.
+            with transaction.atomic():
+                return Profile.objects.create(user=user, nickname=_free_nickname(base))
+        except IntegrityError:
+            continue
+    return Profile.objects.create(user=user, nickname=_random_nickname(base))
 
 
 class LoginSerializer(serializers.Serializer):
@@ -164,9 +264,7 @@ class PlayerSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "joined_at", "last_seen_at"]
 
     def get_online(self, instance):
-        if not instance.last_seen_at:
-            return False
-        return timezone.now() - instance.last_seen_at <= timedelta(seconds=30)
+        return deposito.is_online(instance.last_seen_at, timezone.now())
 
     def get_has_guessed(self, instance):
         """Se a pessoa já jogou nesta rodada — sem revelar o que ela jogou."""
@@ -270,6 +368,8 @@ class RoomSerializer(serializers.ModelSerializer):
             "tv_last_seen_at",
             "tv_connected",
             "state",
+            "version",
+            "fx",
         ]
         read_only_fields = [
             "id",
@@ -279,32 +379,16 @@ class RoomSerializer(serializers.ModelSerializer):
             "tv_last_seen_at",
             "tv_connected",
             "state",
+            "version",
+            "fx",
         ]
 
     def get_tv_connected(self, instance):
-        if not instance.tv_last_seen_at:
-            return False
-        return timezone.now() - instance.tv_last_seen_at <= timedelta(seconds=20)
+        return deposito.is_tv_connected(instance.tv_last_seen_at, timezone.now())
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        state = dict(data.get("state") or {})
-        if isinstance(state, dict):
-            if instance.game.slug == "confinamento-solitario":
-                state.pop("valete_player_id", None)
-            if instance.game.slug == "a-cacada":
-                # O esconderijo nunca sai do servidor enquanto a caçada corre.
-                # Depois que alguém encontra a criatura, revelar é o desfecho.
-                if state.get("phase") != "ended":
-                    state.pop("solution", None)
-            if instance.game.slug == "future-sugoroku":
-                # A saida e o segredo do labirinto: so se revela no fim.
-                if instance.status != Room.STATUS_ENDED:
-                    state.pop("exit", None)
-            redactor = ROOM_REDACTORS.get(instance.game.slug)
-            if redactor:
-                state = redactor(state)
-            data["state"] = state
+        data["state"] = redact_room_state(instance.game.slug, instance.status, data.get("state"))
         return data
 
 
@@ -380,8 +464,8 @@ class JoinRoomSerializer(serializers.Serializer):
         else:
             player.last_seen_at = timezone.now()
             player.save(update_fields=["last_seen_at"])
-        room.last_activity_at = timezone.now()
-        room.save(update_fields=["last_activity_at"])
+        # Gente nova (ou nome novo) na sala: todas as telas precisam ver.
+        deposito.bump_version(room)
         return player
 
 
@@ -394,11 +478,11 @@ class HeartbeatSerializer(serializers.Serializer):
         if not request.user.is_authenticated:
             raise serializers.ValidationError("Authentication required.")
         player = Player.objects.get(id=validated_data["player_id"], room=room, user=request.user)
+        # Grava no máximo a cada 15 s; online continua certo (vale por 30 s).
         now = timezone.now()
-        player.last_seen_at = now
-        player.save(update_fields=["last_seen_at"])
-        room.last_activity_at = now
-        room.save(update_fields=["last_activity_at"])
+        wrote, _ = deposito.mark_player_seen(player.id, room.id, player.last_seen_at, now)
+        if wrote:
+            player.last_seen_at = now
         return player
 
 
@@ -432,7 +516,7 @@ class ReadySerializer(serializers.Serializer):
         player.ready = validated_data["ready"]
         player.last_seen_at = timezone.now()
         player.save(update_fields=["ready", "last_seen_at"])
-        room.touch()
+        deposito.bump_version(room)
         return player
 
 
@@ -446,7 +530,9 @@ class PlayerStateSerializer(serializers.Serializer):
         player.state = validated_data["state"]
         player.last_seen_at = timezone.now()
         player.save(update_fields=["state", "last_seen_at"])
-        room.touch()
+        # Nos jogos de Halloween é assim que a resposta chega ao juiz (a TV):
+        # a versão sobe e o próximo sync dela traz o estado novo.
+        deposito.bump_version(room)
         return player
 
 

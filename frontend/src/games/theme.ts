@@ -1,3 +1,5 @@
+import { getHalloweenMeta } from '../halloween/catalog'
+
 /**
  * Identidade visual por minigame.
  *
@@ -207,7 +209,8 @@ const FALLBACK_ACCENT: GameAccent = {
 }
 
 export function getAccent(slug: string): GameAccent {
-  return (GAME_ACCENTS as Record<string, GameAccent>)[slug] ?? FALLBACK_ACCENT
+  // Os jogos de Halloween trazem a cor no próprio meta (halloween/games/<slug>/meta.ts).
+  return getHalloweenMeta(slug)?.accent ?? (GAME_ACCENTS as Record<string, GameAccent>)[slug] ?? FALLBACK_ACCENT
 }
 
 /** Fundo da página de um jogo: névoa do acento por cima do void. */

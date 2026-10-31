@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
+import { loginPath } from '../context/useRequireAuth'
 import { getRoom } from '../lib/api'
 import { saveLastRoom, setStayInLobby } from '../lib/roomHistory'
 import type { Player, Room } from '../lib/types'
@@ -29,6 +30,7 @@ type UseGameRoomOptions = {
 export function useGameRoom({ tick, pollMs = 2500 }: UseGameRoomOptions = {}) {
   const { code = '' } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
   const { isAuthenticated, isLoading: authLoading, user } = useAuth()
 
@@ -47,12 +49,14 @@ export function useGameRoom({ tick, pollMs = 2500 }: UseGameRoomOptions = {}) {
   const inFlight = useRef(false)
   const deadlineRef = useRef<number | null>(null)
 
-  // Sem login não dá pra jogar — a TV é a única tela anônima.
+  // Sem login não dá pra jogar — a TV é a única tela anônima. A entrada
+  // devolve a pessoa para esta partida depois do apelido (?next=).
+  const here = `${location.pathname}${location.search}`
   useEffect(() => {
     if (!authLoading && !isAuthenticated && !isTv) {
-      navigate('/')
+      navigate(loginPath(here), { replace: true })
     }
-  }, [authLoading, isAuthenticated, isTv, navigate])
+  }, [authLoading, isAuthenticated, isTv, navigate, here])
 
   useEffect(() => {
     if (!code || isTv) return

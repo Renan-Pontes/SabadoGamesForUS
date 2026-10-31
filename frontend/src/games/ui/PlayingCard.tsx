@@ -71,8 +71,8 @@ export default function PlayingCard({
         sx={{
           ...shared,
           background:
-            'repeating-linear-gradient(45deg, #7f1d1d 0 6px, #991b1b 6px 12px)',
-          border: '2px solid rgba(245, 245, 245, 0.85)',
+            'repeating-linear-gradient(45deg, #3b1466 0 6px, #4c1d86 6px 12px)',
+          border: '2px solid rgba(255, 162, 74, 0.85)',
           boxShadow: '0 10px 26px rgba(0,0,0,0.5)',
           display: 'grid',
           placeItems: 'center',
@@ -89,13 +89,12 @@ export default function PlayingCard({
         />
         <Typography
           sx={{
-            fontFamily: 'var(--font-display)',
-            fontSize: dims.pip,
-            color: 'rgba(255,255,255,0.25)',
+            fontSize: `calc(${dims.pip} * 0.7)`,
             lineHeight: 1,
+            opacity: 0.55,
           }}
         >
-          ★
+          🎃
         </Typography>
       </Box>
     )
@@ -121,7 +120,7 @@ export default function PlayingCard({
           <Box sx={{ position: 'absolute', top: 5, left: 7, textAlign: 'center', lineHeight: 1 }}>
             <Typography
               sx={{
-                fontFamily: 'var(--font-display)',
+                fontFamily: 'var(--font-numeric)',
                 fontSize: dims.rank,
                 color: ink,
                 lineHeight: 1,
@@ -145,7 +144,7 @@ export default function PlayingCard({
           >
             <Typography
               sx={{
-                fontFamily: 'var(--font-display)',
+                fontFamily: 'var(--font-numeric)',
                 fontSize: dims.rank,
                 color: ink,
                 lineHeight: 1,
@@ -162,7 +161,7 @@ export default function PlayingCard({
 
       <Typography
         sx={{
-          fontFamily: 'var(--font-display)',
+          fontFamily: 'var(--font-numeric)',
           fontSize: faceValue !== undefined ? `calc(${dims.pip} * 0.78)` : dims.pip,
           color: faceValue !== undefined ? (Number(faceValue) > 50 ? '#c81e2a' : '#1e3a8a') : ink,
           lineHeight: 1,

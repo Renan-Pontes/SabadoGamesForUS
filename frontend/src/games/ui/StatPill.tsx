@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Box, Typography } from '@mui/material'
 import type { SxProps, Theme } from '@mui/material'
+import { withAlpha } from '../../components/ui/surfaces'
 import NumberTicker from './NumberTicker'
 
 type StatPillProps = {
@@ -44,11 +45,11 @@ export default function StatPill({
         px: dims.px,
         py: dims.py,
         borderRadius: 'var(--radius-lg)',
-        border: `1px solid ${filled ? accent : 'rgba(255,255,255,0.10)'}`,
+        border: `1px solid ${filled ? accent : 'rgba(176, 107, 255, 0.2)'}`,
         background: filled
-          ? `linear-gradient(140deg, ${accent}2e, ${accent}12)`
-          : 'rgba(255, 255, 255, 0.035)',
-        boxShadow: filled ? `0 0 24px ${accent}26` : 'none',
+          ? `linear-gradient(140deg, ${withAlpha(accent, 0.18)}, ${withAlpha(accent, 0.07)})`
+          : 'rgba(16, 9, 28, 0.55)',
+        boxShadow: filled ? `0 0 24px ${withAlpha(accent, 0.15)}` : 'none',
         minWidth: size === 'lg' ? 140 : 76,
         ...sx,
       }}
@@ -68,12 +69,13 @@ export default function StatPill({
       </Typography>
       <Typography
         sx={{
-          fontFamily: 'var(--font-display)',
+          // Número de placar: Bebas (a Creepster escorre demais para ler de longe).
+          fontFamily: 'var(--font-numeric)',
           fontSize: dims.value,
           lineHeight: 1.05,
           letterSpacing: '0.04em',
           color: filled ? accent : 'var(--text-primary)',
-          textShadow: filled ? `0 0 18px ${accent}66` : 'none',
+          textShadow: filled ? `0 0 18px ${withAlpha(accent, 0.4)}` : 'none',
         }}
       >
         {/* Numero puro conta ate o novo valor; texto troca direto. */}

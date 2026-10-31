@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Box, Typography } from '@mui/material'
 import type { SxProps, Theme } from '@mui/material'
+import Cobweb from './Cobweb'
 import { glowShadow, PANEL_BG, PANEL_BORDER, PANEL_SHADOW } from './surfaces'
 
 type PanelProps = {
@@ -15,6 +16,8 @@ type PanelProps = {
   index?: number
   /** Torna o painel clicável (cards de catálogo). */
   onClick?: () => void
+  /** Teia no canto de cima, à direita — para os painéis de destaque. */
+  web?: boolean
   children: ReactNode
   sx?: SxProps<Theme>
 }
@@ -28,6 +31,7 @@ export default function Panel({
   highlight = false,
   index = 0,
   onClick,
+  web = false,
   children,
   sx,
 }: PanelProps) {
@@ -86,6 +90,8 @@ export default function Panel({
         />
       )}
 
+      {web && <Cobweb corner="top-right" size={{ xs: 56, md: 72 }} opacity={0.16} />}
+
       {(title || hint) && (
         <Box
           sx={{
@@ -94,6 +100,7 @@ export default function Panel({
             justifyContent: 'space-between',
             gap: 1.5,
             mb: 2,
+            position: 'relative',
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
@@ -103,8 +110,9 @@ export default function Panel({
                 component="h2"
                 sx={{
                   fontFamily: 'var(--font-display)',
-                  fontSize: '1.15rem',
-                  letterSpacing: '0.14em',
+                  fontSize: '1.3rem',
+                  lineHeight: 1.1,
+                  letterSpacing: '0.07em',
                   color: accent ?? 'var(--text-secondary)',
                 }}
               >

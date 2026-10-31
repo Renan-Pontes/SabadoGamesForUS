@@ -8,6 +8,18 @@ export type Game = {
   is_active: boolean
 }
 
+/**
+ * Conta como o backend devolve (`UserSerializer`). Conta de convidado (entrou
+ * só com apelido) vem com `email` vazio; o perfil pode faltar numa conta
+ * criada fora do fluxo normal de cadastro.
+ */
+export type AuthUser = {
+  id: number
+  username: string
+  email: string
+  profile?: { nickname: string } | null
+}
+
 export type Player = {
   id: number
   name: string
@@ -31,6 +43,18 @@ export type Player = {
   state?: Record<string, unknown>
 }
 
+/**
+ * Último pedido de efeito da sala (susto, música). É um evento, não um
+ * estado: `music` só vem preenchido quando o último pedido foi de música.
+ */
+export type RoomFxEvent = {
+  id: number
+  scare?: string | null
+  music?: 'on' | 'off' | null
+  name?: string | null
+  at?: number
+}
+
 export type Room = {
   id: number
   code: string
@@ -42,4 +66,7 @@ export type Room = {
   tv_connected?: boolean
   players?: Player[]
   state?: Record<string, unknown>
+  /** Sobe a cada mudança na sala (Noite do Terror). */
+  version?: number
+  fx?: RoomFxEvent | Record<string, never> | null
 }

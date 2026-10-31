@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material'
 import type { Game } from '../../lib/types'
 import { getGameMeta } from '../../lib/gameCatalog'
 import type { GameMeta } from '../../lib/gameCatalog'
+import { HALLOWEEN_SLUGS, isHalloweenSlug } from '../../halloween/slugs'
 import GameTile from './GameTile'
 
 type Shelf = {
@@ -14,9 +15,12 @@ type Shelf = {
 }
 
 /**
- * As prateleiras. A ordem importa: a primeira é o que a mesa vê primeiro.
- * Um jogo pode aparecer em mais de uma — "A Caçada" é tabuleiro na TV e
- * também dedução.
+ * As prateleiras do acervo antigo. A ordem importa: a primeira é o que a mesa
+ * vê primeiro. Um jogo pode aparecer em mais de uma — "A Caçada" é tabuleiro
+ * na TV e também dedução.
+ *
+ * Os jogos da Noite do Terror ficam de fora daqui: eles têm a prateleira
+ * própria, em destaque, acima de todas (veja `GameShelves`).
  */
 const SHELVES: Shelf[] = [
   {
@@ -123,40 +127,147 @@ type GameShelvesProps = {
   disabledReason?: (game: Game) => string | undefined
 }
 
+type ShelfView = { key: string; title: string; blurb: string; icon: string; games: Game[] }
+
 /**
  * Catálogo em prateleiras com rolagem horizontal, como uma locadora.
  * A mesma tile pode aparecer em mais de uma prateleira: o que muda é o
  * ângulo pelo qual a pessoa está procurando um jogo.
+ *
+ * Primeiro vem a "🎃 Noite do Terror" com os 10 jogos novos, em destaque (no
+ * computador vira uma grade com todos à vista); o acervo antigo segue abaixo.
  */
 export default function GameShelves({ games, selectedId, onSelect, disabledReason }: GameShelvesProps) {
-  const shelves = useMemo(
+  // Na ordem de `HALLOWEEN_SLUGS` — a ordem em que a mesa deve conhecê-los.
+  const halloween = useMemo(
     () =>
-      SHELVES.map((shelf) => ({
-        ...shelf,
-        games: games.filter((game) => shelf.match(game, getGameMeta(game.slug))),
-      })).filter((shelf) => shelf.games.length > 0),
+      HALLOWEEN_SLUGS.map((slug) => games.find((game) => game.slug === slug)).filter(
+        (game): game is Game => Boolean(game),
+      ),
     [games],
   )
 
-  // Tudo que nao entrou em nenhuma prateleira vai para a ultima, para nao sumir.
-  const shelved = new Set(shelves.flatMap((shelf) => shelf.games.map((game) => game.id)))
-  const leftovers = games.filter((game) => !shelved.has(game.id))
+  const classic = useMemo(() => games.filter((game) => !isHalloweenSlug(game.slug)), [games])
 
-  const all = leftovers.length
-    ? [...shelves, { key: 'more', title: 'Outros', blurb: 'O resto do acervo.', icon: '🎲', games: leftovers }]
-    : shelves
+  const shelves = useMemo<ShelfView[]>(() => {
+    const matched = SHELVES.map((shelf) => ({
+      key: shelf.key,
+      title: shelf.title,
+      blurb: shelf.blurb,
+      icon: shelf.icon,
+      games: classic.filter((game) => shelf.match(game, getGameMeta(game.slug))),
+    })).filter((shelf) => shelf.games.length > 0)
+
+    // Tudo que nao entrou em nenhuma prateleira vai para a ultima, para nao sumir.
+    const shelved = new Set(matched.flatMap((shelf) => shelf.games.map((game) => game.id)))
+    const leftovers = classic.filter((game) => !shelved.has(game.id))
+    return leftovers.length
+      ? [...matched, { key: 'more', title: 'Outros', blurb: 'O resto do acervo.', icon: '🎲', games: leftovers }]
+      : matched
+  }, [classic])
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
-      {all.map((shelf, shelfIndex) => (
-        <Box key={shelf.key} className="stagger-in" style={{ '--stagger-index': shelfIndex } as React.CSSProperties}>
+      {halloween.length > 0 && (
+        <Box className="stagger-in" style={{ '--stagger-index': 0 } as React.CSSProperties}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.25,
+              mb: 1.5,
+              px: 0.5,
+              flexWrap: 'wrap',
+            }}
+          >
+            <Typography aria-hidden className="animate-wobble" sx={{ fontSize: '1.9rem', lineHeight: 1 }}>
+              🎃
+            </Typography>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography
+                component="h3"
+                sx={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: { xs: '1.65rem', md: '2.1rem' },
+                  lineHeight: 1,
+                  letterSpacing: '0.06em',
+                  color: 'var(--pumpkin)',
+                  textShadow: '0 0 22px rgba(255, 123, 28, 0.45)',
+                }}
+              >
+                NOITE DO TERROR
+              </Typography>
+              <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.86rem', mt: 0.25 }}>
+                Os jogos novos da festa. Regras curtinhas, até 15 pessoas.
+              </Typography>
+            </Box>
+            <Typography sx={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+              {halloween.length}
+            </Typography>
+          </Box>
+
+          {/* Celular: rola na horizontal. Computador: grade com todos à vista. */}
+          <Box
+            sx={{
+              display: { xs: 'flex', md: 'grid' },
+              gridTemplateColumns: { md: 'repeat(auto-fill, minmax(240px, 1fr))' },
+              gap: 2,
+              overflowX: { xs: 'auto', md: 'visible' },
+              width: { xs: 0, md: 'auto' },
+              minWidth: '100%',
+              pb: 1.5,
+              px: 0.5,
+              scrollSnapType: 'x proximity',
+              maskImage: { xs: 'linear-gradient(90deg, #000 90%, transparent)', md: 'none' },
+              WebkitMaskImage: { xs: 'linear-gradient(90deg, #000 90%, transparent)', md: 'none' },
+              '&::-webkit-scrollbar': { height: 6 },
+              '&::-webkit-scrollbar-thumb': { background: 'var(--pumpkin-dark)', borderRadius: 3 },
+            }}
+          >
+            {halloween.map((game, index) => (
+              <Box
+                key={`halloween-${game.id}`}
+                sx={{ flex: { xs: '0 0 auto', md: 'initial' }, width: { xs: 262, md: 'auto' }, scrollSnapAlign: 'start' }}
+              >
+                <GameTile
+                  game={game}
+                  index={index}
+                  featured
+                  selected={game.id === selectedId}
+                  disabledReason={disabledReason?.(game)}
+                  onSelect={onSelect}
+                />
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      )}
+
+      {shelves.length > 0 && halloween.length > 0 && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 0.5, mt: -0.5 }}>
+          <Box sx={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, var(--border-medium))' }} />
+          <Typography
+            sx={{ fontSize: '0.66rem', letterSpacing: '0.24em', fontWeight: 800, color: 'var(--text-muted)' }}
+          >
+            O ACERVO DE SEMPRE
+          </Typography>
+          <Box sx={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, var(--border-medium), transparent)' }} />
+        </Box>
+      )}
+
+      {shelves.map((shelf, shelfIndex) => (
+        <Box
+          key={shelf.key}
+          className="stagger-in"
+          style={{ '--stagger-index': shelfIndex + 1 } as React.CSSProperties}
+        >
           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.25, mb: 1.25, px: 0.5 }}>
             <Typography sx={{ fontSize: '1.3rem', lineHeight: 1 }}>{shelf.icon}</Typography>
             <Typography
               sx={{
                 fontFamily: 'var(--font-display)',
-                fontSize: { xs: '1.3rem', md: '1.6rem' },
-                letterSpacing: '0.08em',
+                fontSize: { xs: '1.3rem', md: '1.55rem' },
+                letterSpacing: '0.06em',
                 color: 'var(--text-primary)',
               }}
             >

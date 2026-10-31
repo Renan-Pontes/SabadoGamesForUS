@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/useAuth'
+import { loginPath } from '../../context/useRequireAuth'
 import { TvView, PlayerView, HostView } from '../../games/ReadMyMind'
 import type { GameMode, GameState } from '../../games/ReadMyMind'
 import {
@@ -135,9 +136,11 @@ export default function ReadMyMindGame() {
 
   const gameState = useMemo(() => mapRoomToGameState(room), [room])
 
+  const location = useLocation()
+  const here = `${location.pathname}${location.search}`
   useEffect(() => {
-    if (!authLoading && !isAuthenticated && viewMode !== 'tv') navigate('/')
-  }, [isAuthenticated, authLoading, viewMode, navigate])
+    if (!authLoading && !isAuthenticated && viewMode !== 'tv') navigate(loginPath(here), { replace: true })
+  }, [isAuthenticated, authLoading, viewMode, navigate, here])
 
   useEffect(() => {
     if (!code || viewMode === 'tv') return
