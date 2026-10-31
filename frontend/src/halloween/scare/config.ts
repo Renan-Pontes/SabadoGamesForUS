@@ -1,12 +1,22 @@
 import { hushMusic, playSfx, speakSpooky } from '../audio'
 import { RARE_SCARE } from './bus'
-import { ANIMATRONIC_FLASHES, FACE_HIT_MS, SCREECH_AT_MS } from './scaryTiming'
+import {
+  ANIMATRONIC_FLASHES,
+  APAGAO_BREATH_MS,
+  APAGAO_EYES_MS,
+  APAGAO_HIT_MS,
+  FACE_HIT_MS,
+  RASTEJANTE_LUNGE_MS,
+  RASTEJANTE_STEPS,
+  SCREECH_AT_MS,
+} from './scaryTiming'
 import type { ConcreteScare } from './bus'
 import { customJumpscare, playCustomJumpscareSound } from './customJumpscare'
 
 /**
- * Tempo de tela e trilha sonora de cada susto. Curtos (1,8–2,5 s): é meme,
- * não filme — a festa tem que voltar logo para o jogo.
+ * Tempo de tela e trilha sonora de cada susto. Os de meme são curtos
+ * (1,8–2,5 s): a festa tem que voltar logo para o jogo. Os de tensão
+ * (apagão, rastejante) gastam mais: o medo está na espera.
  */
 export const SCARE_DURATION_MS: Record<ConcreteScare, number> = {
   doot: 2300,
@@ -23,6 +33,10 @@ export const SCARE_DURATION_MS: Record<ConcreteScare, number> = {
   animatronic: 2400,
   // Meio segundo de silêncio e tela preta, e o rosto grita por ~1,4 s.
   face: 2200,
+  // O de tensão: a TV "desliga", ~3 s de escuro e respiração, e o rosto por ~1,4 s.
+  apagao: 4700,
+  // Ela vem engatinhando aos pulos por 3 s e salta na tela.
+  rastejante: 4300,
   // Encara e grita por ~1,15 s, corta para a estática e some.
   penetra: 1700,
 }
@@ -63,6 +77,10 @@ export function scareCaption(kind: ConcreteScare, name?: string): { icon: string
       return { icon: '🤖', text: 'ELE AINDA FUNCIONA' }
     case 'face':
       return { icon: '👁️', text: 'NÃO OLHA' }
+    case 'apagao':
+      return { icon: '🌑', text: 'NÃO SE MEXA' }
+    case 'rastejante':
+      return { icon: '🕸️', text: 'ELA ESTÁ VINDO' }
     case 'penetra':
       return { icon: '👹', text: 'O PENETRA TE ACHOU' }
   }
@@ -91,6 +109,7 @@ export function playScareSound(kind: ConcreteScare, name?: string): () => void {
     case 'scream':
       // Só na CENA de susto o grito vai pelo caminho alto; o playSfx('scream') dos jogos fica no nível normal.
       playSfx('scream', { loud: true })
+      playSfx('slam', { volume: 0.7 })
       break
     case 'pumpkin':
       playSfx('laugh', { delay: 0.2 })
@@ -126,16 +145,38 @@ export function playScareSound(kind: ConcreteScare, name?: string): () => void {
       hushMusic(SCARE_DURATION_MS.animatronic / 1000)
       for (const { at } of ANIMATRONIC_FLASHES) playSfx('flicker', { delay: at / 1000 })
       playSfx('screech', { delay: SCREECH_AT_MS / 1000 })
+      playSfx('slam', { delay: SCREECH_AT_MS / 1000 })
       break
     case 'face':
       // Meio segundo de silêncio total... e o grito junto com o rosto.
       hushMusic(SCARE_DURATION_MS.face / 1000)
       playSfx('shriek', { delay: FACE_HIT_MS / 1000 })
+      playSfx('slam', { delay: FACE_HIT_MS / 1000 })
+      break
+    case 'apagao':
+      // A TV desliga, silêncio total, alguém respira colado no ouvido, o coração
+      // acelera, um sussurro... e o rosto grita junto com um impacto grave.
+      hushMusic(SCARE_DURATION_MS.apagao / 1000)
+      playSfx('powerdown')
+      playSfx('breath', { delay: APAGAO_BREATH_MS / 1000 })
+      playSfx('heartbeat', { delay: (APAGAO_EYES_MS - 300) / 1000, volume: 0.7 })
+      playSfx('whisper', { delay: (APAGAO_HIT_MS - 1100) / 1000, volume: 0.8 })
+      playSfx('shriek', { delay: APAGAO_HIT_MS / 1000 })
+      playSfx('slam', { delay: APAGAO_HIT_MS / 1000 })
+      break
+    case 'rastejante':
+      // Um zumbido grave crescendo; cada pulo dela estala ossos no chão; o
+      // zumbido corta seco um instante antes do bote, e aí vem o guincho.
+      hushMusic(SCARE_DURATION_MS.rastejante / 1000)
+      playSfx('dread')
+      for (const at of RASTEJANTE_STEPS) playSfx('crawl', { delay: at / 1000 })
+      playSfx('screech', { delay: (RASTEJANTE_LUNGE_MS - 30) / 1000 })
+      playSfx('slam', { delay: (RASTEJANTE_LUNGE_MS - 30) / 1000 })
       break
     case 'penetra':
       if (playCustomJumpscareSound()) break
       playSfx('jumpscare')
-      playSfx('boom', { volume: 0.8 })
+      playSfx('slam')
       break
   }
 

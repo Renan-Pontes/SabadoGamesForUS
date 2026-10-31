@@ -1,3 +1,6 @@
+import { NIGHTMARE, getScareLevel } from './level'
+import type { ScareLevel } from './level'
+
 /**
  * Barramento dos sustos: quem quer assustar emite, o overlay (montado uma vez
  * pela camada global) escuta. Sem React aqui — dá para testar em Node.
@@ -16,6 +19,8 @@ export const SCARE_KINDS = [
   'eyes',
   'animatronic',
   'face',
+  'apagao',
+  'rastejante',
 ] as const
 
 /**
@@ -32,8 +37,12 @@ export type ScareKind = 'random' | 'scary' | ConcreteScare
 /** Pedido de susto assustador sorteado (botão "Susto" do host, "Testar susto" da TV). */
 export const SCARY_RANDOM = 'scary'
 
-/** Os que assustam de verdade (som alto, sem meme). */
-export const SCARY_SCARES = ['animatronic', 'face', 'scream', 'static'] as const satisfies readonly (typeof SCARE_KINDS)[number][]
+/**
+ * Os que assustam de verdade (som alto, sem meme). 'apagao' e 'rastejante'
+ * são os de tensão: segundos de silêncio e escuro (ou algo chegando perto)
+ * antes do bote.
+ */
+export const SCARY_SCARES = ['animatronic', 'face', 'scream', 'static', 'apagao', 'rastejante'] as const satisfies readonly (typeof SCARE_KINDS)[number][]
 
 /** Os de meme: o resto do sorteio. */
 export const MEME_SCARES = SCARE_KINDS.filter((kind) => !(SCARY_SCARES as readonly string[]).includes(kind))
@@ -48,6 +57,11 @@ export const SCARY_SHARE = 2 / 3
  * a sala se acostuma — os grandes ficam para os botões do host.
  */
 export const AUTO_SCARY_GAP_MS = 15 * 60_000
+
+/** O intervalo mínimo entre assustadores automáticos para o nível do aparelho. */
+export function autoScaryGapMs(level: ScareLevel | null = getScareLevel()): number {
+  return level === 'pesadelo' ? NIGHTMARE.scaryGapMs : AUTO_SCARY_GAP_MS
+}
 
 /** Sustos que ficam melhores com o nome de alguém da sala. */
 export const SCARES_WITH_NAME: readonly ConcreteScare[] = ['zoom', 'eyes']
@@ -76,7 +90,7 @@ function pickFrom<T extends ConcreteScare>(group: readonly T[], random: () => nu
 
 /**
  * Sorteia um susto com peso: ~2/3 das vezes um assustador de verdade
- * (animatrônico, rosto, grito, estática), ~1/3 um de meme. Nunca repete o
+ * (animatrônico, rosto, grito, estática, apagão, rastejante), ~1/3 um de meme. Nunca repete o
  * último.
  */
 export function pickScare(random: () => number = Math.random, avoid: ConcreteScare | null = lastKind) {
@@ -102,9 +116,23 @@ export function pickAutoScare(
   random: () => number = Math.random,
   now: number = Date.now(),
   avoid: ConcreteScare | null = lastKind,
+  level: ScareLevel | null = getScareLevel(),
 ): ConcreteScare {
-  if (now - lastScaryAt < AUTO_SCARY_GAP_MS) return pickFrom(MEME_SCARES, random, avoid)
+  if (now - lastScaryAt < autoScaryGapMs(level)) return pickFrom(MEME_SCARES, random, avoid)
   return pickScare(random, avoid)
+}
+
+/**
+ * Modo leve (quem marcou no aviso que é sensível): susto assustador vira um
+ * de meme neste aparelho, venha de onde vier. Nos outros níveis, nada muda.
+ */
+export function applyScareLevel(
+  kind: ConcreteScare,
+  level: ScareLevel | null = getScareLevel(),
+  random: () => number = Math.random,
+): ConcreteScare {
+  if (level !== 'leve' || !isScaryScare(kind)) return kind
+  return pickFrom(MEME_SCARES, random, lastKind)
 }
 
 /**
@@ -116,9 +144,24 @@ export function resolveScareKind(kind: unknown, random: () => number = Math.rand
   return kind === SCARY_RANDOM ? pickScaryScare(random) : pickScare(random)
 }
 
+/**
+ * Modo pesadelo: depois de um susto assustador, às vezes vem o "falso
+ * alívio" — a tela volta ao normal, a sala ri de nervoso... e o rosto vem de
+ * novo. Nunca depois do próprio rosto, nem em cadeia.
+ */
+export function shouldDoubleTap(
+  request: ScareRequest,
+  level = getScareLevel(),
+  random: () => number = Math.random,
+): boolean {
+  if (level !== 'pesadelo' || request.id < 0) return false
+  if (!isScaryScare(request.kind) || request.kind === 'face') return false
+  return random() < NIGHTMARE.doubleTapChance
+}
+
 /** Emite um susto para o overlay. Devolve o pedido (ou null se ninguém está ouvindo). */
 export function emitScare(kind: unknown, options: { name?: string | null } = {}): ScareRequest | null {
-  const concrete = resolveScareKind(kind)
+  const concrete = applyScareLevel(resolveScareKind(kind))
   lastKind = concrete
   if (isScaryScare(concrete)) lastScaryAt = Date.now()
   let name = options.name?.trim() || undefined

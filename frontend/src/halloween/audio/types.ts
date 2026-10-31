@@ -53,6 +53,12 @@ export const SFX_NAMES = [
   'screech',
   'shriek',
   'flicker',
+  // Sustos de tensão (apagão, rastejante). 'slam' também vai pelo caminho alto.
+  'slam',
+  'powerdown',
+  'breath',
+  'dread',
+  'crawl',
 ] as const
 
 export type SfxName = (typeof SFX_NAMES)[number]

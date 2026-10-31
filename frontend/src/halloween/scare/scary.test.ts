@@ -170,7 +170,7 @@ describe('sustos de verdade no barramento', () => {
   })
 
   it('os grupos cobrem todos os sustos sorteáveis, sem sobrar nem repetir', () => {
-    expect([...SCARY_SCARES].sort()).toEqual(['animatronic', 'face', 'scream', 'static'])
+    expect([...SCARY_SCARES].sort()).toEqual(['animatronic', 'apagao', 'face', 'rastejante', 'scream', 'static'])
     expect([...SCARY_SCARES, ...MEME_SCARES].sort()).toEqual([...SCARE_KINDS].sort())
   })
 
@@ -279,6 +279,9 @@ describe('segurança das cenas', () => {
       '.hws-shaker',
       '.hws-penetra-face',
       '.hws-penetra-img',
+      '.hws-crawl-stage',
+      '.hws-crawl-steps',
+      '.hws-apagao-eyes',
     ]
     for (const selector of containers) {
       expect(ruleBodies(CSS, selector).length, `${selector} sumiu do CSS`).toBeGreaterThan(0)

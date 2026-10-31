@@ -4,6 +4,7 @@ import { initAudio, setSoundRole } from './audio'
 import { isTvLocation, roomCodeFromPath } from './fx/route'
 import TvFxLayer from './fx/TvFxLayer'
 import ScareOverlay from './scare/ScareOverlay'
+import ScareWarning from './ui/ScareWarning'
 import { AudioUnlockPrompt, PhoneSoundButton } from './ui/SoundControls'
 import SpookyBackdrop from './ui/SpookyBackdrop'
 import './ui/fonts'
@@ -17,7 +18,9 @@ import './ui/fonts'
  * - palco dos sustos (acima de tudo);
  * - na TV: efeitos da sala (susto do host, música, sustos aleatórios), o
  *   controle discreto do canto e o aviso "clique para acordar os mortos";
- * - no celular: o botãozinho flutuante de som (nasce mudo).
+ * - no celular: o botãozinho flutuante de som (nasce mudo);
+ * - em qualquer tela, na primeira visita: o aviso para cardíacos, epilépticos
+ *   etc. Nenhum susto aparece antes de alguém responder.
  */
 export default function HalloweenLayer() {
   const location = useLocation()
@@ -39,6 +42,7 @@ export default function HalloweenLayer() {
       {tv && code && <TvFxLayer key={code} code={code} />}
       {tv && <AudioUnlockPrompt />}
       {!tv && <PhoneSoundButton />}
+      <ScareWarning />
     </>
   )
 }

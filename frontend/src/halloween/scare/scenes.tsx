@@ -5,7 +5,7 @@ import SpiderSvg from '../ui/SpiderSvg'
 import type { ConcreteScare } from './bus'
 import { PENETRA_CUT_MS, scareCaption } from './config'
 import { customJumpscare, mountCustomVideo } from './customJumpscare'
-import { AnimatronicScene, FaceScene } from './scary'
+import { AnimatronicScene, ApagaoScene, FaceScene, RastejanteScene } from './scary'
 import './scare.css'
 
 type SceneProps = { kind: ConcreteScare; name?: string; reduced: boolean; duration: number }
@@ -402,6 +402,10 @@ function Scene({ kind, name }: { kind: ConcreteScare; name?: string }) {
       return <AnimatronicScene />
     case 'face':
       return <FaceScene />
+    case 'apagao':
+      return <ApagaoScene />
+    case 'rastejante':
+      return <RastejanteScene />
     case 'penetra':
       return <Penetra />
   }

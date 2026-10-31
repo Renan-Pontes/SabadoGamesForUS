@@ -6,17 +6,23 @@ import type { ScareKind } from './bus'
  * Sustos de meme da Noite do Terror — a API que os jogos usam.
  *
  *   triggerScare()                          // um susto sorteado (~2/3 assustadores, ~1/3 meme)
- *   triggerScare('scary')                   // só os assustadores (animatrônico, rosto, grito, estática)
+ *   triggerScare('scary')                   // só os assustadores (animatrônico, rosto, grito, estática, apagão, rastejante)
  *   triggerScare('zoom', { name: 'Pedro' }) // zoom suspeito no Pedro 🤨📸
  *   useSuppressScares(phase === 'reveal')   // segura os sustos aleatórios
  *
  * O overlay é montado uma vez pela camada global (HalloweenLayer). Sustos
- * aleatórios só acontecem na TV, a cada 4–9 minutos.
+ * aleatórios só acontecem na TV, a cada 4–9 minutos (3–6 no modo pesadelo).
+ *
+ * Nenhum susto aparece antes de o aparelho responder o aviso de entrada
+ * (para cardíacos, epilépticos etc.). No modo leve, os assustadores viram
+ * de meme neste aparelho.
  */
 
 export type { ConcreteScare, ScareKind, ScareRequest } from './bus'
 export {
   AUTO_SCARY_GAP_MS,
+  applyScareLevel,
+  autoScaryGapMs,
   MEME_SCARES,
   RARE_SCARE,
   SCARE_KINDS,
@@ -33,7 +39,18 @@ export {
   pickScaryScare,
   resolveScareKind,
   scareNames,
+  shouldDoubleTap,
 } from './bus'
+export type { ScareConsent, ScareLevel } from './level'
+export {
+  NIGHTMARE,
+  getScareConsent,
+  getScareLevel,
+  hasScareConsent,
+  setScareLevel,
+  subscribeScareLevel,
+  useScareConsent,
+} from './level'
 
 /** Mostra um susto em tela cheia NESTE aparelho (normalmente a TV). */
 export function triggerScare(kind: ScareKind = 'random', options?: { name?: string }): void {

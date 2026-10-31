@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Box, Button, FormControlLabel, IconButton, Popover, Slider, Switch, Typography } from '@mui/material'
 import { setMuted, setMusicEnabled, setRandomScaresEnabled, setVolume, useSoundState } from '../audio'
-import { RARE_SCARE, SCARY_RANDOM, triggerScare } from '../scare'
+import { RARE_SCARE, SCARY_RANDOM, setScareLevel, triggerScare, useScareConsent } from '../scare'
 import { CREEPY_FONT } from '../ui/fonts'
 
 /**
@@ -11,6 +11,7 @@ import { CREEPY_FONT } from '../ui/fonts'
  */
 export default function TvControl() {
   const sound = useSoundState()
+  const nightmare = useScareConsent()?.level === 'pesadelo'
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
   const open = Boolean(anchor)
 
@@ -99,7 +100,17 @@ export default function TvControl() {
             control={
               <Switch checked={sound.randomScares} onChange={(_, checked) => setRandomScaresEnabled(checked)} />
             }
-            label="Sustos aleatórios (4–9 min + o raro)"
+            label={`Sustos aleatórios (${nightmare ? '3–6' : '4–9'} min + o raro)`}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={nightmare}
+                color="error"
+                onChange={(_, checked) => setScareLevel(checked ? 'pesadelo' : 'leve')}
+              />
+            }
+            label={nightmare ? 'Modo pesadelo 💀' : 'Modo leve (só memes)'}
           />
         </Box>
 
