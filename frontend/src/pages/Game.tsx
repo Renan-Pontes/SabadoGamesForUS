@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { Box, Button, CircularProgress, Typography } from '@mui/material'
+import { Box, Button, Typography } from '@mui/material'
 import { getRoom } from '../lib/api'
 import type { Room } from '../lib/types'
 import { HALLOWEEN_SLUGS } from '../halloween/slugs'
+import { Ghost } from '../components/ui'
 
 /**
  * Slugs que já têm tela própria. Ao adicionar um minigame novo, registre-o
@@ -96,7 +97,7 @@ export default function Game() {
         placeItems: 'center',
         background: `
           radial-gradient(ellipse 110% 70% at 50% -10%, rgba(220, 38, 38, 0.18) 0%, transparent 55%),
-          var(--bg-void)
+          var(--bg-veil)
         `,
         p: 4,
         textAlign: 'center',
@@ -105,7 +106,9 @@ export default function Game() {
       <Box className="animate-pop-in">
         {!message && (
           <>
-            <CircularProgress sx={{ color: 'var(--accent-gold)', mb: 3 }} />
+            <Box sx={{ mb: 3 }}>
+              <Ghost size={96} glow="var(--accent-gold)" />
+            </Box>
             <Typography
               variant="h3"
               sx={{ color: 'var(--text-primary)', letterSpacing: '0.1em', mb: 1 }}
@@ -120,7 +123,7 @@ export default function Game() {
 
         {message && (
           <>
-            <Typography sx={{ fontSize: '3.5rem', mb: 1 }}>🃏</Typography>
+            <Typography sx={{ fontSize: '3.5rem', mb: 1 }}>🪦</Typography>
             <Typography variant="h4" sx={{ color: 'var(--accent-red)', mb: 1.5 }}>
               {error ? 'ALGO DEU ERRADO' : 'JOGO NÃO DISPONÍVEL'}
             </Typography>

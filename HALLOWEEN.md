@@ -77,6 +77,12 @@ de partida inteira contra o backend local, conferência visual no navegador,
 PR com a etiqueta **finalizado**, merge na `main` (Vercel) e deploy no
 PythonAnywhere.
 
+A simulação contra o backend local já existe (Etapa 1): suba o Django
+(`py manage.py migrate && py manage.py seed_games && py manage.py runserver
+127.0.0.1:8765`) e rode
+`HALLOWEEN_E2E_API=http://127.0.0.1:8765 npx vitest run src/halloween/e2e`
+(sem a variável, os testes ficam pulados).
+
 ---
 
 ## Arquitetura: a TV é o juiz
@@ -101,30 +107,52 @@ PythonAnywhere.
 ### Backend (F1) — contrato HTTP
 
 Todos sob `/api/rooms/{code}/`, sem exigir login (a TV é anônima), salvo onde
-indicado.
+indicado. `sync`, `sync_room`, `fx` e `auth/guest` rodam sem a autenticação do
+DRF: o token, se vier, só identifica o jogador — token velho vira anônimo,
+nunca 401. Código no backend: `api/deposito.py` (depósito) e
+`api/halloween.py` (`HALLOWEEN_SLUGS`, `is_halloween`).
 
 - `GET sync/?v=<n>&mine=1&tv=1`
-  - Se `n` é a versão atual: `{"same": true, "v": n, "t": <ms>}` (barato).
+  - Se `n` é a versão atual: `{"same": true, "v": n, "t": <ms>}` (barato:
+    1 consulta na TV, 2 no celular).
   - Senão: `{"same": false, "v", "t", "me": <player_id|null>, "room": {code,
     status, game: {slug, name, min_players, max_players}, state, fx,
     tv_connected}, "players": [{id, name, is_host, ready, online,
-    joined_at, state}]}`.
+    joined_at, state}]}` — jogadores na ordem de entrada.
   - `mine=1`: o `state` dos outros jogadores vem `null` (só o seu vem cheio) —
-    economiza banda dos celulares. A TV pede sem `mine`.
-  - `tv=1`: marca a TV como conectada (com throttle).
+    economiza banda dos celulares. A TV pede sem `mine`. O `room.state` vem
+    inteiro para todo mundo (segredo em `private` só é escondido pela tela).
+  - `tv=1`: marca a TV como conectada (grava no máximo a cada 10 s).
   - Com token: renova o `last_seen_at` do jogador, no máximo a cada 15 s.
-- `POST sync_room/` `{"state": {...}, "status"?: "live"|"ended"|"lobby"}` →
-  substitui `room.state`, sobe a versão, devolve `{"v", "t"}`.
-- `POST state/` (já existia, exige login) — substitui o `player.state` de quem
-  chama; agora também sobe a versão da sala.
+  - `online` = visto nos últimos 30 s; `tv_connected` = últimos 20 s. Jogador
+    que volta depois de >30 s offline (ou TV depois de >20 s) sobe a versão,
+    e essa própria chamada já responde completo.
+  - `v` ausente ou inválido → resposta completa. Sala de jogo antigo: o
+    `state` dos jogadores vem sempre `null` e o `room.state` redigido como no
+    GET antigo. Sala inexistente → 404. Resposta com `Cache-Control: no-store`.
+- `POST sync_room/` `{"state": {...}, "status"?: "live"|"ended"|"lobby",
+  "slug"?: "<slug do jogo>"}` → substitui `room.state` (e o status) no mesmo
+  UPDATE que sobe a versão; devolve `{"v": <versão exata desta gravação>,
+  "t"}`. 400 se `state` não é objeto; 404 sem sala; **409** se a sala não está
+  num jogo de Halloween ou, com `slug`, se já trocou de jogo (juiz atrasado).
+  O juiz só adota o `v` devolvido se `v === versão_base + 1`.
+- `POST state/` (exige login) — substitui o `player.state` de quem chama
+  inteiro; também sobe a versão da sala. Responde `{player_id, state}`.
 - `POST fx/` `{"scare"?, "music"?, "name"?}` → `room.fx = {id: anterior+1,
-  ..., at}`; `GET fx/` → `{"fx", "t"}` (consulta levíssima para a TV).
-- `POST /api/auth/guest/` `{"nickname"}` → `{"token", "user"}`; cria conta sem
-  e-mail nem senha. Apelido repetido vira "Apelido 2", "Apelido 3"...
-- A versão sobe em: join, ready, start, end, change_game, restart, state,
-  sync_room, fx, tutorial.
+  at: <ms>, ...só as chaves enviadas}` (cada POST substitui o fx inteiro);
+  responde `{"fx", "v", "t"}` e sobe a versão. `scare: "auto-on"|"auto-off"`
+  liga/desliga os sustos aleatórios da TV. `GET fx/` → `{"fx": {...} ou {},
+  "t"}` (1 consulta, a TV consulta a cada 1,5 s).
+- `POST /api/auth/guest/` `{"nickname"}` → 201 `{"token", "user"}` (mesmo
+  formato do register); conta sem senha, e-mail sintético
+  `convidado-…@convidado.sabadogames`. Apelido repetido (sem ligar para
+  maiúsculas) vira "Apelido 2", "Apelido 3"...; vazio → 400
+  `{"nickname": ["Diga um apelido para entrar."]}`.
+- A versão sobe (+1) em: join, ready, start, end, change_game, restart,
+  state, sync_room, fx, tutorial — e na volta de jogador/TV (acima).
 - `start` num slug de Halloween: zera `room.state` e o `state` dos jogadores e
-  põe a sala ao vivo. Nada mais.
+  põe a sala ao vivo. **Não cobra "pronto"** (quem joga sai de quem está
+  online no "Começar" da tela do jogo); os jogos antigos continuam cobrando.
 
 ### Motor (F2) — contrato TypeScript
 
@@ -174,26 +202,61 @@ type HalloweenEngine<S extends BaseState> = {
   fase; o host nunca é obrigatório para avançar.
 - **Quem entra no meio** é espectador até a próxima partida (fora do `roster`).
 - `room.state` = `{ g: <estado do motor>, setup?: {...}, _cmd: <último id>,
-  _auth: {d: <aparelho>, u: <ms>} }`.
-- Cada jogo exporta de `games/<slug>/index.ts`:
-  `{ meta, engine, Tv, Phone }`, com
-  `meta = { slug, name, icon, tagline, pitch, howTo, duration, vibe,
-  minPlayers, maxPlayers, accent, options, music?, phonePollMs? }`.
-- `Tv` e `Phone` recebem `HalloweenViewProps<S>`: `code, view, state,
-  players, me, isHost, myInput, mine (= state.private[me.id]), now(), send,
-  sendSlot, command, slots (só na TV)`.
+  _auth: {d: <aparelho>, u: <ms>}, _m: <id da partida, novo a cada
+  "Começar">, _err: <último erro do motor> }`.
+- `player.state` = `{ m: <id da partida>, hw: {k, ...}, hws: {<slot>: {k,
+  ...}}, cmd: {id, type, ...} }`, gravado inteiro pela fila do celular
+  (`net/stateWriter`). Resposta de outra partida (`m` diferente) não vale;
+  resposta sem `m` (escrita crua) vale.
+- `begin` (com as opções) só começa com pelo menos `minPlayers` online; o
+  `roster` é quem está online nesse momento. `replay` volta à configuração
+  com as mesmas opções; `end` põe `over = true` sem chamar o motor.
+- Juiz: a TV tem preferência; o celular do host assume se o contrato
+  (`_auth`, 9 s) vencer há 6 s. Poll: TV 1 s, celulares 1,5 s (ou
+  `meta.phonePollMs`), juiz roda o motor a cada 400 ms e só grava quando o
+  JSON muda (no mínimo 250 ms entre gravações). 409 do `sync_room` → o juiz
+  para de gravar e a tela volta para a sala certa.
+- Cada jogo exporta de `games/<slug>/index.ts` (já pronto):
+  `{ meta, engine, Tv, Phone }` e `game = defineHalloweenGame<State>(...)`,
+  com `meta = { slug, name, icon, tagline, pitch, howTo, duration, vibe,
+  minPlayers, maxPlayers, accent, options, music?, phonePollMs? }`. O
+  `index.ts` importa `{ engine, type State }` de `./engine` e as telas por
+  `lazy()` de `./Tv` e `./Phone` (`export default`).
+- `Tv` e `Phone` recebem `HalloweenViewProps<S>`: `code, view, state (sem
+  private), players, me (null na TV), isHost, myInput, mine (=
+  state.private[me.id]), now(), send, sendSlot, command, slots (TV: de
+  todos; celular: só os meus), options`.
+- Guia de quem escreve jogo, com armadilhas: `frontend/src/halloween/README.md`.
 
 ### Som e sustos (F3) — contrato
 
 ```ts
+// halloween/audio
 useMusic(track: 'lobby'|'tension'|'night'|'day'|'party'|'race'|'quiz'|'chase'|'victory'|null)
+  // só toca na TV; vale o pedido mais recente (o jogo vence a moldura); null = silêncio
 playSfx(name: 'scream'|'thunder'|'creak'|'door'|'heartbeat'|'bell'|'ghost'|'doot'|'boom'|'clang'|'tick'|
         'explosion'|'win'|'fail'|'reveal'|'whoosh'|'pop'|'laugh'|'organ'|'drumroll'|'buzzer'|'ding'|
-        'fuse'|'monster'|'gong', { volume? })
-speakSpooky(text, { pitch?, rate? })
+        'fuse'|'monster'|'gong'|'bones'|'hiss'|'static'|'whisper',
+        { volume?: 0..2, delay?: segundos }): number   // duração em s; 0 = não tocou
+speakSpooky(text, { pitch?, rate? }): () => void       // devolve o cancelador
+// halloween/scare
 triggerScare(kind?: 'random'|'doot'|'zoom'|'scream'|'pumpkin'|'pipe'|'skeletons'|'spider'|'static'|'bruh'|'eyes', { name? })
-useSuppressScares(active: boolean)
+useSuppressScares(active: boolean)   // segura só os sustos ALEATÓRIOS
+useScareNames(names: string[])       // nomes para zoom/olhos (a tela do jogo já informa)
+// halloween/fx/api (host → TV)
+sendRoomFx(code, { scare?, music?, name? }), scareRoomTv(code, kind?, name?),
+setRoomMusic(code, on), setRoomRandomScares(code, on)
 ```
+
+- Kit visual em `halloween/ui`: `SpookyBackdrop`, `HauntedTitle`,
+  `CandleTimer`, `Tombstone`, `PlayerBadge`, `BigReveal` (segura os sustos
+  enquanto aberto), `DoorSvg`, `PumpkinSvg`, `Cauldron`, `CandyRain`,
+  `SpiderSvg`, `SoundToggle`, mais `SPOOKY_COLORS`, `CREEPY_FONT`,
+  `BLOODY_FONT`, `withAlpha`, `useReducedMotion`.
+- A camada global (`HalloweenLayer`) já monta cenário, palco dos sustos, o
+  fx da TV (`TvFxLayer`, em `/tv/:code` e em toda rota com `?view=tv`), o
+  aviso de desbloqueio do som e o botão de som flutuante do celular (canto
+  inferior esquerdo, 38 px).
 
 - Tudo sintetizado na hora com Web Audio (nada de MP3 com direitos autorais).
   Melodias de domínio público são bem-vindas: Tocata e Fuga em Ré menor

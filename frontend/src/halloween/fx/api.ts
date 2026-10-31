@@ -23,6 +23,13 @@ export type RoomFxRequest = {
   name?: string
 }
 
+/**
+ * Valores especiais de `scare` que não assustam: ligam/desligam os sustos
+ * aleatórios da TV (o host controla pelo celular).
+ */
+export const RANDOM_SCARES_ON = 'auto-on'
+export const RANDOM_SCARES_OFF = 'auto-off'
+
 export function sendRoomFx(code: string, payload: RoomFxRequest) {
   return request<{ fx: RoomFx }>(`/rooms/${code}/fx/`, {
     method: 'POST',
@@ -32,4 +39,19 @@ export function sendRoomFx(code: string, payload: RoomFxRequest) {
 
 export function getRoomFx(code: string) {
   return request<{ fx: RoomFx | Record<string, never>; t: number }>(`/rooms/${code}/fx/`)
+}
+
+/** Host: "😱 Assustar a TV" (sem tipo = a TV sorteia; `name` para o zoom/olhos). */
+export function scareRoomTv(code: string, kind = 'random', name?: string) {
+  return sendRoomFx(code, name ? { scare: kind, name } : { scare: kind })
+}
+
+/** Host: liga/desliga a música da TV. */
+export function setRoomMusic(code: string, on: boolean) {
+  return sendRoomFx(code, { music: on ? 'on' : 'off' })
+}
+
+/** Host: liga/desliga os sustos aleatórios da TV. */
+export function setRoomRandomScares(code: string, on: boolean) {
+  return sendRoomFx(code, { scare: on ? RANDOM_SCARES_ON : RANDOM_SCARES_OFF })
 }

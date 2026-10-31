@@ -1,31 +1,58 @@
+import { useEffect } from 'react'
+import { clearScareNames, emitScare, setScareNames, suppressScares } from './bus'
+import type { ScareKind } from './bus'
+
 /**
- * PLACEHOLDER — os sustos de meme de verdade são escritos na Etapa 1 do plano
- * (HALLOWEEN.md). Os nomes e assinaturas abaixo são o contrato.
+ * Sustos de meme da Noite do Terror — a API que os jogos usam.
+ *
+ *   triggerScare()                          // um susto sorteado
+ *   triggerScare('zoom', { name: 'Pedro' }) // zoom suspeito no Pedro 🤨📸
+ *   useSuppressScares(phase === 'reveal')   // segura os sustos aleatórios
+ *
+ * O overlay é montado uma vez pela camada global (HalloweenLayer). Sustos
+ * aleatórios só acontecem na TV, a cada 4–9 minutos.
  */
 
-export type ScareKind =
-  | 'random'
-  | 'doot'
-  | 'zoom'
-  | 'scream'
-  | 'pumpkin'
-  | 'pipe'
-  | 'skeletons'
-  | 'spider'
-  | 'static'
-  | 'bruh'
-  | 'eyes'
+export type { ConcreteScare, ScareKind, ScareRequest } from './bus'
+export {
+  SCARE_KINDS,
+  SCARES_WITH_NAME,
+  isConcreteScare,
+  isScareShowing,
+  isScareSuppressed,
+  onScare,
+  pickScare,
+  resolveScareKind,
+  scareNames,
+} from './bus'
 
 /** Mostra um susto em tela cheia NESTE aparelho (normalmente a TV). */
 export function triggerScare(kind: ScareKind = 'random', options?: { name?: string }): void {
-  void kind
-  void options
+  emitScare(kind, options)
 }
 
 /**
  * Enquanto `active` for true, os sustos aleatórios ficam suspensos — use em
  * revelações e votações para o meme não atropelar o momento importante.
+ * Vários componentes podem suspender ao mesmo tempo (contagem de referências).
  */
 export function useSuppressScares(active: boolean): void {
-  void active
+  useEffect(() => {
+    if (!active) return
+    return suppressScares()
+  }, [active])
+}
+
+/**
+ * Informa os nomes dos jogadores para os sustos que usam nome (zoom suspeito,
+ * olhos no escuro). A TV do jogo pode chamar com a lista de jogadores; sem
+ * isso, a TV busca os nomes da sala sozinha quando precisa.
+ */
+export function useScareNames(names: string[]): void {
+  const key = names.join('\u0000')
+  useEffect(() => {
+    const source = `names-${Math.random().toString(36).slice(2)}`
+    setScareNames(source, key ? key.split('\u0000') : [])
+    return () => clearScareNames(source)
+  }, [key])
 }

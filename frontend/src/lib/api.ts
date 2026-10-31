@@ -1,4 +1,5 @@
-import type { Game, Player, Room } from './types'
+import { isHalloweenWip } from '../halloween/slugs'
+import type { AuthUser, Game, Player, Room } from './types'
 
 const DEFAULT_API = 'https://sabadogames.pythonanywhere.com'
 const API_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? DEFAULT_API
@@ -22,44 +23,146 @@ export function isAuthenticated() {
 }
 
 /**
+ * Erro de uma resposta HTTP que não deu certo. Continua sendo um `Error` com a
+ * mensagem crua do servidor (quem já mostrava `err.message` segue igual), mas
+ * agora carrega o status — dá para separar "token inválido" (401) de "o
+ * Wi-Fi da festa caiu", que não pode derrubar a sessão de ninguém.
+ */
+export class ApiError extends Error {
+  status: number
+  body: string
+
+  constructor(status: number, body: string) {
+    super(body || `Request failed (${status})`)
+    this.name = 'ApiError'
+    this.status = status
+    this.body = body
+  }
+}
+
+/** O servidor recusou a identidade (token vencido, revogado ou ausente). */
+export function isAuthError(err: unknown) {
+  return err instanceof ApiError && (err.status === 401 || err.status === 403)
+}
+
+/**
  * Chamada crua à API, com o token da sessão. Exportada para os módulos que
  * vivem fora deste arquivo (a camada de Halloween) não duplicarem a URL —
  * já aconteceu de duas cópias divergirem e o login quebrar em produção.
  */
 export async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = getToken()
+  // `headers` vem depois do spread: antes, passar `options.headers` apagava o
+  // Content-Type e o token. Content-Type só quando há corpo: um GET sem ele
+  // (e sem token, como a TV) é "simples" e não paga o preflight OPTIONS a
+  // cada `?v=` novo do sync.
+  const hasBody = options?.body !== undefined && options?.body !== null
   const response = await fetch(`${BASE_URL}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Token ${token}` } : {}),
-      ...(options?.headers ?? {}),
-    },
     ...options,
+    headers: {
+      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { Authorization: `Token ${token}` } : {}),
+      ...((options?.headers as Record<string, string> | undefined) ?? {}),
+    },
   })
 
   if (!response.ok) {
     const text = await response.text()
-    throw new Error(text || `Request failed (${response.status})`)
+    throw new ApiError(response.status, text)
   }
 
+  if (response.status === 204) return undefined as T
   return (await response.json()) as T
 }
+
+/** Traduções das mensagens do backend que chegam até a pessoa. */
+const MESSAGE_PT: Array<[RegExp, string]> = [
+  [/invalid credentials/i, 'E-mail ou senha não conferem.'],
+  [/email already in use/i, 'Esse e-mail já tem conta. Tente entrar.'],
+  [/nickname already in use/i, 'Esse apelido já está em uso. Escolha outro.'],
+  [/nickname is required/i, 'Digite um apelido.'],
+  [/all players must be ready/i, 'Ainda tem gente que não marcou "Estou pronto".'],
+  [/authentication (required|credentials were not provided)/i, 'Você precisa entrar primeiro.'],
+  [/invalid token/i, 'Sua sessão expirou. Entre de novo.'],
+  [/^not found\.?$/i, 'Não achamos essa sala. Confira o código.'],
+  // O 404 do Django para sala inexistente: "No Room matches the given query."
+  [/no room matches/i, 'Não achamos essa sala. Confira o código.'],
+  [/valid email/i, 'Digite um e-mail válido.'],
+  [/at least 6 characters/i, 'A senha precisa de pelo menos 6 caracteres.'],
+  [/may not be blank|this field is required/i, 'Preencha todos os campos.'],
+  [/throttled/i, 'Calma, muita gente ao mesmo tempo! Tente de novo em instantes.'],
+]
+
+function translate(message: string) {
+  const found = MESSAGE_PT.find(([pattern]) => pattern.test(message))
+  return found ? found[1] : message
+}
+
+/** Junta as mensagens de um corpo de erro do DRF (`detail`, campos, listas). */
+function collectMessages(value: unknown): string[] {
+  if (typeof value === 'string') return [value]
+  if (Array.isArray(value)) return value.flatMap(collectMessages)
+  if (value && typeof value === 'object') return Object.values(value).flatMap(collectMessages)
+  return []
+}
+
+/**
+ * Mensagem de erro que dá para mostrar na tela: sem JSON cru, sem página HTML
+ * de erro do servidor, em português e com uma saída para falta de internet.
+ */
+export function friendlyError(err: unknown, fallback: string): string {
+  if (err instanceof ApiError) {
+    const body = err.body.trim()
+    if (!body || body.startsWith('<')) {
+      if (err.status === 404) return translate('Not found.')
+      if (err.status === 429) return translate('throttled')
+      return fallback
+    }
+    try {
+      const messages = collectMessages(JSON.parse(body))
+      if (messages.length) return Array.from(new Set(messages.map(translate))).join(' ')
+    } catch {
+      // Texto puro: segue para a tradução direta.
+    }
+    return body.length > 160 ? fallback : translate(body)
+  }
+  if (err instanceof TypeError) {
+    // fetch sem rede: "Failed to fetch", "Load failed", "NetworkError..."
+    return 'Sem conexão com o servidor. Confira a internet e tente de novo.'
+  }
+  if (err instanceof Error && err.message) return translate(err.message)
+  return fallback
+}
+
+/** Resposta de login, cadastro e convidado: o token e a conta. */
+export type AuthResponse = { token: string; user?: AuthUser }
 
 export async function registerAccount(payload: {
   email: string
   password: string
   nickname: string
-}): Promise<{ token: string }> {
-  return request<{ token: string }>('/auth/register/', {
+}): Promise<AuthResponse> {
+  return request<AuthResponse>('/auth/register/', {
     method: 'POST',
     body: JSON.stringify(payload),
   })
 }
 
-export async function loginAccount(payload: { email: string; password: string }): Promise<{ token: string }> {
-  return request<{ token: string }>('/auth/login/', {
+export async function loginAccount(payload: { email: string; password: string }): Promise<AuthResponse> {
+  return request<AuthResponse>('/auth/login/', {
     method: 'POST',
     body: JSON.stringify(payload),
+  })
+}
+
+/**
+ * Entrada rápida da festa: cria uma conta sem e-mail nem senha só com o
+ * apelido. Apelido repetido vira "Apelido 2", "Apelido 3"... no servidor.
+ */
+export async function guestLogin(nickname: string): Promise<AuthResponse> {
+  return request<AuthResponse>('/auth/guest/', {
+    method: 'POST',
+    body: JSON.stringify({ nickname }),
   })
 }
 
@@ -67,9 +170,7 @@ export async function loginAccount(payload: { email: string; password: string })
  * `UserSerializer` sempre devolve id, username e email; só o perfil pode
  * faltar, para uma conta criada fora do fluxo normal de cadastro.
  */
-export async function getMe(): Promise<{
-  user: { id: number; username: string; email: string; profile?: { nickname: string } }
-}> {
+export async function getMe(): Promise<{ user: AuthUser }> {
   return request('/auth/me/')
 }
 
@@ -92,7 +193,9 @@ export async function updatePassword(payload: {
 }
 
 export async function listGames(): Promise<Game[]> {
-  return request<Game[]>('/games/')
+  const games = await request<Game[]>('/games/')
+  // Jogo de Halloween ainda em construção não aparece para escolher.
+  return games.filter((game) => !isHalloweenWip(game.slug))
 }
 
 export async function createRoom(params: {

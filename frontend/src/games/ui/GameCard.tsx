@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Box, Typography } from '@mui/material'
 import type { SxProps, Theme } from '@mui/material'
+import { withAlpha } from '../../components/ui/surfaces'
 
 type GameCardProps = {
   title?: ReactNode
@@ -37,12 +38,12 @@ export default function GameCard({
         position: 'relative',
         overflow: 'hidden',
         borderRadius: 'var(--radius-xl)',
-        border: `1px solid ${highlight && accent ? accent : 'rgba(42, 42, 58, 0.9)'}`,
+        border: `1px solid ${highlight && accent ? accent : 'rgba(72, 48, 108, 0.75)'}`,
         background:
-          'linear-gradient(160deg, rgba(26, 26, 36, 0.92) 0%, rgba(10, 10, 15, 0.94) 100%)',
+          'linear-gradient(160deg, rgba(31, 18, 54, 0.88) 0%, rgba(12, 7, 22, 0.92) 100%)',
         backdropFilter: 'blur(10px)',
         boxShadow: highlight && accent
-          ? `0 18px 44px rgba(0,0,0,0.45), 0 0 30px ${accent}33`
+          ? `0 18px 44px rgba(0,0,0,0.45), 0 0 30px ${withAlpha(accent, 0.2)}`
           : '0 18px 44px rgba(0,0,0,0.42)',
         p: { xs: 2.25, md: 3 },
         transition: 'border-color 250ms ease, box-shadow 250ms ease',
@@ -80,8 +81,8 @@ export default function GameCard({
               component="h3"
               sx={{
                 fontFamily: 'var(--font-display)',
-                fontSize: '1.05rem',
-                letterSpacing: '0.14em',
+                fontSize: '1.2rem',
+                letterSpacing: '0.07em',
                 color: accent ?? 'var(--text-secondary)',
               }}
             >

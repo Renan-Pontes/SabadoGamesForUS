@@ -1,4 +1,6 @@
 import { getAccent } from '../games/theme'
+import { getHalloweenMeta } from '../halloween/catalog'
+import type { HalloweenGameMeta } from '../halloween/engine/types'
 
 /**
  * Tudo que a interface precisa saber sobre um minigame além do que vem da API.
@@ -354,7 +356,20 @@ const FALLBACK: GameMeta = {
   howTo: ['As regras deste jogo ainda não foram cadastradas.'],
 }
 
+/** Os jogos de Halloween guardam as regras no próprio meta; aqui viram GameMeta. */
+function fromHalloween(meta: HalloweenGameMeta): GameMeta {
+  return {
+    icon: meta.icon,
+    pitch: meta.pitch,
+    howTo: meta.howTo,
+    duration: meta.duration,
+    vibe: meta.vibe,
+  }
+}
+
 export function getGameMeta(slug: string): GameMeta {
+  const halloween = getHalloweenMeta(slug)
+  if (halloween) return fromHalloween(halloween)
   return CATALOG[slug] ?? FALLBACK
 }
 

@@ -23,15 +23,19 @@ type PlayerRailProps = {
 /**
  * Fileira horizontal de avatares grandes — desenhada para a TV, onde a
  * pessoa está a três metros de distância e precisa bater o olho e entender.
+ * Com mesa cheia (mais de 10) os avatares encolhem um pouco para caber em
+ * duas fileiras.
  */
 export default function PlayerRail({ players, accent = 'var(--accent-gold)', describe }: PlayerRailProps) {
+  const crowded = players.length > 10
+
   return (
     <Box
       sx={{
         display: 'flex',
         flexWrap: 'wrap',
         justifyContent: 'center',
-        gap: { xs: 1.5, md: 3 },
+        gap: crowded ? { xs: 1.25, md: 2 } : { xs: 1.5, md: 3 },
       }}
     >
       {players.map((player, index) => {
@@ -48,7 +52,7 @@ export default function PlayerRail({ players, accent = 'var(--accent-gold)', des
               flexDirection: 'column',
               alignItems: 'center',
               gap: 0.6,
-              minWidth: 92,
+              minWidth: crowded ? 80 : 92,
               opacity: info.eliminated ? 0.32 : 1,
               filter: info.eliminated ? 'grayscale(1)' : 'none',
               transition: 'all 320ms ease',
@@ -57,15 +61,16 @@ export default function PlayerRail({ players, accent = 'var(--accent-gold)', des
             <Box
               sx={{
                 position: 'relative',
-                width: { xs: 56, md: 72 },
-                height: { xs: 56, md: 72 },
+                width: crowded ? { xs: 50, md: 62 } : { xs: 56, md: 72 },
+                height: crowded ? { xs: 50, md: 62 } : { xs: 56, md: 72 },
                 borderRadius: '50%',
                 display: 'grid',
                 placeItems: 'center',
-                fontFamily: 'var(--font-display)',
-                fontSize: { xs: '1.2rem', md: '1.5rem' },
-                color: '#0a0a0f',
-                background: `linear-gradient(140deg, ${color}, ${color}99)`,
+                fontFamily: 'var(--font-numeric)',
+                fontSize: crowded ? { xs: '1.25rem', md: '1.5rem' } : { xs: '1.35rem', md: '1.7rem' },
+                letterSpacing: '0.04em',
+                color: '#0a0612',
+                background: `radial-gradient(circle at 32% 28%, ${color}, ${color}99 72%)`,
                 border: info.highlight ? `3px solid ${accent}` : '3px solid transparent',
                 boxShadow: info.highlight ? `0 0 28px ${accent}` : '0 8px 20px rgba(0,0,0,0.45)',
                 transition: 'all 320ms ease',
@@ -81,8 +86,8 @@ export default function PlayerRail({ players, accent = 'var(--accent-gold)', des
                     width: 26,
                     height: 26,
                     borderRadius: '50%',
-                    background: 'var(--bg-void)',
-                    border: '1px solid rgba(255,255,255,0.18)',
+                    background: 'var(--bg-card)',
+                    border: '1px solid rgba(176, 107, 255, 0.4)',
                     display: 'grid',
                     placeItems: 'center',
                     fontSize: '0.85rem',
@@ -96,10 +101,10 @@ export default function PlayerRail({ players, accent = 'var(--accent-gold)', des
 
             <Typography
               sx={{
-                fontSize: { xs: '0.78rem', md: '0.88rem' },
+                fontSize: { xs: '0.8rem', md: '0.95rem' },
                 fontWeight: 700,
                 color: 'var(--text-primary)',
-                maxWidth: 110,
+                maxWidth: crowded ? 96 : 110,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -111,8 +116,8 @@ export default function PlayerRail({ players, accent = 'var(--accent-gold)', des
             {info.value !== undefined && info.value !== null && (
               <Typography
                 sx={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: { xs: '1.3rem', md: '1.7rem' },
+                  fontFamily: 'var(--font-numeric)',
+                  fontSize: { xs: '1.45rem', md: '1.9rem' },
                   lineHeight: 1,
                   color: info.highlight ? accent : 'var(--text-primary)',
                   textShadow: info.highlight ? `0 0 18px ${accent}` : 'none',

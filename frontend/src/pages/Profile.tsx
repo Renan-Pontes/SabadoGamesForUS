@@ -5,8 +5,9 @@ import SaveRoundedIcon from '@mui/icons-material/SaveRounded'
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded'
 import LockRoundedIcon from '@mui/icons-material/LockRounded'
 import { useAuth } from '../context/useAuth'
-import { updatePassword, updateProfile } from '../lib/api'
-import { AppShell, LoadingScreen, Panel } from '../components/ui'
+import { useRequireAuth } from '../context/useRequireAuth'
+import { friendlyError, updatePassword, updateProfile } from '../lib/api'
+import { AppShell, Cobweb, LoadingScreen, MIST, Panel } from '../components/ui'
 import { avatarColor } from '../games/utils'
 
 const NICKNAME_MAX = 20
@@ -14,6 +15,7 @@ const NICKNAME_MAX = 20
 export default function Profile() {
   const navigate = useNavigate()
   const { isAuthenticated, isLoading, user, logout, refreshUser } = useAuth()
+  useRequireAuth()
 
   const [nickname, setNickname] = useState('')
   const [saving, setSaving] = useState(false)
@@ -26,10 +28,6 @@ export default function Profile() {
   const [passwordSaving, setPasswordSaving] = useState(false)
   const [passwordSuccess, setPasswordSuccess] = useState(false)
   const [passwordError, setPasswordError] = useState('')
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) navigate('/')
-  }, [isAuthenticated, isLoading, navigate])
 
   useEffect(() => {
     if (user?.nickname) setNickname(user.nickname)
@@ -50,7 +48,7 @@ export default function Profile() {
       setSuccess(true)
       window.setTimeout(() => setSuccess(false), 3000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Não foi possível salvar.')
+      setError(friendlyError(err, 'Não foi possível salvar.'))
     } finally {
       setSaving(false)
     }
@@ -80,13 +78,25 @@ export default function Profile() {
       setPasswordConfirm('')
       window.setTimeout(() => setPasswordSuccess(false), 3000)
     } catch (err) {
-      setPasswordError(err instanceof Error ? err.message : 'Não foi possível atualizar a senha.')
+      setPasswordError(friendlyError(err, 'Não foi possível atualizar a senha.'))
     } finally {
       setPasswordSaving(false)
     }
   }
 
-  if (isLoading) return <LoadingScreen label="CARREGANDO PERFIL" accent="var(--neon-purple)" />
+  function handleLogout() {
+    // Convidado não tem senha: sair é perder a conta (e o lugar na mesa).
+    if (
+      user?.isGuest &&
+      !window.confirm('Sair mesmo? Você entrou só com apelido — essa conta não tem como voltar.')
+    ) {
+      return
+    }
+    logout()
+    navigate('/', { replace: true })
+  }
+
+  if (isLoading || !isAuthenticated) return <LoadingScreen label="CARREGANDO PERFIL" accent="var(--neon-purple)" />
 
   const color = avatarColor(user?.nickname)
   const nicknameChanged = nickname.trim() !== (user?.nickname ?? '')
@@ -96,7 +106,7 @@ export default function Profile() {
       title="MEU PERFIL"
       subtitle="É este nome que aparece na mesa."
       accent="var(--neon-purple)"
-      backdropTint="rgba(168, 85, 247, 0.16)"
+      backdropTint={MIST.witch}
       onBack={() => navigate('/lobby')}
       maxWidth={640}
     >
@@ -105,30 +115,33 @@ export default function Profile() {
         <Box
           sx={{
             height: 96,
-            background: `linear-gradient(120deg, ${color}55, var(--neon-purple)44, var(--accent-red)33)`,
+            background: `linear-gradient(120deg, ${color}55, rgba(139, 63, 217, 0.45), rgba(255, 123, 28, 0.3))`,
             position: 'relative',
+            overflow: 'hidden',
           }}
         >
+          <Cobweb corner="top-left" size={96} opacity={0.3} color="#0a0612" />
+          <Cobweb corner="top-right" size={96} opacity={0.3} color="#0a0612" spider />
           <Box
             aria-hidden
             sx={{
               position: 'absolute',
               inset: 0,
-              fontFamily: 'var(--font-display)',
-              fontSize: '5rem',
-              color: 'rgba(0,0,0,0.16)',
+              fontSize: '2.6rem',
+              opacity: 0.35,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-around',
+              justifyContent: 'center',
+              gap: 3,
               overflow: 'hidden',
               lineHeight: 1,
             }}
           >
-            ♠♥♦♣
+            🦇 🎃 🦇
           </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: -6, px: 3, pb: 3 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: -6, px: 3, pb: 3, position: 'relative' }}>
           <Box
             sx={{
               width: 100,
@@ -136,10 +149,10 @@ export default function Profile() {
               borderRadius: '50%',
               display: 'grid',
               placeItems: 'center',
-              fontFamily: 'var(--font-display)',
-              fontSize: '2.6rem',
-              color: '#0a0a0f',
-              background: `linear-gradient(140deg, ${color}, ${color}aa)`,
+              fontFamily: 'var(--font-numeric)',
+              fontSize: '3rem',
+              color: '#0a0612',
+              background: `radial-gradient(circle at 32% 28%, ${color}, ${color}b3 70%)`,
               border: '4px solid var(--bg-card)',
               boxShadow: `0 12px 34px rgba(0,0,0,0.5), 0 0 30px ${color}44`,
             }}
@@ -151,24 +164,26 @@ export default function Profile() {
             sx={{
               mt: 1.5,
               fontFamily: 'var(--font-display)',
-              fontSize: '1.9rem',
-              letterSpacing: '0.05em',
+              fontSize: '2rem',
+              letterSpacing: '0.04em',
               color: 'var(--text-primary)',
+              textAlign: 'center',
+              overflowWrap: 'break-word',
             }}
           >
             {user?.nickname || 'Jogador'}
           </Typography>
-          <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>
-            {user?.email}
+          <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.88rem', fontFamily: 'var(--font-mono)' }}>
+            {user?.isGuest ? 'convidado da Noite do Terror 🎃' : user?.email}
           </Typography>
         </Box>
       </Panel>
 
       {/* Apelido */}
-      <Panel title="APELIDO" accent="var(--accent-gold)" sx={{ mt: 2.5 }} index={1}>
+      <Panel title="APELIDO" accent="var(--pumpkin)" sx={{ mt: 2.5 }} index={1}>
         {success && (
           <Alert severity="success" sx={{ mb: 2 }}>
-            Perfil atualizado!
+            Apelido atualizado! A mesa já vai te chamar assim.
           </Alert>
         )}
         {error && (
@@ -208,67 +223,77 @@ export default function Profile() {
         </Button>
       </Panel>
 
-      {/* Senha */}
-      <Panel title="SENHA" accent="var(--neon-cyan)" sx={{ mt: 2.5 }} index={2}>
-        {passwordSuccess && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            Senha atualizada!
-          </Alert>
-        )}
-        {passwordError && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {passwordError}
-          </Alert>
-        )}
+      {user?.isGuest ? (
+        /* Convidado não tem senha: no lugar do formulário, o aviso que importa */
+        <Panel title="CONTA DE CONVIDADO" icon="🕯️" accent="var(--neon-cyan)" sx={{ mt: 2.5 }} index={2}>
+          <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+            Você entrou só com o apelido, sem e-mail nem senha. A conta vive neste aparelho: se sair ou
+            limpar o navegador, ela some feito fantasma — e na próxima vez é só digitar o apelido de novo.
+          </Typography>
+        </Panel>
+      ) : (
+        /* Senha */
+        <Panel title="SENHA" accent="var(--neon-cyan)" sx={{ mt: 2.5 }} index={2}>
+          {passwordSuccess && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              Senha atualizada!
+            </Alert>
+          )}
+          {passwordError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {passwordError}
+            </Alert>
+          )}
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <TextField
-            type="password"
-            label="Senha atual"
-            autoComplete="current-password"
-            value={passwordCurrent}
-            onChange={(event) => setPasswordCurrent(event.target.value)}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LockRoundedIcon sx={{ color: 'var(--text-muted)', fontSize: '1.1rem' }} />
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
-          <TextField
-            type="password"
-            label="Nova senha"
-            autoComplete="new-password"
-            value={passwordNext}
-            onChange={(event) => setPasswordNext(event.target.value)}
-          />
-          <TextField
-            type="password"
-            label="Confirmar nova senha"
-            autoComplete="new-password"
-            value={passwordConfirm}
-            onChange={(event) => setPasswordConfirm(event.target.value)}
-            error={Boolean(passwordConfirm) && passwordConfirm !== passwordNext}
-            helperText={
-              passwordConfirm && passwordConfirm !== passwordNext ? 'As senhas não conferem.' : ' '
-            }
-          />
-        </Box>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              type="password"
+              label="Senha atual"
+              autoComplete="current-password"
+              value={passwordCurrent}
+              onChange={(event) => setPasswordCurrent(event.target.value)}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockRoundedIcon sx={{ color: 'var(--text-muted)', fontSize: '1.1rem' }} />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+            <TextField
+              type="password"
+              label="Nova senha"
+              autoComplete="new-password"
+              value={passwordNext}
+              onChange={(event) => setPasswordNext(event.target.value)}
+            />
+            <TextField
+              type="password"
+              label="Confirmar nova senha"
+              autoComplete="new-password"
+              value={passwordConfirm}
+              onChange={(event) => setPasswordConfirm(event.target.value)}
+              error={Boolean(passwordConfirm) && passwordConfirm !== passwordNext}
+              helperText={
+                passwordConfirm && passwordConfirm !== passwordNext ? 'As senhas não conferem.' : ' '
+              }
+            />
+          </Box>
 
-        <Button
-          fullWidth
-          variant="contained"
-          color="secondary"
-          onClick={handlePasswordSave}
-          disabled={passwordSaving}
-          sx={{ mt: 1, py: 1.5 }}
-        >
-          {passwordSaving ? 'Atualizando...' : 'Atualizar senha'}
-        </Button>
-      </Panel>
+          <Button
+            fullWidth
+            variant="contained"
+            color="secondary"
+            onClick={handlePasswordSave}
+            disabled={passwordSaving}
+            sx={{ mt: 1, py: 1.5 }}
+          >
+            {passwordSaving ? 'Atualizando...' : 'Atualizar senha'}
+          </Button>
+        </Panel>
+      )}
 
       {/* Conta */}
       <Panel title="CONTA" accent="var(--accent-red)" sx={{ mt: 2.5 }} index={3}>
@@ -276,13 +301,10 @@ export default function Profile() {
           fullWidth
           variant="outlined"
           color="error"
-          onClick={() => {
-            logout()
-            navigate('/')
-          }}
+          onClick={handleLogout}
           sx={{ borderWidth: 2 }}
         >
-          Sair da conta
+          {user?.isGuest ? 'Sair (e virar fantasma)' : 'Sair da conta'}
         </Button>
       </Panel>
     </AppShell>

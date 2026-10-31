@@ -39,6 +39,13 @@ class Room(models.Model):
     tv_last_seen_at = models.DateTimeField(null=True, blank=True)
     tv_device_id = models.CharField(max_length=120, blank=True)
     state = models.JSONField(default=dict, blank=True)
+    # Sobe a cada mudança que as telas precisam ver (ver deposito.bump_version).
+    # O sync compara com a versão que o aparelho já tem e, se bate, responde
+    # "nada mudou" sem montar estado nenhum.
+    version = models.PositiveIntegerField(default=0)
+    # Pedidos de efeito para a TV (susto, música). Campo próprio para não
+    # brigar com o estado do jogo, que só o juiz escreve.
+    fx = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["-created_at"]

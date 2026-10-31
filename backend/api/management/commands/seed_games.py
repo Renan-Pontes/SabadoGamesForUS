@@ -8,6 +8,120 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         games = [
+            # --- Noite do Terror (Halloween 2026) ---------------------------
+            # Os mesmos slugs de api/halloween.py e frontend/src/halloween/slugs.ts.
+            # Nome sem emoji: o ícone de cada jogo vem do frontend.
+            {
+                "slug": "espiao-assombrado",
+                "name": "Espião Assombrado",
+                "description": (
+                    "Todo mundo sabe o lugar assombrado, menos o espião. "
+                    "Perguntem, desconfiem e acusem antes que ele descubra onde está."
+                ),
+                "min_players": 3,
+                "max_players": 15,
+                "is_active": True,
+            },
+            {
+                "slug": "cidade-dorme",
+                "name": "Cidade Dorme",
+                "description": (
+                    "Assassinos, detetive e anjo à solta, e ninguém fecha o olho: "
+                    "de noite todos mexem no celular, de dia a cidade vota em quem sai."
+                ),
+                "min_players": 5,
+                "max_players": 15,
+                "is_active": True,
+            },
+            {
+                "slug": "retrato-assombrado",
+                "name": "Retrato Assombrado",
+                "description": (
+                    "Todos desenham a mesma palavra ao mesmo tempo. "
+                    "O impostor só sabe a categoria e precisa disfarçar."
+                ),
+                "min_players": 3,
+                "max_players": 15,
+                "is_active": True,
+            },
+            {
+                "slug": "mentira-macabra",
+                "name": "Mentira Macabra",
+                "description": (
+                    "Um fato bizarro e verdadeiro com uma lacuna. Invente uma mentira "
+                    "que engane a mesa e ache a verdade no meio das mentiras."
+                ),
+                "min_players": 3,
+                "max_players": 15,
+                "is_active": True,
+            },
+            {
+                "slug": "resposta-do-alem",
+                "name": "Resposta do Além",
+                "description": (
+                    "Complete a frase com a resposta mais engraçada. "
+                    "Depois, vote na melhor sem saber de quem é."
+                ),
+                "min_players": 3,
+                "max_players": 15,
+                "is_active": True,
+            },
+            {
+                "slug": "quem-morre-primeiro",
+                "name": "Quem Morre Primeiro?",
+                "description": (
+                    "Quem da galera morreria primeiro num filme de terror? "
+                    "Vote em alguém e ganhe ponto se votar com a maioria."
+                ),
+                "min_players": 3,
+                "max_players": 15,
+                "is_active": True,
+            },
+            {
+                "slug": "abobora-bomba",
+                "name": "Abóbora-Bomba",
+                "description": (
+                    "Fale uma palavra do tema e passe a abóbora. "
+                    "Seu pavio só queima com ela na mão: acabou, BUM!"
+                ),
+                "min_players": 2,
+                "max_players": 15,
+                "is_active": True,
+            },
+            {
+                "slug": "portas-do-alem",
+                "name": "Portas do Além",
+                "description": (
+                    "Escolha uma porta em segredo. Quem cair na porta do monstro "
+                    "vira fantasma e decide onde ele ataca na próxima."
+                ),
+                "min_players": 2,
+                "max_players": 15,
+                "is_active": True,
+            },
+            {
+                "slug": "quiz-do-terror",
+                "name": "Quiz do Terror",
+                "description": (
+                    "Perguntas de terror na TV, resposta no celular. "
+                    "Acertar rápido vale mais."
+                ),
+                "min_players": 1,
+                "max_players": 15,
+                "is_active": True,
+            },
+            {
+                "slug": "corrida-de-vassouras",
+                "name": "Corrida de Vassouras",
+                "description": (
+                    "Cinco bruxas apostam corrida na TV. Aposte em quem lidera, "
+                    "amaldiçoe uma rival e junte mais doces."
+                ),
+                "min_players": 2,
+                "max_players": 15,
+                "is_active": True,
+            },
+            # --- Catálogo de sempre -----------------------------------------
             {
                 "slug": "read-my-mind",
                 "name": "Read My Mind",

@@ -1,11 +1,13 @@
 from datetime import timedelta
 import secrets
 
+from django.db.models import Prefetch
 from django.utils import timezone
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from .halloween import is_halloween
 from .models import Game, Player, Room
 from . import (
     artista,
@@ -14,6 +16,7 @@ from . import (
     camaleao,
     camelos,
     caveira,
+    deposito,
     desenha,
     infiltrado,
     lobisomem,
@@ -70,6 +73,7 @@ from .serializers import (
     SintoniaGuessSerializer,
     ChangeGameSerializer,
     GameSerializer,
+    GuestSerializer,
     LoginSerializer,
     RegisterSerializer,
     HeartbeatSerializer,
@@ -162,8 +166,19 @@ def _set_room_state(room: Room, state: dict) -> None:
     room.save(update_fields=["state", "last_activity_at"])
 
 
+def _rooms_with_players():
+    """
+    Sala + jogo + jogadores já com usuário e perfil: tudo o que o
+    RoomDetailSerializer lê, em duas consultas — antes eram mais duas por
+    jogador, e com 15 pessoas cada resposta custava 32.
+    """
+    return Room.objects.select_related("game").prefetch_related(
+        Prefetch("players", queryset=Player.objects.select_related("user__profile"))
+    )
+
+
 def _fresh_room(room: Room) -> Room:
-    return Room.objects.select_related("game").prefetch_related("players").get(pk=room.pk)
+    return _rooms_with_players().get(pk=room.pk)
 
 
 def _all_players(room: Room):
@@ -1308,6 +1323,9 @@ def _tick_new_games(room: Room):
     """Relógio dos jogos por tempo. Idempotente: pode ser chamado à vontade."""
     slug = room.game.slug
     state = _room_state(room)
+    if is_halloween(slug):
+        # Nos jogos de Halloween o relógio é da TV-juiz; aqui não há motor.
+        return state
     players = _all_players(room)
 
     if slug == SINTONIA_SLUG:
@@ -1496,6 +1514,41 @@ def _apply_play(room: Room, player, card: int) -> dict:
     return state
 
 
+def _viewer_lookup(request):
+    """
+    Filtro para achar, entre os jogadores da sala, quem chamou o sync — sem a
+    consulta extra da autenticação do DRF: o token vira um JOIN na própria
+    busca do jogador. Token inválido simplesmente não acha ninguém.
+    """
+    # A ação roda sem autenticadores; request.user só vem preenchido quando
+    # o teste usa force_authenticate.
+    user = request.user
+    if user.is_authenticated:
+        return {"user_id": user.id}
+    parts = request.META.get("HTTP_AUTHORIZATION", "").split()
+    if len(parts) == 2 and parts[0].lower() == "token":
+        return {"user__auth_token__key": parts[1], "user__is_active": True}
+    return None
+
+
+def _parse_version(value):
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return None
+    return number if number >= 0 else None
+
+
+def _flag(value) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _no_store(response):
+    # Poll: cada resposta vale só para aquele instante.
+    response["Cache-Control"] = "no-store"
+    return response
+
+
 class GameViewSet(viewsets.ModelViewSet):
     queryset = Game.objects.filter(is_active=True)
     serializer_class = GameSerializer
@@ -1505,7 +1558,11 @@ class GameViewSet(viewsets.ModelViewSet):
 class AuthViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
 
-    @action(detail=False, methods=["post"])
+    # Cadastro, login e convidado rodam sem autenticação do DRF: não usam o
+    # usuário da requisição, e um token velho guardado no navegador (o banco
+    # foi migrado em out/2026) daria 401 antes de a pessoa conseguir entrar.
+
+    @action(detail=False, methods=["post"], authentication_classes=[])
     def register(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -1515,7 +1572,18 @@ class AuthViewSet(viewsets.ViewSet):
             status=status.HTTP_201_CREATED,
         )
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post"], authentication_classes=[])
+    def guest(self, request):
+        """Entrada rápida só com apelido: POST /api/auth/guest/ {nickname}."""
+        serializer = GuestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = serializer.save()
+        return Response(
+            {"token": result["token"].key, "user": UserSerializer(result["user"]).data},
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(detail=False, methods=["post"], authentication_classes=[])
     def login(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -1573,6 +1641,10 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
             "souma_tick",
             "manada_tick",
             "quiz_tick",
+            # Depósito dos jogos de Halloween: a TV é anônima.
+            "sync",
+            "sync_room",
+            "fx",
         }
         if self.action in open_actions:
             return [permissions.AllowAny()]
@@ -1643,6 +1715,16 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
         }:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
+
+    def get_queryset(self):
+        if self.action in {"retrieve", "players"}:
+            # O GET antigo mostra usuário e perfil de cada jogador (o lobby com
+            # 15 celulares fazendo poll a cada 3 s sentia as consultas a mais).
+            return _rooms_with_players()
+        if self.action in {"join", "heartbeat", "ready", "state", "tv_ping", "end", "tutorial"}:
+            # Ações que não devolvem a lista de jogadores: sem o prefetch.
+            return Room.objects.select_related("game")
+        return super().get_queryset()
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -1771,13 +1853,15 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
     def retrieve(self, request, *args, **kwargs):
         room = self.get_object()
         if request.user.is_authenticated:
-            try:
-                player = room.players.get(user=request.user)
-            except Player.DoesNotExist:
-                player = None
+            # O jogador sai da lista já carregada (sem consulta) e a presença
+            # grava no máximo a cada 15 s; mexer na mesma instância deixa o
+            # "online" desta resposta certo.
+            player = next((p for p in room.players.all() if p.user_id == request.user.id), None)
             if player:
-                player.last_seen_at = timezone.now()
-                player.save(update_fields=["last_seen_at"])
+                now = timezone.now()
+                wrote, _ = deposito.mark_player_seen(player.id, room.id, player.last_seen_at, now)
+                if wrote:
+                    player.last_seen_at = now
         serializer = RoomDetailSerializer(room, context=self.get_serializer_context())
         return Response(serializer.data)
 
@@ -1810,6 +1894,16 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
     @action(detail=True, methods=["post"])
     def start(self, request, code=None):
         room = self.get_object()
+        if is_halloween(room.game.slug):
+            # A TV é o juiz: o backend só limpa a mesa e abre a partida. Os
+            # jogadores são zerados antes de a versão subir (ver deposito.py).
+            # Sem cobrar "pronto": quem joga sai de quem está online no
+            # "Começar" da tela do próprio jogo — um celular dormindo não
+            # pode travar a festa.
+            room.players.update(state={})
+            deposito.bump_version(room, state={}, status=Room.STATUS_LIVE)
+            room = _fresh_room(room)
+            return Response(RoomDetailSerializer(room, context=self.get_serializer_context()).data)
         if room.players.exists() and room.players.filter(ready=False).exists():
             return Response(
                 {"detail": "All players must be ready before starting."},
@@ -1849,16 +1943,14 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
         setup_error = _initialize_new_games(room, request)
         if setup_error:
             return Response({"detail": setup_error}, status=status.HTTP_400_BAD_REQUEST)
-        room.status = Room.STATUS_LIVE
-        room.save(update_fields=["status"])
+        deposito.bump_version(room, status=Room.STATUS_LIVE)
         room = _fresh_room(room)
         return Response(RoomDetailSerializer(room, context=self.get_serializer_context()).data)
 
     @action(detail=True, methods=["post"])
     def end(self, request, code=None):
         room = self.get_object()
-        room.status = Room.STATUS_ENDED
-        room.save(update_fields=["status"])
+        deposito.bump_version(room, status=Room.STATUS_ENDED)
         return Response({"status": room.status})
 
     @action(detail=True, methods=["post"])
@@ -1871,7 +1963,11 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
         room.status = Room.STATUS_LOBBY
         room.state = {}
         room.save(update_fields=["game", "status", "state"])
+        # update() não passa pelo save(): a versão sobe à mão, depois dos dados.
         room.players.update(ready=True, state={})
+        deposito.bump_version(room)
+        # Relê a sala: a lista de jogadores carregada antes do update está velha.
+        room = _fresh_room(room)
         return Response(RoomDetailSerializer(room, context=self.get_serializer_context()).data)
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
@@ -1886,7 +1982,9 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
         room.status = Room.STATUS_LOBBY
         room.state = {}
         room.save(update_fields=["status", "state"])
+        # update() não passa pelo save(): a versão sobe à mão, depois dos dados.
         room.players.update(ready=True, state={})
+        deposito.bump_version(room)
         room = _fresh_room(room)
         return Response(RoomDetailSerializer(room, context=self.get_serializer_context()).data)
 
@@ -1935,21 +2033,101 @@ class RoomViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, viewsets.G
         except (TypeError, ValueError):
             step = 0
         state["tutorial"] = {"active": active, "step": step} if active else None
-        _set_room_state(room, state)
+        deposito.bump_version(room, state=state)
         return Response({"tutorial": state["tutorial"]})
 
     @action(detail=True, methods=["post"])
     def tv_ping(self, request, code=None):
         room = self.get_object()
-        device_id = (request.data.get("device_id") or "").strip()
+        data = request.data if isinstance(request.data, dict) else {}
+        device_id = str(data.get("device_id") or "").strip()[:120]
+        # Grava no máximo a cada 10 s (ou na troca de aparelho); tv_connected
+        # vale por 20 s, então continua certo.
         now = timezone.now()
-        room.tv_last_seen_at = now
-        update_fields = ["tv_last_seen_at"]
-        if device_id:
-            room.tv_device_id = device_id
-            update_fields.append("tv_device_id")
-        room.save(update_fields=update_fields)
+        wrote, _ = deposito.mark_tv_seen(
+            room.id, room.tv_last_seen_at, now, device_id=device_id, current_device=room.tv_device_id
+        )
+        if wrote:
+            room.tv_last_seen_at = now
         return Response({"ok": True, "tv_connected": True, "tv_last_seen_at": room.tv_last_seen_at})
+
+    # ------------------------------------------------------------------
+    # Depósito dos jogos de Halloween: a TV é o juiz (ver deposito.py).
+    # As três ações rodam sem autenticação do DRF: o token, quando vem, só
+    # serve para achar o jogador (na mesma consulta), e um token velho no
+    # navegador não derruba a TV com 401.
+    # ------------------------------------------------------------------
+
+    @action(detail=True, methods=["get"], authentication_classes=[])
+    def sync(self, request, code=None):
+        """
+        GET /rooms/{code}/sync/?v=&mine=1&tv=1 — o poll de todas as telas.
+        Com v igual à versão atual: {same: true, v, t}. Senão, tudo.
+        """
+        params = request.query_params
+        payload = deposito.sync_payload(
+            code,
+            viewer=_viewer_lookup(request),
+            known_version=_parse_version(params.get("v")),
+            mine=_flag(params.get("mine")),
+            tv=_flag(params.get("tv")),
+        )
+        if payload is None:
+            return Response({"detail": "Sala não encontrada."}, status=status.HTTP_404_NOT_FOUND)
+        return _no_store(Response(payload))
+
+    @action(detail=True, methods=["post"], authentication_classes=[])
+    def sync_room(self, request, code=None):
+        """
+        POST /rooms/{code}/sync_room/ {state, status?, slug?} — o juiz grava o
+        estado inteiro da sala. Devolve {v, t}.
+        """
+        data = request.data if isinstance(request.data, dict) else {}
+        state = data.get("state")
+        if not isinstance(state, dict):
+            return Response(
+                {"detail": "Mande o estado da sala como objeto em \"state\"."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        new_status = data.get("status") or None
+        if new_status is not None and (
+            not isinstance(new_status, str) or new_status not in deposito.ROOM_STATUSES
+        ):
+            return Response(
+                {"detail": "status precisa ser live, ended ou lobby."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        slug = data.get("slug")
+        version, problem = deposito.write_room_state(
+            code, state, status=new_status, slug=slug if isinstance(slug, str) else None
+        )
+        if problem == deposito.NOT_FOUND:
+            return Response({"detail": "Sala não encontrada."}, status=status.HTTP_404_NOT_FOUND)
+        if problem == deposito.WRONG_GAME:
+            # Juiz atrasado: o host trocou de jogo (ou a sala nem é de Halloween).
+            return Response(
+                {"detail": "Esta sala não está mais neste jogo de Halloween."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response({"v": version, "t": deposito.now_ms()})
+
+    @action(detail=True, methods=["get", "post"], authentication_classes=[])
+    def fx(self, request, code=None):
+        """
+        POST /rooms/{code}/fx/ {scare?, music?, name?} — pedido de efeito para
+        a TV; devolve {fx, v, t}. GET devolve {fx, t} (consulta levíssima).
+        """
+        if request.method == "GET":
+            fx = deposito.read_fx(code)
+            if fx is None:
+                return Response({"detail": "Sala não encontrada."}, status=status.HTTP_404_NOT_FOUND)
+            return _no_store(Response({"fx": fx, "t": deposito.now_ms()}))
+        data = request.data if isinstance(request.data, dict) else {}
+        result = deposito.push_fx(code, data)
+        if result is None:
+            return Response({"detail": "Sala não encontrada."}, status=status.HTTP_404_NOT_FOUND)
+        fx, version = result
+        return Response({"fx": fx, "v": version, "t": fx["at"]})
 
     @action(detail=True, methods=["post"])
     def read_my_mind_mode(self, request, code=None):

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Box, IconButton, Tooltip, Typography } from '@mui/material'
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded'
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
+import { withAlpha } from './surfaces'
 
 type RoomCodeProps = {
   code: string
@@ -13,9 +14,10 @@ type RoomCodeProps = {
 }
 
 const SIZES = {
-  sm: { value: '1.1rem', label: '0.55rem', px: 1.5, py: 0.75 },
-  md: { value: '1.9rem', label: '0.62rem', px: 2.5, py: 1.25 },
-  hero: { value: 'clamp(4rem, 16vw, 9rem)', label: '1rem', px: 5, py: 3 },
+  sm: { value: '1.45rem', label: '0.55rem', px: 1.5, py: 0.6 },
+  md: { value: '2.3rem', label: '0.62rem', px: 2.5, py: 1 },
+  // Pela altura também: TV de navegador costuma ter viewport baixinho.
+  hero: { value: 'clamp(3.5rem, min(13vw, 17vh), 10rem)', label: 'clamp(0.85rem, 1.7vh, 1.25rem)', px: 4, py: 2 },
 } as const
 
 /** O código da sala, com botão de copiar. */
@@ -49,8 +51,8 @@ export default function RoomCode({
         py: dims.py,
         borderRadius: 'var(--radius-xl)',
         border: `1px solid ${accent}`,
-        background: `linear-gradient(150deg, ${accent}1f, rgba(10,10,15,0.7))`,
-        boxShadow: `0 0 34px ${accent}26`,
+        background: `linear-gradient(150deg, ${withAlpha(accent, 0.16)}, rgba(12, 7, 22, 0.78))`,
+        boxShadow: `0 0 34px ${withAlpha(accent, 0.18)}`,
       }}
     >
       <Box>
@@ -67,13 +69,14 @@ export default function RoomCode({
         </Typography>
         <Typography
           sx={{
-            fontFamily: 'var(--font-mono)',
-            fontWeight: 700,
+            fontFamily: 'var(--font-numeric)',
+            fontWeight: 400,
             fontSize: dims.value,
-            lineHeight: 1,
-            letterSpacing: size === 'hero' ? '0.16em' : '0.2em',
+            lineHeight: 0.95,
+            letterSpacing: size === 'hero' ? '0.14em' : '0.16em',
             color: accent,
-            textShadow: `0 0 30px ${accent}66`,
+            textShadow: `0 0 30px ${withAlpha(accent, 0.45)}`,
+            fontVariantNumeric: 'tabular-nums',
           }}
         >
           {code.toUpperCase()}

@@ -1,0 +1,418 @@
+/* ==========================================================================
+   Noite do Terror — kit visual (prefixo hw-)
+
+   Regra da casa: animação só em transform e opacity. A TV pode ser um
+   notebook modesto, então nada de filtro pesado animado em tela cheia.
+   Com "reduzir movimento" ligado, o index.css global já zera as animações.
+   ========================================================================== */
+
+/* ---------- Cenário (SpookyBackdrop) ---------- */
+
+.hw-backdrop {
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  contain: layout paint;
+}
+
+.hw-sky {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 115%, rgba(255, 122, 24, 0.1), transparent 70%),
+    radial-gradient(ellipse 70% 60% at 85% -10%, rgba(168, 85, 247, 0.12), transparent 65%);
+}
+
+.hw-moon {
+  position: absolute;
+  top: var(--hw-moon-top, 7vh);
+  right: var(--hw-moon-right, 8vw);
+  width: var(--hw-moon-size, 16vmin);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 34%, #fffdf2 0%, #fbefc4 45%, #e9d38f 78%, #c9ad63 100%);
+  box-shadow:
+    0 0 40px 10px rgba(254, 243, 199, 0.22),
+    0 0 120px 40px rgba(254, 243, 199, 0.1);
+  opacity: 0.92;
+}
+
+.hw-moon i {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(160, 130, 70, 0.28);
+}
+
+.hw-cloud {
+  position: absolute;
+  top: calc(var(--hw-moon-top, 7vh) + 3vmin);
+  right: -45vmin;
+  width: 42vmin;
+  height: 10vmin;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(36, 26, 56, 0.9), rgba(36, 26, 56, 0) 70%);
+  animation: hw-cloud-pass 75s linear infinite;
+  will-change: transform;
+}
+
+@keyframes hw-cloud-pass {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-170vw, 0, 0); }
+}
+
+.hw-fog {
+  position: absolute;
+  left: 0;
+  width: 200%;
+  height: var(--hw-fog-h, 38vh);
+  bottom: var(--hw-fog-bottom, -4vh);
+  background-image:
+    radial-gradient(ellipse 22% 55% at 25% 60%, rgba(220, 210, 255, var(--hw-fog-a, 0.1)), transparent 70%),
+    radial-gradient(ellipse 18% 45% at 70% 70%, rgba(200, 220, 255, var(--hw-fog-a, 0.1)), transparent 70%),
+    radial-gradient(ellipse 26% 40% at 50% 88%, rgba(230, 220, 255, var(--hw-fog-a, 0.1)), transparent 70%);
+  background-size: 50% 100%;
+  background-repeat: repeat-x;
+  animation: hw-fog-drift var(--hw-fog-speed, 80s) linear infinite;
+  will-change: transform;
+}
+
+.hw-fog--2 {
+  --hw-fog-h: 28vh;
+  --hw-fog-bottom: -8vh;
+  --hw-fog-speed: 55s;
+  animation-direction: reverse;
+  opacity: 0.8;
+}
+
+@keyframes hw-fog-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
+.hw-bat {
+  position: absolute;
+  left: 0;
+  top: var(--hw-bat-y, 20vh);
+  width: var(--hw-bat-size, 46px);
+  opacity: 0;
+  animation: hw-bat-fly var(--hw-bat-dur, 22s) linear var(--hw-bat-delay, 0s) infinite;
+  will-change: transform, opacity;
+}
+
+.hw-bat--rtl {
+  animation-name: hw-bat-fly-rtl;
+}
+
+.hw-bat svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  transform-origin: 50% 40%;
+  animation: hw-bat-flap 0.22s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 3px rgba(255, 122, 24, 0.45));
+}
+
+@keyframes hw-bat-flap {
+  from { transform: scaleY(1); }
+  to   { transform: scaleY(0.35); }
+}
+
+/* O morcego atravessa em ~30% do ciclo e some o resto: aparece de vez em quando. */
+@keyframes hw-bat-fly {
+  0%        { transform: translate3d(-12vw, 0, 0); opacity: 0; }
+  2%        { opacity: 1; }
+  10%       { transform: translate3d(25vw, -6vh, 0); }
+  20%       { transform: translate3d(62vw, 5vh, 0); }
+  29%       { opacity: 1; }
+  30%       { transform: translate3d(112vw, -3vh, 0); opacity: 0; }
+  100%      { transform: translate3d(112vw, -3vh, 0); opacity: 0; }
+}
+
+@keyframes hw-bat-fly-rtl {
+  0%        { transform: translate3d(112vw, 0, 0) scaleX(-1); opacity: 0; }
+  2%        { opacity: 1; }
+  10%       { transform: translate3d(70vw, 5vh, 0) scaleX(-1); }
+  20%       { transform: translate3d(35vw, -5vh, 0) scaleX(-1); }
+  29%       { opacity: 1; }
+  30%       { transform: translate3d(-12vw, 2vh, 0) scaleX(-1); opacity: 0; }
+  100%      { transform: translate3d(-12vw, 2vh, 0) scaleX(-1); opacity: 0; }
+}
+
+.hw-web {
+  position: absolute;
+  width: var(--hw-web-size, 160px);
+  height: var(--hw-web-size, 160px);
+  opacity: var(--hw-web-alpha, 0.5);
+}
+
+.hw-web--tl { top: 0; left: 0; }
+.hw-web--tr { top: 0; right: 0; transform: scaleX(-1); }
+.hw-web--bl { bottom: 0; left: 0; transform: scaleY(-1); }
+.hw-web--br { bottom: 0; right: 0; transform: scale(-1, -1); }
+
+/* A aranha do cenário só desce de vez em quando (uns 8 s a cada 46 s) e
+   volta para o teto — pendurada o tempo todo ela cobriria o título. */
+.hw-hanging-spider {
+  position: absolute;
+  top: 0;
+  left: var(--hw-spider-x, 46vw);
+  transform: translate3d(0, -100%, 0);
+  animation: hw-spider-visit 46s ease-in-out var(--hw-spider-delay, -18s) infinite;
+  will-change: transform;
+}
+
+.hw-hanging-spider svg {
+  display: block;
+}
+
+@keyframes hw-spider-visit {
+  0%, 72%   { transform: translate3d(0, -100%, 0); }
+  77%       { transform: translate3d(0, 0, 0); }
+  80%       { transform: translate3d(0, -7%, 0); }
+  83%, 90%  { transform: translate3d(0, 0, 0); }
+  96%, 100% { transform: translate3d(0, -100%, 0); }
+}
+
+.hw-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent var(--hw-vig-clear, 55%),
+    rgba(0, 0, 0, var(--hw-vig-a, 0.55)) 100%
+  );
+}
+
+/* ---------- Títulos (HauntedTitle) ---------- */
+
+.hw-title {
+  position: relative;
+  display: inline-block;
+}
+
+.hw-drip {
+  position: absolute;
+  top: 82%;
+  width: 0.09em;
+  border-radius: 0 0 0.08em 0.08em;
+  transform-origin: top center;
+  transform: scaleY(0);
+  animation: hw-drip var(--hw-drip-dur, 3.2s) cubic-bezier(0.5, 0, 0.75, 0) var(--hw-drip-delay, 0s) infinite;
+  pointer-events: none;
+}
+
+@keyframes hw-drip {
+  0%   { transform: scaleY(0); opacity: 1; }
+  55%  { transform: scaleY(1); opacity: 1; }
+  85%  { transform: scaleY(1); opacity: 1; }
+  100% { transform: scaleY(1); opacity: 0; }
+}
+
+/* Só pequenas quedas de brilho, espaçadas: nada de pisca-pisca. */
+.hw-flicker {
+  animation: hw-flicker 5s linear infinite;
+}
+
+@keyframes hw-flicker {
+  0%, 40%, 44%, 76%, 81%, 100% { opacity: 1; }
+  42% { opacity: 0.74; }
+  78% { opacity: 0.82; }
+}
+
+/* ---------- Vela, abóbora, caldeirão ---------- */
+
+.hw-flame {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: hw-flame 0.9s ease-in-out infinite alternate;
+}
+
+.hw-flame--urgent {
+  animation-duration: 0.32s;
+}
+
+@keyframes hw-flame {
+  0%   { transform: scale(1, 1) skewX(0deg); }
+  33%  { transform: scale(0.94, 1.07) skewX(2deg); }
+  66%  { transform: scale(1.04, 0.95) skewX(-2deg); }
+  100% { transform: scale(0.97, 1.03) skewX(1deg); }
+}
+
+.hw-glow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hw-glow 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes hw-glow {
+  from { opacity: 0.5; }
+  to   { opacity: 0.9; }
+}
+
+.hw-smoke {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: hw-smoke 2.4s ease-out infinite;
+}
+
+@keyframes hw-smoke {
+  0%   { transform: translateY(0) scale(0.6); opacity: 0.7; }
+  100% { transform: translateY(-40px) scale(1.5); opacity: 0; }
+}
+
+.hw-pulse {
+  animation: hw-pulse 1s ease-in-out infinite;
+}
+
+@keyframes hw-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.08); }
+}
+
+.hw-spark {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hw-spark 0.24s steps(2) infinite;
+}
+
+@keyframes hw-spark {
+  0%   { transform: scale(0.8) rotate(0deg); }
+  100% { transform: scale(1.3) rotate(45deg); }
+}
+
+.hw-shake {
+  animation: hw-shake 0.4s linear infinite;
+}
+
+@keyframes hw-shake {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25%      { transform: translate(-2px, 1px) rotate(-2deg); }
+  50%      { transform: translate(2px, -1px) rotate(1.5deg); }
+  75%      { transform: translate(-1px, -1px) rotate(-1deg); }
+}
+
+.hw-bubble {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: hw-bubble var(--hw-bubble-dur, 2.2s) ease-in var(--hw-bubble-delay, 0s) infinite;
+}
+
+@keyframes hw-bubble {
+  0%   { transform: translateY(0) scale(0.4); opacity: 0; }
+  20%  { opacity: 0.9; }
+  85%  { transform: translateY(-26px) scale(1); opacity: 0.8; }
+  100% { transform: translateY(-30px) scale(1.4); opacity: 0; }
+}
+
+.hw-float {
+  animation: hw-float 3s ease-in-out infinite;
+}
+
+@keyframes hw-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+/* ---------- Lápide e porta ---------- */
+
+.hw-rise {
+  animation: hw-rise 900ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+@keyframes hw-rise {
+  0%   { transform: translateY(55%); opacity: 0; }
+  60%  { transform: translateY(-4%); opacity: 1; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.hw-door {
+  perspective: 900px;
+}
+
+.hw-door-panel {
+  transform-origin: left center;
+  transition: transform 900ms cubic-bezier(0.3, 0.8, 0.3, 1);
+  backface-visibility: hidden;
+}
+
+.hw-door--open .hw-door-panel {
+  transform: rotateY(-106deg);
+}
+
+.hw-knock {
+  animation: hw-knock 0.6s ease-in-out infinite;
+}
+
+@keyframes hw-knock {
+  0%, 100% { transform: rotate(0deg); }
+  25%      { transform: rotate(-1.5deg); }
+  75%      { transform: rotate(1.5deg); }
+}
+
+/* ---------- Chuva de doces ---------- */
+
+.hw-candy {
+  position: absolute;
+  top: 0;
+  line-height: 1;
+  opacity: 0;
+  animation: hw-candy-fall var(--hw-fall-dur, 4s) linear var(--hw-fall-delay, 0s) infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes hw-candy-fall {
+  0%   { transform: translate3d(0, -12vh, 0) rotate(0deg); opacity: 0; }
+  6%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { transform: translate3d(var(--hw-drift, 0px), 112vh, 0) rotate(var(--hw-spin, 360deg)); opacity: 0; }
+}
+
+/* ---------- Revelação (BigReveal) ---------- */
+
+.hw-fade-in {
+  animation: hw-fade-in 300ms ease-out both;
+}
+
+@keyframes hw-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.hw-reveal-card {
+  animation: hw-reveal-pop 650ms cubic-bezier(0.2, 1.3, 0.35, 1) both;
+}
+
+@keyframes hw-reveal-pop {
+  0%   { transform: scale(0.4) rotate(-4deg); opacity: 0; }
+  70%  { transform: scale(1.06) rotate(1deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.hw-rays {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 160vmax;
+  height: 160vmax;
+  margin: -80vmax 0 0 -80vmax;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 255, 255, 0.05) 0deg 8deg, transparent 8deg 22deg);
+  animation: hw-rays-spin 40s linear infinite;
+  will-change: transform;
+}
+
+@keyframes hw-rays-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ---------- Controles de som ---------- */
+
+.hw-breathe {
+  animation: hw-breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes hw-breathe {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50%      { opacity: 1; transform: scale(1.04); }
+}

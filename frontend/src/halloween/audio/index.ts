@@ -1,61 +1,58 @@
+import { useEffect, useId, useSyncExternalStore } from 'react'
+import { releaseMusic, requestMusic } from './engine'
+import { getSoundState, setMuted, subscribeSound } from './settings'
+import type { SoundState } from './settings'
+import type { MusicTrack } from './types'
+
 /**
- * PLACEHOLDER — a implementação de verdade (sintetizador Web Audio, trilhas
- * e efeitos) é escrita na Etapa 1 do plano (HALLOWEEN.md). Os nomes e
- * assinaturas abaixo são o contrato: podem ganhar parâmetros opcionais e
- * novos nomes, mas não mudar.
+ * Som da Noite do Terror — a API que os jogos usam.
+ *
+ *   useMusic('tension')                 // trilha enquanto o componente estiver montado
+ *   playSfx('scream')                   // efeito na hora (devolve a duração em s)
+ *   playSfx('clang', { delay: 0.4 })    // agendado no relógio de áudio
+ *   speakSpooky('Alguém morreu esta noite...')
+ *
+ * Tudo é sintetizado na hora (Web Audio). Na TV o som nasce ligado; nos
+ * celulares, mudo (dá para ligar no botão flutuante). Música só toca na TV.
  */
 
-export type MusicTrack =
-  | 'lobby'
-  | 'tension'
-  | 'night'
-  | 'day'
-  | 'party'
-  | 'race'
-  | 'quiz'
-  | 'chase'
-  | 'victory'
+export type { MusicTrack, SfxName } from './types'
+export { MUSIC_TRACKS, SFX_NAMES, isMusicTrack, isSfxName } from './types'
+export { playSfx, speakSpooky, unlockAudio, initAudio, currentTrack } from './engine'
+export type { SfxOptions, SpookyVoiceOptions } from './engine'
+export {
+  SOUND_DEFAULTS,
+  getSoundState,
+  setMuted,
+  setMusicEnabled,
+  setRandomScaresEnabled,
+  setSoundRole,
+  setVolume,
+  subscribeSound,
+} from './settings'
+export type { SoundRole, SoundSettings, SoundState } from './settings'
 
-export type SfxName =
-  | 'scream'
-  | 'thunder'
-  | 'creak'
-  | 'door'
-  | 'heartbeat'
-  | 'bell'
-  | 'ghost'
-  | 'doot'
-  | 'boom'
-  | 'clang'
-  | 'tick'
-  | 'explosion'
-  | 'win'
-  | 'fail'
-  | 'reveal'
-  | 'whoosh'
-  | 'pop'
-  | 'laugh'
-  | 'organ'
-  | 'drumroll'
-  | 'buzzer'
-  | 'ding'
-  | 'fuse'
-  | 'monster'
-  | 'gong'
-
-/** Pede uma trilha enquanto o componente estiver montado (só toca na TV, por padrão). */
+/**
+ * Pede uma trilha enquanto o componente estiver montado (só toca na TV).
+ *
+ * Vale o pedido mais recente; ao desmontar, volta o anterior. `null` pede
+ * silêncio. Se a moldura e o jogo pedem juntos, vence o jogo (o filho).
+ * Sem pedido nenhum, a TV toca o 'lobby' baixinho.
+ */
 export function useMusic(track: MusicTrack | null): void {
-  void track
+  const id = useId()
+  useEffect(() => {
+    requestMusic(id, track)
+  }, [id, track])
+  useEffect(() => () => releaseMusic(id), [id])
 }
 
-/** Toca um efeito. Não faz nada se o som estiver mudo ou ainda bloqueado pelo navegador. */
-export function playSfx(name: SfxName, options?: { volume?: number }): void {
-  void name
-  void options
+/** Estado do som (mudo, volume, destravado...) que re-renderiza quando muda. */
+export function useSoundState(): SoundState {
+  return useSyncExternalStore(subscribeSound, getSoundState, getSoundState)
 }
 
-/** Narração com voz grave de filme de terror (Web Speech API). */
-export function speakSpooky(text: string, options?: { pitch?: number; rate?: number }): void {
-  void text
-  void options
+/** Liga/desliga o som deste aparelho. Chame dentro de um clique (destrava o áudio). */
+export function toggleMuted() {
+  setMuted(!getSoundState().muted)
 }

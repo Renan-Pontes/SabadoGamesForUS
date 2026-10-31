@@ -75,7 +75,7 @@ export default function CountdownRing({
             position: 'absolute',
             inset: 0,
             transform: 'rotate(-90deg)',
-            filter: `drop-shadow(0 0 12px ${urgent ? 'rgba(220,38,38,0.55)' : 'rgba(0,0,0,0.5)'})`,
+            filter: `drop-shadow(0 0 12px ${urgent ? 'rgba(224,33,58,0.6)' : 'rgba(0,0,0,0.5)'})`,
           }}
         >
           <circle
@@ -83,7 +83,7 @@ export default function CountdownRing({
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="rgba(255,255,255,0.07)"
+            stroke="rgba(176, 107, 255, 0.14)"
             strokeWidth={stroke}
           />
           <circle
@@ -103,11 +103,12 @@ export default function CountdownRing({
         <Box sx={{ textAlign: 'center', zIndex: 1 }}>
           <Typography
             sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: size * 0.26,
+              // Bebas e não Creepster: relógio precisa ser lido de longe, num relance.
+              fontFamily: 'var(--font-numeric)',
+              fontSize: size * 0.3,
               lineHeight: 1,
               color: urgent ? 'var(--accent-red)' : 'var(--text-primary)',
-              textShadow: urgent ? '0 0 24px rgba(220,38,38,0.6)' : 'none',
+              textShadow: urgent ? '0 0 24px rgba(224,33,58,0.65)' : '0 0 18px rgba(176, 107, 255, 0.35)',
               transition: 'color 300ms ease',
               fontVariantNumeric: 'tabular-nums',
             }}

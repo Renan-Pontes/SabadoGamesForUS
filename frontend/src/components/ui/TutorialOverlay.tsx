@@ -6,6 +6,7 @@ import VolumeOffRoundedIcon from '@mui/icons-material/VolumeOffRounded'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded'
 import { canNarrate, speak, stopNarration } from '../../lib/narrator'
+import { withAlpha } from './surfaces'
 
 type TutorialOverlayProps = {
   open: boolean
@@ -84,7 +85,7 @@ export default function TutorialOverlay({
         display: 'grid',
         placeItems: 'center',
         p: { xs: 2, md: 4 },
-        background: 'rgba(5, 5, 9, 0.86)',
+        background: 'rgba(8, 4, 14, 0.88)',
         backdropFilter: 'blur(10px)',
         animation: 'fadeIn 260ms ease both',
       }}
@@ -95,8 +96,9 @@ export default function TutorialOverlay({
           maxWidth: big ? 1100 : 720,
           borderRadius: 'var(--radius-xl)',
           border: `1px solid ${accent}`,
-          background: 'linear-gradient(165deg, rgba(26,26,36,0.97), rgba(10,10,15,0.98))',
-          boxShadow: `0 30px 90px rgba(0,0,0,0.7), 0 0 70px ${accent}44`,
+          background:
+            'radial-gradient(ellipse 120% 70% at 50% -20%, rgba(139, 63, 217, 0.24), transparent 60%), linear-gradient(165deg, rgba(31,18,54,0.97), rgba(10,6,18,0.98))',
+          boxShadow: `0 30px 90px rgba(0,0,0,0.7), 0 0 70px ${withAlpha(accent, 0.27)}`,
           p: { xs: 3, md: big ? 6 : 4 },
           position: 'relative',
         }}
@@ -156,8 +158,8 @@ export default function TutorialOverlay({
           sx={{
             p: { xs: 2.5, md: 3.5 },
             borderRadius: 'var(--radius-lg)',
-            background: `${accent}12`,
-            border: `1px solid ${accent}33`,
+            background: withAlpha(accent, 0.07),
+            border: `1px solid ${withAlpha(accent, 0.2)}`,
             minHeight: big ? 180 : 120,
             display: 'flex',
             alignItems: 'center',
