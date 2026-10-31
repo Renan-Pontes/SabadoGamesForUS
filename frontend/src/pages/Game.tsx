@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { Box, Button, CircularProgress, Typography } from '@mui/material'
 import { getRoom } from '../lib/api'
 import type { Room } from '../lib/types'
+import { HALLOWEEN_SLUGS } from '../halloween/slugs'
 
 /**
  * Slugs que já têm tela própria. Ao adicionar um minigame novo, registre-o
@@ -34,6 +35,8 @@ const GAME_ROUTES: Record<string, string> = {
   'so-uma': 'so-uma',
   manada: 'manada',
   'quiz-da-mesa': 'quiz-da-mesa',
+  // Os jogos de Halloween rodam todos na mesma tela, roteada pelo slug.
+  ...Object.fromEntries(HALLOWEEN_SLUGS.map((slug) => [slug, slug])),
 }
 
 /**

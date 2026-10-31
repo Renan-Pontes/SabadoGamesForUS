@@ -21,7 +21,12 @@ export function isAuthenticated() {
   return Boolean(getToken())
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+/**
+ * Chamada crua à API, com o token da sessão. Exportada para os módulos que
+ * vivem fora deste arquivo (a camada de Halloween) não duplicarem a URL —
+ * já aconteceu de duas cópias divergirem e o login quebrar em produção.
+ */
+export async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = getToken()
   const response = await fetch(`${BASE_URL}${path}`, {
     headers: {
