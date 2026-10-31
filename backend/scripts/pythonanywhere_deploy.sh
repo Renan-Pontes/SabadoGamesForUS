@@ -6,13 +6,14 @@
 # rodar quantas vezes quiser. NÃO apaga o banco — a versão anterior deste
 # script apagava, o que zerava as contas a cada deploy.
 #
-#   bash ~/SabadoGamesAPI/scripts/pythonanywhere_deploy.sh
+#   bash ~/SabadoGamesForUS/backend/scripts/pythonanywhere_deploy.sh
 #
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-$HOME/SabadoGamesAPI}"
+APP_DIR="${APP_DIR:-$HOME/SabadoGamesForUS/backend}"
 PYTHON_BIN="${PYTHON_BIN:-python3.13}"
-DOMAIN="${PA_DOMAIN:-api.sabadogames.app}"
+DOMAIN="${PA_DOMAIN:-sabadogames.pythonanywhere.com}"
+BRANCH="${DEPLOY_BRANCH:-main}"
 
 if [ ! -f "$APP_DIR/manage.py" ]; then
   echo "manage.py não encontrado em $APP_DIR" >&2
@@ -20,6 +21,12 @@ if [ ! -f "$APP_DIR/manage.py" ]; then
 fi
 
 cd "$APP_DIR"
+
+echo "==> Código"
+# O backend roda direto do clone do repositório: deploy é puxar a branch.
+git fetch origin "$BRANCH"
+git checkout "$BRANCH"
+git pull --ff-only origin "$BRANCH"
 
 echo "==> Dependências"
 # --user porque este webapp roda no Python do sistema, sem virtualenv.
