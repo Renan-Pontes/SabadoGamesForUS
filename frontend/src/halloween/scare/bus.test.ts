@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  RARE_SCARE,
   SCARE_KINDS,
   clearScareNames,
   emitScare,
@@ -85,6 +86,21 @@ describe('barramento de sustos', () => {
 
   it('resolveScareKind mantém os tipos válidos', () => {
     for (const kind of SCARE_KINDS) expect(resolveScareKind(kind)).toBe(kind)
+    expect(resolveScareKind(RARE_SCARE)).toBe(RARE_SCARE)
+  })
+
+  it('o Penetra nunca sai no sorteio, mas chega quando chamado pelo nome', () => {
+    expect(SCARE_KINDS).not.toContain(RARE_SCARE)
+    for (let i = 0; i < 1000; i += 1) {
+      const roll = i / 1000
+      expect(pickScare(() => roll, null)).not.toBe(RARE_SCARE)
+      expect(resolveScareKind('random', () => roll)).not.toBe(RARE_SCARE)
+    }
+    const received = listen()
+    emitScare(RARE_SCARE)
+    expect(received[0].kind).toBe(RARE_SCARE)
+    // Depois dele o sorteio volta a usar a lista inteira.
+    expect(SCARE_KINDS).toContain(pickScare(() => 0.999999))
   })
 })
 

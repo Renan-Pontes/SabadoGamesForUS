@@ -1,6 +1,9 @@
 import { useState, type ReactNode } from 'react'
+import { useParams } from 'react-router-dom'
 import { Box, Button } from '@mui/material'
 import type { GameAccent } from '../../games/theme'
+import { scareRoomTv } from '../fx/api'
+import { SCARY_RANDOM } from '../scare'
 
 /**
  * Controles do host, numa barra discreta presa ao rodapé do celular. O jogo
@@ -48,7 +51,14 @@ const barButton = {
   whiteSpace: 'nowrap',
 } as const
 
-/** Durante a partida: pular a fase, encerrar (com confirmação) e susto na TV. */
+/**
+ * Durante a partida: pular a fase, encerrar (com confirmação) e susto na TV.
+ *
+ * O "Susto" manda um dos assustadores de verdade (animatrônico, rosto,
+ * grito, estática), sorteado na TV, direto para a sala da URL
+ * (`/game/:code/...`). `onScare` fica de reserva para uma tela sem código
+ * na URL.
+ */
 export function HostBar({
   onSkip,
   onEnd,
@@ -61,6 +71,9 @@ export function HostBar({
   const [confirming, setConfirming] = useState(false)
   const [skipLocked, setSkipLocked] = useState(false)
   const [scareState, setScareState] = useState<'idle' | 'sent' | 'error'>('idle')
+  const { code } = useParams()
+  const roomCode = code?.trim().toUpperCase()
+  const sendScare = () => (roomCode ? scareRoomTv(roomCode, SCARY_RANDOM) : onScare())
 
   if (confirming) {
     return (
@@ -107,7 +120,7 @@ export function HostBar({
         disabled={scareState === 'sent'}
         onClick={() => {
           setScareState('sent')
-          Promise.resolve(onScare())
+          Promise.resolve(sendScare())
             .then(() => setTimeout(() => setScareState('idle'), 3000))
             .catch(() => {
               setScareState('error')

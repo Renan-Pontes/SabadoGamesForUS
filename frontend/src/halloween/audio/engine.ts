@@ -1,39 +1,31 @@
 import { speak } from '../../lib/narrator'
+import { MUSIC_LEVEL, applyVolumes, buildGraph as buildAudioGraph, hushMusicOn, playSfxOn } from './graph'
+import { isLoudSfx } from './loud'
+import type { AudioGraph } from './graph'
 import { createMusicStack } from './musicStack'
 import type { StackId } from './musicStack'
 import { getSoundState, setAudioSupported, setAudioUnlocked, subscribeSound } from './settings'
 import { SFX } from './sfx'
-import { makeImpulse, makeNoiseBuffers } from './synth'
-import type { Voice } from './synth'
 import { startTrack } from './tracks'
 import type { TrackPlayer } from './tracks'
 import type { MusicTrack, SfxName } from './types'
 
 /**
- * Motor de áudio: um AudioContext só para o app inteiro.
+ * Motor de áudio: um AudioContext só para o app inteiro (o grafo está em
+ * graph.ts).
  *
- *   trilhas ─► música (seco) ─┐
- *            ► música (reverb)┼─► reverb ─┐
- *   efeitos ─► efeitos (seco) ┼───────────┴─► compressor ─► volume ─► caixas
- *            ► efeitos (reverb)┘
+ *   trilhas ─► música ─► portão ─┐
+ *   efeitos ─► efeitos ──────────┴─► reverb/compressor ─► volume ─────────┐
+ *   sustos ──► saturação ─► limitador ─► volume do susto (mín. 0,9) ──────┴─► teto ─► caixas
  *
- * O compressor segura picos (grito em cima de explosão não estoura a TV) e o
- * volume geral vem por último, para o mudo cortar tudo de uma vez.
+ * O compressor segura picos (grito em cima de explosão não estoura a TV); os
+ * sustos de verdade vão por fora dele, bem mais altos, e calam a música
+ * enquanto tocam. O teto garante pico ≤ −3 dBFS (true-peak ≤ −0,3 dBTP). O
+ * mudo corta tudo, e o volume do app no zero também.
  */
 
-type Graph = {
-  ctx: AudioContext
-  master: GainNode
-  musicDry: GainNode
-  musicWet: GainNode
-  sfxVoice: Voice
-  noise: AudioBuffer
-  brown: AudioBuffer
-}
+type Graph = AudioGraph & { ctx: AudioContext }
 
-/** Volume da música em relação aos efeitos: trilha é fundo, não protagonista. */
-const MUSIC_LEVEL = 0.42
-const SFX_LEVEL = 0.95
 /** O lobby que a TV toca sozinha (sem pedido de ninguém) vem mais baixinho. */
 const QUIET_LEVEL = 0.55
 /** Música abaixa enquanto a voz de terror fala. */
@@ -59,49 +51,7 @@ function audioConstructor(): typeof AudioContext | null {
 }
 
 function buildGraph(ctx: AudioContext): Graph {
-  const compressor = ctx.createDynamicsCompressor()
-  compressor.threshold.value = -16
-  compressor.knee.value = 10
-  compressor.ratio.value = 4
-  compressor.attack.value = 0.004
-  compressor.release.value = 0.25
-
-  const master = ctx.createGain()
-  master.gain.value = 0
-  compressor.connect(master)
-  master.connect(ctx.destination)
-
-  const reverbIn = ctx.createGain()
-  const reverb = ctx.createConvolver()
-  reverb.buffer = makeImpulse(ctx)
-  const reverbOut = ctx.createGain()
-  reverbOut.gain.value = 0.8
-  reverbIn.connect(reverb).connect(reverbOut).connect(compressor)
-
-  const musicDry = ctx.createGain()
-  musicDry.gain.value = MUSIC_LEVEL
-  musicDry.connect(compressor)
-  const musicWet = ctx.createGain()
-  musicWet.gain.value = MUSIC_LEVEL
-  musicWet.connect(reverbIn)
-
-  const sfxDry = ctx.createGain()
-  sfxDry.gain.value = SFX_LEVEL
-  sfxDry.connect(compressor)
-  const sfxWet = ctx.createGain()
-  sfxWet.gain.value = SFX_LEVEL
-  sfxWet.connect(reverbIn)
-
-  const { noise, brown } = makeNoiseBuffers(ctx)
-  return {
-    ctx,
-    master,
-    musicDry,
-    musicWet,
-    noise,
-    brown,
-    sfxVoice: { ctx, out: { dry: sfxDry, wet: sfxWet }, noise, brown },
-  }
+  return { ...buildAudioGraph(ctx), ctx }
 }
 
 function isRunning() {
@@ -163,12 +113,7 @@ export function unlockAudio(): void {
 function applyMaster(immediate = false) {
   const g = graph
   if (!g) return
-  const { muted, volume } = getSoundState()
-  const target = muted ? 0 : volume * volume
-  const now = g.ctx.currentTime
-  g.master.gain.cancelScheduledValues(now)
-  if (immediate) g.master.gain.setValueAtTime(target, now)
-  else g.master.gain.setTargetAtTime(target, now, 0.06)
+  applyVolumes(g, getSoundState(), g.ctx.currentTime, immediate)
 }
 
 function applyDuck() {
@@ -275,6 +220,12 @@ export type SfxOptions = {
   volume?: number
   /** Atraso em segundos, agendado no relógio de áudio (preciso, ao contrário do setTimeout). */
   delay?: number
+  /**
+   * Força o caminho alto dos sustos (bem mais alto, cala a música enquanto
+   * soa). Sem isso, só 'screech', 'shriek' e 'jumpscare' vão por ele. Só as
+   * cenas de susto usam; nos jogos, deixe sem.
+   */
+  loud?: boolean
 }
 
 /**
@@ -300,13 +251,24 @@ export function playSfx(name: SfxName, options: SfxOptions = {}): number {
   lastSfxAt.set(name, at)
 
   try {
-    const duration = fn(g.sfxVoice, at, volume)
+    // Os de susto ('screech', 'shriek', 'jumpscare', ou qualquer um com `loud: true`) vão pelo caminho alto.
+    const duration = playSfxOn(g, name, now, at, volume, options.loud ?? isLoudSfx(name))
     sfxEnds.push(at + duration)
     return duration
   } catch (error) {
     console.warn(`[halloween] efeito ${name} falhou`, error)
     return 0
   }
+}
+
+/**
+ * Cala a música agora, por `seconds` (até 10 s), e depois ela volta devagar.
+ * Os sustos chamam no começo da cena: o silêncio antes do grito assusta junto.
+ */
+export function hushMusic(seconds: number): void {
+  const g = graph
+  if (!g || !isRunning()) return
+  hushMusicOn(g, g.ctx.currentTime, seconds)
 }
 
 export type SpookyVoiceOptions = { pitch?: number; rate?: number }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Box, Button, FormControlLabel, IconButton, Popover, Slider, Switch, Typography } from '@mui/material'
 import { setMuted, setMusicEnabled, setRandomScaresEnabled, setVolume, useSoundState } from '../audio'
-import { triggerScare } from '../scare'
+import { RARE_SCARE, SCARY_RANDOM, triggerScare } from '../scare'
 import { CREEPY_FONT } from '../ui/fonts'
 
 /**
@@ -99,7 +99,7 @@ export default function TvControl() {
             control={
               <Switch checked={sound.randomScares} onChange={(_, checked) => setRandomScaresEnabled(checked)} />
             }
-            label="Sustos aleatórios (4–9 min)"
+            label="Sustos aleatórios (4–9 min + o raro)"
           />
         </Box>
 
@@ -109,10 +109,22 @@ export default function TvControl() {
           sx={{ mt: 1.5 }}
           onClick={() => {
             setAnchor(null)
-            triggerScare('random')
+            // Um dos assustadores de verdade (animatrônico, rosto, grito, estática).
+            triggerScare(SCARY_RANDOM)
           }}
         >
           Testar susto 😱
+        </Button>
+        <Button
+          fullWidth
+          size="small"
+          sx={{ mt: 1, color: 'var(--text-secondary)' }}
+          onClick={() => {
+            setAnchor(null)
+            triggerScare(RARE_SCARE)
+          }}
+        >
+          Testar o susto raro 👹 (1 em 5000/s)
         </Button>
       </Popover>
     </>

@@ -1,0 +1,319 @@
+/* ==========================================================================
+   Sustos de verdade: animatrônico e rosto (prefixos hws-anim-, hws-face-,
+   hws-vhs-).
+
+   Segurança: no máximo 2 clarões por susto, com ≥ 400 ms entre eles; nada
+   pisca mais rápido que 3 Hz cobrindo a tela. ATENÇÃO: tremer a tela inteira
+   rápido (> 3 Hz) também pisca — cada borda clara/escura vai e volta — então
+   os palcos (.hws-anim-stage, .hws-face-stage) NÃO tremem e o jitter do rosto
+   é pequeno (medido quadro a quadro: 4,5% e 8,6% de um campo de 10°, limite
+   25%; o teste em scary.test.ts guarda isso). A criatura é de metal escuro e
+   o rosto aparece uma vez só, sem pulsar de brilho. Os tempos-chave vêm do TS
+   (--hws-rush, --hws-hit, --hws-delay) para casar com o som.
+   ========================================================================== */
+
+.hws-scary {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+@keyframes hws-scary-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ---------- animatrônico ---------- */
+
+/* A tela escurece de repente. */
+.hws-anim-dark {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  animation: hws-scary-in 50ms linear both;
+}
+
+/* A lâmpada falhando (cada clarão é um elemento, com tempo vindo do TS). */
+.hws-anim-light {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 55% 65% at 50% 40%,
+    rgba(255, 214, 160, 0.42),
+    rgba(255, 170, 90, 0.14) 45%,
+    rgba(0, 0, 0, 0) 75%
+  );
+  opacity: 0;
+  animation: hws-anim-flash var(--hws-len, 120ms) linear var(--hws-delay, 0ms) both;
+}
+
+@keyframes hws-anim-flash {
+  0%   { opacity: 0; }
+  15%  { opacity: 1; }
+  80%  { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+
+/* Sem tremor de tela (fotossensibilidade): a violência fica com o rasgo de
+   fita, a mandíbula batendo e o guincho. */
+.hws-anim-stage {
+  position: absolute;
+  inset: 0;
+}
+
+/* Rasgo de fita: o quadro pula de lado umas vezes depois do bote. */
+.hws-anim-tear {
+  position: absolute;
+  inset: 0;
+  animation: hws-anim-tear 1200ms linear var(--hws-rush, 1000ms) both;
+}
+
+@keyframes hws-anim-tear {
+  0%, 9%     { transform: translateX(0); }
+  9.1%, 13%  { transform: translateX(-6vw) skewX(6deg); }
+  13.1%, 38% { transform: translateX(0); }
+  38.1%, 42% { transform: translateX(5vw) skewX(-8deg); }
+  42.1%, 70% { transform: translateX(0); }
+  70.1%, 73% { transform: translateX(-3vw); }
+  73.1%, 100% { transform: translateX(0); }
+}
+
+/* O ponto da boca (50% 49% do desenho, a fileira de cima dos dentes) fica
+   parado no meio da tela; a escala faz o resto. No close, os olhos ficam no
+   terço de cima e a mandíbula batendo aparece inteira embaixo. */
+.hws-anim-bot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -49%);
+}
+
+/* will-change: a camada gigante é rasterizada uma vez e só escalada (sem GPU,
+   sem isso o bote travava ~0,5 s duas vezes). */
+.hws-anim-far,
+.hws-anim-rush {
+  transform-origin: 50% 49%;
+  will-change: transform;
+}
+
+/* Longe no corredor; no escuro entre os clarões, chega mais perto. */
+.hws-anim-far {
+  animation: hws-anim-far var(--hws-rush, 1000ms) linear both;
+}
+
+@keyframes hws-anim-far {
+  0%   { transform: scale(0.065); }
+  46%  { transform: scale(0.07); }
+  47%  { transform: scale(0.12); }
+  100% { transform: scale(0.13); }
+}
+
+/* O bote: seco. Passa de 100vh em ~10 ms e chega ao close em ~50 ms, junto
+   com o guincho (ANIMATRONIC_IMPACT_MS em scaryTiming.ts); depois só avança
+   devagar. */
+.hws-anim-rush {
+  animation: hws-anim-rush 1300ms linear var(--hws-rush, 1000ms) both;
+}
+
+@keyframes hws-anim-rush {
+  0%   { transform: scale(1); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
+  4%   { transform: scale(6.2); }
+  100% { transform: scale(6.5); }
+}
+
+.hws-anim-rush svg {
+  display: block;
+  height: 250vh;
+  width: auto;
+}
+
+/* Silhueta escura por cima do corpo até o bote (os olhos ficam por cima dela). */
+.hws-anim-shade {
+  opacity: 0.86;
+  animation: hws-anim-unshade 40ms ease-in var(--hws-rush, 1000ms) both;
+}
+
+@keyframes hws-anim-unshade {
+  from { opacity: 0.86; }
+  to   { opacity: 0; }
+}
+
+/* Os olhos acendem no escuro, depois do primeiro clarão. */
+.hws-anim-eyes {
+  opacity: 0;
+  animation: hws-scary-in 60ms linear 330ms both;
+}
+
+/* Mandíbula batendo (px = unidades do desenho). Termina aberta. Curso de
+   35 unidades (~14vh no close): com 70, os dentes claros varrendo a boca
+   escura a ~10 trocas/s piscavam em 23,5% do campo de visão; com 35, 14,8%. */
+.hws-anim-jaw {
+  animation: hws-anim-chatter 105ms linear var(--hws-rush, 1000ms) 9 alternate both;
+}
+
+@keyframes hws-anim-chatter {
+  from { transform: translateY(8px); }
+  to   { transform: translateY(43px); }
+}
+
+.hws-anim-wire {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: hws-anim-sway 0.45s ease-in-out infinite alternate;
+}
+
+@keyframes hws-anim-sway {
+  from { transform: rotate(-6deg); }
+  to   { transform: rotate(7deg); }
+}
+
+/* ---------- rosto ---------- */
+
+/* A tela some. */
+.hws-face-black {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  animation: hws-scary-in 70ms linear both;
+}
+
+/* Sem tremor de tela (fotossensibilidade): o susto é o rosto explodindo. */
+.hws-face-stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* ...e o rosto explode na tela. */
+.hws-face-burst {
+  opacity: 0;
+  animation: hws-face-burst 140ms cubic-bezier(0.15, 0.85, 0.25, 1.2) var(--hws-hit, 500ms) both;
+}
+
+@keyframes hws-face-burst {
+  0%   { opacity: 0; transform: scale(0.3); }
+  35%  { opacity: 1; }
+  100% { opacity: 1; transform: scale(1.08); }
+}
+
+/* Distorção em quadros secos, como vídeo amaldiçoado — pequena de propósito
+   (skew ≤ 3°, deslocamento ≤ 1,2vmin, escala ≤ 3%): maior que isso, o rosto
+   claro piscava em mais de 25% do campo de visão. */
+.hws-face-jitter {
+  animation: hws-face-jitter 420ms steps(1, end) calc(var(--hws-hit, 500ms) + 140ms) infinite;
+}
+
+.hws-face-jitter svg {
+  display: block;
+  height: 112vh;
+  width: auto;
+}
+
+@keyframes hws-face-jitter {
+  0%   { transform: none; }
+  20%  { transform: skewX(-3deg) scaleY(1.03) translateX(-1vmin); }
+  40%  { transform: skewX(2deg) scaleX(1.025) translateY(0.5vmin); }
+  60%  { transform: scaleY(0.97) translateX(1.2vmin); }
+  80%  { transform: skewY(1.5deg) scale(1.02); }
+}
+
+/* A boca rasga e abre, as órbitas crescem. */
+.hws-face-mouth {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: hws-face-mouth 380ms cubic-bezier(0.2, 0.8, 0.3, 1) calc(var(--hws-hit, 500ms) + 20ms) both;
+}
+
+@keyframes hws-face-mouth {
+  from { transform: scaleY(0.55); }
+  to   { transform: scaleY(1.18); }
+}
+
+.hws-face-socket {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: hws-face-socket 700ms ease-out calc(var(--hws-hit, 500ms) + 20ms) both;
+}
+
+@keyframes hws-face-socket {
+  from { transform: scale(0.8); }
+  to   { transform: scale(1.12); }
+}
+
+/* ---------- chiado de VHS ---------- */
+
+/* Grão cinza médio que só muda de lugar: o brilho médio fica constante. */
+.hws-vhs-grain {
+  position: absolute;
+  inset: -50%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  opacity: 0.1;
+  animation:
+    hws-vhs-grain 240ms steps(1, end) infinite,
+    hws-vhs-boost 200ms linear var(--hws-rush, 1000ms) both;
+}
+
+.hws-vhs-grain--late {
+  opacity: 0;
+  animation:
+    hws-vhs-grain 240ms steps(1, end) infinite,
+    hws-vhs-boost 200ms linear var(--hws-hit, 500ms) both;
+}
+
+@keyframes hws-vhs-grain {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-7%, 4%); }
+  50%  { transform: translate(5%, -6%); }
+  75%  { transform: translate(-3%, -2%); }
+}
+
+@keyframes hws-vhs-boost {
+  to { opacity: 0.2; }
+}
+
+.hws-vhs-lines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.3) 0 2px, transparent 2px 4px);
+}
+
+.hws-vhs-roll {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 14vh;
+  background: linear-gradient(
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.06) 40%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.06) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  animation: hws-vhs-roll 1.3s linear infinite;
+}
+
+@keyframes hws-vhs-roll {
+  from { transform: translateY(-16vh); }
+  to   { transform: translateY(106vh); }
+}
+
+.hws-vhs-osd {
+  position: absolute;
+  top: 5vh;
+  left: 5vw;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: clamp(16px, 3.6vmin, 40px);
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 2px 0 rgba(255, 0, 60, 0.6), -2px 0 rgba(0, 220, 255, 0.6);
+}
+
+.hws-vhs-osd--date {
+  top: auto;
+  left: auto;
+  bottom: 6vh;
+  right: 5vw;
+}

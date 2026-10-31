@@ -5,7 +5,8 @@ import type { ScareKind } from './bus'
 /**
  * Sustos de meme da Noite do Terror — a API que os jogos usam.
  *
- *   triggerScare()                          // um susto sorteado
+ *   triggerScare()                          // um susto sorteado (~2/3 assustadores, ~1/3 meme)
+ *   triggerScare('scary')                   // só os assustadores (animatrônico, rosto, grito, estática)
  *   triggerScare('zoom', { name: 'Pedro' }) // zoom suspeito no Pedro 🤨📸
  *   useSuppressScares(phase === 'reveal')   // segura os sustos aleatórios
  *
@@ -15,13 +16,21 @@ import type { ScareKind } from './bus'
 
 export type { ConcreteScare, ScareKind, ScareRequest } from './bus'
 export {
+  AUTO_SCARY_GAP_MS,
+  MEME_SCARES,
+  RARE_SCARE,
   SCARE_KINDS,
   SCARES_WITH_NAME,
+  SCARY_RANDOM,
+  SCARY_SCARES,
   isConcreteScare,
   isScareShowing,
   isScareSuppressed,
+  isScaryScare,
   onScare,
+  pickAutoScare,
   pickScare,
+  pickScaryScare,
   resolveScareKind,
   scareNames,
 } from './bus'

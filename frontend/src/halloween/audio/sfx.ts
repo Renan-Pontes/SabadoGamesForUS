@@ -1,4 +1,5 @@
 import { freq } from './notes'
+import { flicker, screech, shriek } from './scarySfx'
 import {
   SILENCE,
   bell as bellNote,
@@ -830,6 +831,54 @@ function whisper(v: Voice, t: number, vol: number) {
 }
 
 /**
+ * Guincho de jumpscare: serras desafinadas com o tom tremendo (sorteado a
+ * cada execução), rasgado por um zumbido de 31 Hz e muita distorção. Entra
+ * de uma vez e para seco — o silêncio logo depois assusta junto.
+ */
+function jumpscare(v: Voice, t: number, vol: number) {
+  const dur = 1.15
+  const p = patch(v)
+  const mix = p.gain(1)
+  const voices = [p.osc('sawtooth', 610), p.osc('sawtooth', 647), p.osc('square', 1230)]
+  for (const osc of voices) {
+    const f = osc.frequency.value
+    const shape = (x: number) => (x < 0.08 ? 0.55 + 0.65 * (x / 0.08) : 1.2 - 0.3 * x)
+    osc.frequency.setValueCurveAtTime(
+      randomCurve(48, (x) => f * shape(x) * (0.86 + Math.random() * 0.28)),
+      t,
+      dur,
+    )
+    osc.connect(mix)
+  }
+  const rasp = p.noise('white')
+  const raspFilter = p.filter('highpass', 2200)
+  const raspGain = p.gain(0.6)
+  rasp.connect(raspFilter).connect(raspGain).connect(mix)
+
+  const buzz = p.osc('square', 31)
+  const buzzDepth = p.gain(0.5)
+  const amp = p.gain(0.55)
+  buzz.connect(buzzDepth).connect(amp.gain)
+  mix.connect(amp)
+
+  const drive = p.shaper(6)
+  const highpass = p.filter('highpass', 350)
+  const env = p.gain(0)
+  amp.connect(drive).connect(highpass).connect(env)
+  holdEnv(env.gain, t, 0.6 * vol, 0.012, dur - 0.04, 0.028)
+  p.toOut(env, 0.2)
+
+  const end = t + dur + 0.05
+  for (const source of [...voices, buzz]) {
+    source.start(t)
+    source.stop(end)
+  }
+  startNoise(rasp, t, end)
+  p.finish()
+  return dur
+}
+
+/**
  * Ajuste fino de volume por efeito, medido no Chrome (OfflineAudioContext,
  * pico de RMS em janelas de 50 ms): os sustos ficam perto de −12 dBFS na
  * saída da TV, os de interface (tique, pop, ding) um pouco abaixo. O ganho
@@ -880,6 +929,10 @@ const RAW: Record<SfxName, SfxFn> = {
   hiss,
   static: staticNoise,
   whisper,
+  jumpscare,
+  screech,
+  shriek,
+  flicker,
 }
 
 export const SFX = Object.fromEntries(

@@ -191,12 +191,14 @@
   animation: hws-shake 90ms linear var(--hws-shake-delay, 300ms) var(--hws-shakes, 10);
 }
 
+/* Pequeno e sem giro: tremer a tela rápido (11 Hz) com amplitude grande faz
+   as bordas claras piscarem (fotossensibilidade; veja scary.test.ts). */
 @keyframes hws-shake {
-  0%   { transform: translate(0, 0) rotate(0deg); }
-  25%  { transform: translate(-1.6vmin, 1vmin) rotate(-1deg); }
-  50%  { transform: translate(1.4vmin, -1.2vmin) rotate(1deg); }
-  75%  { transform: translate(-1vmin, -0.8vmin) rotate(0deg); }
-  100% { transform: translate(0, 0) rotate(0deg); }
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-0.6vmin, 0.4vmin); }
+  50%  { transform: translate(0.55vmin, -0.45vmin); }
+  75%  { transform: translate(-0.4vmin, -0.3vmin); }
+  100% { transform: translate(0, 0); }
 }
 
 .hws-ghostface {
@@ -535,6 +537,99 @@
   color: rgba(248, 113, 113, 0.85);
   opacity: 0;
   animation: hws-in 600ms ease-out 700ms both;
+}
+
+/* ---------- penetra (o raro) ----------
+   Jumpscare de verdade: entra sem fade, avança até passar da tela, treme em
+   quadros secos (como sprite de jogo antigo) e corta para a estática. */
+
+.hws-penetra-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, #1a0606 0%, #000 70%);
+}
+
+.hws-penetra {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  animation: hws-penetra-lunge 150ms cubic-bezier(0.5, 0, 1, 0.5) both;
+}
+
+/* Ele sai do breu: bordas pretas por cima do rosto. */
+.hws-penetra-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.88) 100%);
+}
+
+@keyframes hws-penetra-lunge {
+  from { transform: translateY(10vh) scale(0.4); }
+  to   { transform: translateY(0) scale(1); }
+}
+
+/* Close: a testa sai por cima e o queixo por baixo — sobram olhos e bocarra. */
+.hws-penetra-face {
+  flex: none;
+  height: 160vh;
+  width: auto;
+  margin-top: -26vh;
+  animation: hws-penetra-twitch 120ms steps(1, end) 150ms infinite;
+}
+
+/* Tremor pequeno e sem giro: em quadros de 30 ms, amplitude grande fazia o
+   rosto claro piscar em 66% do campo de visão (fotossensibilidade). */
+@keyframes hws-penetra-twitch {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-0.6vmin, 0.35vmin); }
+  50%  { transform: translate(0.5vmin, -0.4vmin); }
+  75%  { transform: translate(-0.35vmin, -0.2vmin); }
+}
+
+/* Em SVG, px no transform são unidades do viewBox: a mandíbula desce até 46. */
+.hws-penetra-jaw {
+  animation: hws-penetra-jaw 1150ms linear both;
+}
+
+@keyframes hws-penetra-jaw {
+  0%   { transform: translateY(6px); }
+  12%  { transform: translateY(44px); }
+  30%  { transform: translateY(34px); }
+  42%  { transform: translateY(46px); }
+  58%  { transform: translateY(32px); }
+  72%  { transform: translateY(46px); }
+  100% { transform: translateY(40px); }
+}
+
+/* Jumpscare próprio (public/jumpscare/): imagem ocupa a tela e treme igual. */
+.hws-penetra-img {
+  flex: none;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  animation: hws-penetra-twitch 120ms steps(1, end) 150ms infinite;
+}
+
+.hws-custom-video {
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+
+.hws-custom-video video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hws-penetra-cut {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  animation: hws-in 1ms linear var(--hws-delay, 1150ms) both;
 }
 
 /* ---------- versão calma (reduzir movimento) ---------- */

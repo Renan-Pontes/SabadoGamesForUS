@@ -48,6 +48,11 @@ export const SFX_NAMES = [
   'hiss',
   'static',
   'whisper',
+  'jumpscare',
+  // Sustos de verdade: tocam pelo caminho alto do motor (loud.ts), como 'jumpscare'.
+  'screech',
+  'shriek',
+  'flicker',
 ] as const
 
 export type SfxName = (typeof SFX_NAMES)[number]
