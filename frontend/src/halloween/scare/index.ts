@@ -11,18 +11,15 @@ import type { ScareKind } from './bus'
  *   useSuppressScares(phase === 'reveal')   // segura os sustos aleatórios
  *
  * O overlay é montado uma vez pela camada global (HalloweenLayer). Sustos
- * aleatórios só acontecem na TV, a cada 4–9 minutos (3–6 no modo pesadelo).
+ * aleatórios só acontecem na TV, a cada 3–6 minutos (modo pesadelo, sempre).
  *
- * Nenhum susto aparece antes de o aparelho responder o aviso de entrada
- * (para cardíacos, epilépticos etc.). No modo leve, os assustadores viram
- * de meme neste aparelho.
+ * Nenhum susto aparece antes de o aparelho passar pelo aviso de entrada
+ * (para cardíacos, epilépticos etc.).
  */
 
 export type { ConcreteScare, ScareKind, ScareRequest } from './bus'
 export {
   AUTO_SCARY_GAP_MS,
-  applyScareLevel,
-  autoScaryGapMs,
   MEME_SCARES,
   RARE_SCARE,
   SCARE_KINDS,
@@ -41,14 +38,13 @@ export {
   scareNames,
   shouldDoubleTap,
 } from './bus'
-export type { ScareConsent, ScareLevel } from './level'
+export type { ScareConsent } from './level'
 export {
   NIGHTMARE,
+  acceptScareWarning,
   getScareConsent,
-  getScareLevel,
   hasScareConsent,
-  setScareLevel,
-  subscribeScareLevel,
+  subscribeScareConsent,
   useScareConsent,
 } from './level'
 

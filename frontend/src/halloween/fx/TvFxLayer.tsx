@@ -9,10 +9,8 @@ import {
   resolveScareKind,
   scareNames,
   triggerScare,
-  useScareConsent,
   NIGHTMARE,
 } from '../scare'
-import { loadCustomJumpscare } from '../scare/customJumpscare'
 import { getRoomFx } from './api'
 import type { RoomFx } from './api'
 import { canRollRareScare, isNarrating, randomScareDecision } from './autoScare'
@@ -70,8 +68,6 @@ function runAction(action: FxAction, code: string) {
  * do canto. Montado pela camada global só nas rotas de TV.
  */
 export default function TvFxLayer({ code }: { code: string }) {
-  const nightmare = useScareConsent()?.level === 'pesadelo'
-
   useEffect(() => {
     let active = true
     let busy = false
@@ -109,20 +105,16 @@ export default function TvFxLayer({ code }: { code: string }) {
       startRandomScares({
         // Espera também a narração do jogo acabar (o susto alto engoliria a frase).
         check: () => randomScareDecision(autoScareState()),
-        // Assustador só de 15 em 15 min (6 no pesadelo); no meio, meme (pickAutoScare).
+        // Assustador no máximo de 6 em 6 min; no meio, meme (pickAutoScare).
         fire: () => void scareWithName(code, pickAutoScare()),
-        // Pesadelo: um susto a cada 3–6 min em vez de 4–9.
-        ...(nightmare ? { minDelayMs: NIGHTMARE.randomMinMs, maxDelayMs: NIGHTMARE.randomMaxMs } : {}),
+        // Pesadelo: um susto a cada 3–6 min.
+        minDelayMs: NIGHTMARE.randomMinMs,
+        maxDelayMs: NIGHTMARE.randomMaxMs,
       }),
-    [code, nightmare],
+    [code],
   )
 
-  // O susto raro: 1 chance em 5000 a cada segundo, por fora dos sustos de 4–9 min.
-  // Já deixa carregado o jumpscare próprio de public/jumpscare/, se houver.
-  useEffect(() => {
-    void loadCustomJumpscare()
-  }, [])
-
+  // O susto raro: 1 chance em 5000 a cada segundo, por fora dos sustos de 3–6 min.
   useEffect(
     () =>
       startRareScare({

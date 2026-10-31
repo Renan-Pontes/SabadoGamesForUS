@@ -8,6 +8,7 @@ import { CenterMessage, HalloweenFrame } from './framework/Frame'
 import { EndBar, HostBar } from './framework/HostControls'
 import { HostSetupScreen, PlayerSetupScreen, TvSetupScreen } from './framework/SetupScreen'
 import { useHalloweenRoom, type HalloweenRoomApi } from './framework/useHalloweenRoom'
+import { useScareMoment } from './framework/scareMoment'
 import { ViewBoundary } from './framework/ViewBoundary'
 import { useWakeLock } from './framework/wakeLock'
 import { sendRoomFx } from './fx/api'
@@ -68,6 +69,9 @@ function GameRunner({ code, view, game }: { code: string; view: HalloweenView; g
   // Tela acesa durante a partida: celular bloqueado vira "offline" e perde a
   // vez; notebook ligado na TV apaga no descanso de tela.
   useWakeLock(status === 'live')
+  // Momento importante (espião revelado, morte ao amanhecer, abóbora
+  // explodindo...): TV e celulares assustam juntos.
+  useScareMoment(game, state, room.players, isTv, room.me?.id ?? null, room.roomState._m ?? null)
 
   // A sala voltou para o lobby (ou fechou), ou trocou de jogo: cada tela
   // volta para o seu lugar.

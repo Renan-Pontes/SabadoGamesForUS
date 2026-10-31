@@ -59,3 +59,10 @@ export const APAGAO_HIT_MS = 3300
 export const RASTEJANTE_STEPS: readonly number[] = [750, 1410, 1950, 2400, 2700]
 /** O bote final: ela salta da tela, junto com o guincho. */
 export const RASTEJANTE_LUNGE_MS = 3000
+
+// --- Vídeo (public/jumpscare/): escuro, e ele vem correndo. ----------------
+
+/** Um instante de tela preta e silêncio antes de o vídeo começar. */
+export const VIDEO_DARK_MS = 350
+/** Depois do vídeo, o último quadro (a cara dele) fica parado na tela. */
+export const VIDEO_HOLD_MS = 800

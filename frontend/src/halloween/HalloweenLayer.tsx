@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { initAudio, setSoundRole } from './audio'
 import { isTvLocation, roomCodeFromPath } from './fx/route'
 import TvFxLayer from './fx/TvFxLayer'
+import { loadCustomJumpscare } from './scare/customJumpscare'
 import ScareOverlay from './scare/ScareOverlay'
 import ScareWarning from './ui/ScareWarning'
 import { AudioUnlockPrompt, PhoneSoundButton } from './ui/SoundControls'
@@ -32,6 +33,12 @@ export default function HalloweenLayer() {
   }, [tv])
 
   useEffect(() => initAudio(), [])
+
+  // O vídeo de public/jumpscare/ fica carregado em todo aparelho (TV e
+  // celulares): os sustos dos momentos importantes saem em todo mundo.
+  useEffect(() => {
+    void loadCustomJumpscare()
+  }, [])
 
   const intensity = tv ? 'tv' : 'phone'
   return (

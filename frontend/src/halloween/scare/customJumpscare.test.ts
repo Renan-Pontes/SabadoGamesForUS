@@ -34,6 +34,12 @@ describe('jumpscare próprio (public/jumpscare/)', () => {
     })
   })
 
+  it('vídeo que o navegador não toca (webm no Safari antigo) cai para o mp4', async () => {
+    const { fetcher } = host({ '/jumpscare/jumpscare.mp4': 'video/mp4', '/jumpscare/jumpscare.webm': 'video/webm' })
+    const found = await findJumpscareFiles(fetcher, (url) => !url.endsWith('.webm'))
+    expect(found.video).toBe('/jumpscare/jumpscare.mp4')
+  })
+
   it('arquivo com o tipo errado ou sem rede fica de fora', async () => {
     const { fetcher } = host(
       { '/jumpscare/jumpscare.gif': 'text/plain', '/jumpscare/jumpscare.mp3': 'audio/mpeg' },

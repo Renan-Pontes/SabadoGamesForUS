@@ -71,8 +71,6 @@ function useTvSounds(state: AbbState, players: HPlayer[], now: () => number) {
   const victim = phase === 'boom' ? (state.boom?.victim ?? null) : null
   const victimName = victim === null ? '' : nameOf(players, victim)
   const eliminated = phase === 'boom' && Boolean(state.boom?.eliminated)
-  const firstGhost = eliminated && state.roster.filter((id) => !isAlive(state, id)).length === 1
-  const decided = phase === 'boom' && gameDecided(state)
   const themeText = state.theme?.text ?? ''
 
   useEffect(() => {
@@ -99,9 +97,10 @@ function useTvSounds(state: AbbState, players: HPlayer[], now: () => number) {
           stopVoice = speakSpooky(`${victimName} virou fantasma!`)
         })
       }
-      // Susto de meme só nos momentos grandes: o primeiro fantasma, o BUM
-      // que decide o jogo e, de vez em quando, o zoom em quem explodiu.
-      const scare: ScareKind | null = firstGhost ? 'pumpkin' : decided ? 'skeletons' : Math.random() < 0.18 ? 'zoom' : null
+      // Quem vira fantasma já leva o susto de verdade em todo aparelho
+      // (scareMoment, no index.ts). Fora isso, de vez em quando, o zoom em
+      // quem explodiu.
+      const scare: ScareKind | null = eliminated ? null : Math.random() < 0.18 ? 'zoom' : null
       if (scare) later(1300, () => triggerScare(scare, { name: victimName }))
     } else if (phase === 'final') {
       playSfx('win')
@@ -111,7 +110,7 @@ function useTvSounds(state: AbbState, players: HPlayer[], now: () => number) {
       timers.forEach(clearTimeout)
       stopVoice?.()
     }
-  }, [moment, phase, victim, victimName, eliminated, firstGhost, decided, themeText])
+  }, [moment, phase, victim, victimName, eliminated, themeText])
 
   // Cada passe faz "fuuu" (a abóbora voando).
   const passKey = phase === 'play' && state.passes > 0 ? `${state.round}-${state.passes}` : null

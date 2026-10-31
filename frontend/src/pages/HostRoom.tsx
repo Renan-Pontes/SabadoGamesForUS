@@ -855,6 +855,9 @@ const SCARY_BUTTONS: ScareButton[] = [
     done: () => '🤖 Ele ainda funciona... olhe a cara da galera!',
   },
   { kind: 'face', label: 'Rosto', icon: '👁️', done: () => '👁️ Não olha... o rosto está indo para a TV!' },
+  { kind: 'video', label: 'Ele corre', icon: '🦊', done: () => '🦊 Ele está correndo até a TV...' },
+  { kind: 'apagao', label: 'Apagão', icon: '🌑', done: () => '🌑 A TV vai "desligar"... fiquem quietos.' },
+  { kind: 'rastejante', label: 'Rastejante', icon: '🕸️', done: () => '🕸️ Ela está vindo pelo corredor...' },
 ]
 
 /** Espera entre sustos: cada um dura uns 2 s na TV, e evita rajada de cliques. */

@@ -1,13 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useReducedMotion } from '../ui/motion'
-import { onScare, setScareShowing, shouldDoubleTap } from './bus'
+import { isScaryScare, onScare, setScareShowing, shouldDoubleTap } from './bus'
 import type { ScareRequest } from './bus'
 import { playScareSound, scareDurationMs } from './config'
 import { NIGHTMARE, hasScareConsent } from './level'
 import ScareScene from './scenes'
 
 let followUpId = -1
+
+function vibrate(pattern: number[]) {
+  try {
+    navigator.vibrate?.(pattern)
+  } catch {
+    // Sem vibração (TV, iPhone): tudo bem.
+  }
+}
 
 /**
  * Palco dos sustos: escuta o barramento e mostra um susto por vez, por cima
@@ -28,7 +36,7 @@ export default function ScareOverlay() {
   useEffect(
     () =>
       onScare((request) => {
-        // Ninguém leu o aviso para cardíacos ainda: susto nenhum.
+        // Ninguém passou pelo aviso para cardíacos ainda: susto nenhum.
         if (!hasScareConsent()) return
         if (busy.current) {
           pending.current = request
@@ -44,6 +52,8 @@ export default function ScareOverlay() {
   useEffect(() => {
     if (!scare) return
     const stopSound = playScareSound(scare.kind, scare.name)
+    // No celular, o susto de verdade também treme na mão.
+    if (isScaryScare(scare.kind)) vibrate([350, 60, 500, 60, 900])
     const timer = window.setTimeout(() => {
       const next = pending.current
       pending.current = null

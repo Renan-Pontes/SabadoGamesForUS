@@ -1,5 +1,4 @@
 import { hushMusic, playSfx, speakSpooky } from '../audio'
-import { RARE_SCARE } from './bus'
 import {
   ANIMATRONIC_FLASHES,
   APAGAO_BREATH_MS,
@@ -9,6 +8,8 @@ import {
   RASTEJANTE_LUNGE_MS,
   RASTEJANTE_STEPS,
   SCREECH_AT_MS,
+  VIDEO_DARK_MS,
+  VIDEO_HOLD_MS,
 } from './scaryTiming'
 import type { ConcreteScare } from './bus'
 import { customJumpscare, playCustomJumpscareSound } from './customJumpscare'
@@ -37,6 +38,8 @@ export const SCARE_DURATION_MS: Record<ConcreteScare, number> = {
   apagao: 4700,
   // Ela vem engatinhando aos pulos por 3 s e salta na tela.
   rastejante: 4300,
+  // Sem o vídeo carregado, vira o animatrônico; com ele, dura o vídeo (scareDurationMs).
+  video: 2400,
   // Encara e grita por ~1,15 s, corta para a estática e some.
   penetra: 1700,
 }
@@ -44,9 +47,12 @@ export const SCARE_DURATION_MS: Record<ConcreteScare, number> = {
 /** Quando o Penetra some e a tela corta para a estática (casa com o fim do grito). */
 export const PENETRA_CUT_MS = 1150
 
-/** Tempo de tela de um susto; o raro com vídeo próprio dura o vídeo. */
+/** Tempo de tela de um susto; o de vídeo dura escuro + vídeo + a cara parada. */
 export function scareDurationMs(kind: ConcreteScare): number {
-  if (kind === RARE_SCARE) return customJumpscare()?.videoMs ?? SCARE_DURATION_MS[kind]
+  if (kind === 'video') {
+    const videoMs = customJumpscare()?.videoMs
+    return videoMs ? VIDEO_DARK_MS + videoMs + VIDEO_HOLD_MS : SCARE_DURATION_MS.animatronic
+  }
   return SCARE_DURATION_MS[kind]
 }
 
@@ -81,6 +87,8 @@ export function scareCaption(kind: ConcreteScare, name?: string): { icon: string
       return { icon: '🌑', text: 'NÃO SE MEXA' }
     case 'rastejante':
       return { icon: '🕸️', text: 'ELA ESTÁ VINDO' }
+    case 'video':
+      return { icon: '🦊', text: 'ELE CORREU ATÉ VOCÊ' }
     case 'penetra':
       return { icon: '👹', text: 'O PENETRA TE ACHOU' }
   }
@@ -172,6 +180,12 @@ export function playScareSound(kind: ConcreteScare, name?: string): () => void {
       for (const at of RASTEJANTE_STEPS) playSfx('crawl', { delay: at / 1000 })
       playSfx('screech', { delay: (RASTEJANTE_LUNGE_MS - 30) / 1000 })
       playSfx('slam', { delay: (RASTEJANTE_LUNGE_MS - 30) / 1000 })
+      break
+    case 'video':
+      if (!customJumpscare()?.video) return playScareSound('animatronic')
+      // O grito é o do próprio vídeo (caminho alto); por baixo, o soco grave.
+      hushMusic(scareDurationMs('video') / 1000)
+      playSfx('slam', { delay: (VIDEO_DARK_MS + 120) / 1000 })
       break
     case 'penetra':
       if (playCustomJumpscareSound()) break

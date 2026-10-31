@@ -261,6 +261,30 @@ export function playSfx(name: SfxName, options: SfxOptions = {}): number {
   }
 }
 
+const routedMedia = new WeakMap<HTMLMediaElement, AudioNode>()
+
+/**
+ * Liga o som de um <video>/<audio> no caminho ALTO dos sustos (pré-ganho,
+ * saturação, limitador e o piso de 0,9 do volume). Depois de ligado, o som
+ * do elemento só sai por aqui — o mudo e o volume do app continuam valendo.
+ * Devolve false se o áudio ainda está travado (o elemento toca sozinho).
+ */
+export function routeMediaToScare(element: HTMLMediaElement, trim = 0.45): boolean {
+  const g = graph
+  if (routedMedia.has(element)) return true
+  if (!g || !isRunning()) return false
+  try {
+    const source = g.ctx.createMediaElementSource(element)
+    const gain = g.ctx.createGain()
+    gain.gain.value = trim
+    source.connect(gain).connect(g.scareVoice.out.dry)
+    routedMedia.set(element, source)
+    return true
+  } catch {
+    return false
+  }
+}
+
 /**
  * Cala a música agora, por `seconds` (até 10 s), e depois ela volta devagar.
  * Os sustos chamam no começo da cena: o silêncio antes do grito assusta junto.

@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Box, Button, Typography } from '@mui/material'
-import { playSfx, unlockAudio } from '../audio'
-import { setScareLevel, useScareConsent } from '../scare/level'
-import type { ScareLevel } from '../scare/level'
+import { getSoundState, playSfx, setMuted, unlockAudio } from '../audio'
+import { acceptScareWarning, useScareConsent } from '../scare/level'
 import { BLOODY_FONT, CREEPY_FONT } from './fonts'
 import './spooky.css'
 
@@ -25,8 +24,9 @@ const WHAT_HAPPENS: string[] = [
 
 /**
  * O aviso da entrada: aparece uma vez por aparelho, por cima de tudo, antes
- * de qualquer susto. A pessoa escolhe o modo pesadelo (sustos de verdade) ou
- * o leve (só memes). O clique também é o gesto que destrava o som da TV.
+ * de qualquer susto. O site é da mesa de amigos e é sempre pesadelo — o
+ * aviso existe para quem cair aqui por acaso. "Entendi" libera os sustos (e
+ * é o gesto que destrava o som); "sair" leva para fora do site.
  */
 export default function ScareWarning() {
   const consent = useScareConsent()
@@ -35,7 +35,7 @@ export default function ScareWarning() {
 
   useEffect(() => {
     if (!open) return
-    primary.current?.focus()
+    primary.current?.focus({ preventScroll: true })
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
@@ -45,11 +45,18 @@ export default function ScareWarning() {
 
   if (!open) return null
 
-  const choose = (level: ScareLevel) => {
+  const enter = () => {
     unlockAudio()
-    setScareLevel(level)
-    // Na TV (que nasce com som), o coração bate uma vez: bem-vindo.
-    if (level === 'pesadelo') window.setTimeout(() => playSfx('heartbeat', { volume: 0.8 }), 120)
+    // No celular, liga o som: os sustos dos momentos importantes também
+    // gritam na mão de quem joga (dá para calar no botãozinho do canto).
+    if (getSoundState().role === 'phone') setMuted(false)
+    acceptScareWarning()
+    // O coração bate uma vez: bem-vindo.
+    window.setTimeout(() => playSfx('heartbeat', { volume: 0.8 }), 120)
+  }
+
+  const leave = () => {
+    window.location.replace('about:blank')
   }
 
   return (
@@ -139,22 +146,22 @@ export default function ScareWarning() {
             ))}
           </Box>
           <Typography sx={{ mt: 1.5, fontSize: '0.92rem', color: 'rgba(245, 240, 225, 0.8)' }}>
-            Se você se encaixa em algum desses — ou se tem alguém assim na sala — escolha o <b>modo leve</b>: só
-            sustos de meme, sem grito e sem criatura.
+            Se você se encaixa em algum desses, <b>não entre</b>. Aqui não tem versão leve: é pesadelo do começo
+            ao fim.
           </Typography>
         </Box>
 
-        <Box sx={{ mt: 3, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
+        <Box sx={{ mt: 3, display: 'grid', gap: 1.25 }}>
           <Button
             ref={primary}
             fullWidth
             size="large"
             variant="contained"
-            onClick={() => choose('pesadelo')}
+            onClick={enter}
             sx={{
-              py: 1.6,
+              py: 1.7,
               fontWeight: 900,
-              fontSize: '1.05rem',
+              fontSize: '1.1rem',
               color: '#fff',
               background: 'linear-gradient(135deg, #b3122a, #5c0614)',
               border: '1px solid rgba(255, 107, 125, 0.6)',
@@ -162,30 +169,20 @@ export default function ScareWarning() {
               '&:hover': { background: 'linear-gradient(135deg, #d0152f, #6e0718)' },
             }}
           >
-            💀 Eu aguento — modo pesadelo
+            💀 Entendi — quero entrar
           </Button>
           <Button
-            fullWidth
-            size="large"
-            variant="outlined"
-            onClick={() => choose('leve')}
-            sx={{
-              py: 1.6,
-              fontWeight: 800,
-              fontSize: '1rem',
-              color: '#f5f0e1',
-              borderColor: 'rgba(245, 240, 225, 0.4)',
-              '&:hover': { borderColor: '#f5f0e1', background: 'rgba(245, 240, 225, 0.06)' },
-            }}
+            onClick={leave}
+            sx={{ color: 'rgba(245, 240, 225, 0.7)', fontWeight: 700, textTransform: 'none' }}
           >
-            🙂 Sou sensível — modo leve
+            Não é para mim — sair do site
           </Button>
         </Box>
 
         <Typography sx={{ mt: 2.5, fontSize: '0.8rem', lineHeight: 1.5, color: 'rgba(245, 240, 225, 0.6)' }}>
-          Ao escolher o modo pesadelo, você confirma que leu este aviso e que não se encaixa nos grupos acima. As
-          imagens não piscam em sequência (nada de estrobo), mas a tela vai do claro ao escuro de repente. Este aviso
-          aparece uma vez por aparelho; na TV, dá para trocar o modo no fantasminha do canto.
+          Ao entrar, você confirma que leu este aviso e que não se encaixa nos grupos acima. As imagens não piscam
+          em sequência (nada de estrobo), mas a tela vai do claro ao escuro de repente. Este aviso aparece uma vez
+          por aparelho.
         </Typography>
       </Box>
     </Box>

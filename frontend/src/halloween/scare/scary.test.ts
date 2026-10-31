@@ -170,7 +170,7 @@ describe('sustos de verdade no barramento', () => {
   })
 
   it('os grupos cobrem todos os sustos sorteáveis, sem sobrar nem repetir', () => {
-    expect([...SCARY_SCARES].sort()).toEqual(['animatronic', 'apagao', 'face', 'rastejante', 'scream', 'static'])
+    expect([...SCARY_SCARES].sort()).toEqual(['animatronic', 'apagao', 'face', 'rastejante', 'scream', 'static', 'video'])
     expect([...SCARY_SCARES, ...MEME_SCARES].sort()).toEqual([...SCARE_KINDS].sort())
   })
 
@@ -205,7 +205,7 @@ describe('sustos de verdade no barramento', () => {
     }
   })
 
-  it('automático: assustador só se o último foi há 15 min ou mais; antes disso, só meme', () => {
+  it('automático: assustador só se o último foi há 6 min ou mais (pesadelo); antes disso, só meme', () => {
     expect(isScaryScare('animatronic')).toBe(true)
     expect(isScaryScare(RARE_SCARE)).toBe(true)
     expect(isScaryScare('doot')).toBe(false)
