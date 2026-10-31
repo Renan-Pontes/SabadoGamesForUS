@@ -416,3 +416,31 @@ export function crawl(v: Voice, t: number, vol: number) {
   p.finish()
   return dur
 }
+
+/**
+ * Vidro trincando (a pegadinha da tela quebrada): o estalo do impacto, um
+ * baque abafado, estalinhos da rachadura correndo e cacos tilintando.
+ */
+export function shatter(v: Voice, t: number, vol: number) {
+  const dur = 1.2
+  noiseHit(v, t, { type: 'highpass', freq: 1800, peak: 0.9 * vol, decay: 0.09, wet: 0.2 })
+  noiseHit(v, t, { type: 'lowpass', freq: 500, peak: 0.6 * vol, decay: 0.12 })
+  for (let i = 0; i < 8; i += 1) {
+    noiseHit(v, t + 0.03 + Math.random() * 0.4, { type: 'highpass', freq: 4000, peak: 0.3 * vol, decay: 0.01 })
+  }
+  const p = patch(v)
+  const out = p.gain(1)
+  for (let i = 0; i < 16; i += 1) {
+    const at = t + 0.02 + Math.random() ** 1.6 * 0.9
+    const ping = p.osc('sine', 2200 + Math.random() * 5000)
+    const gain = p.gain(0)
+    ping.connect(gain).connect(out)
+    const fade = Math.max(0.15, 1 - (at - t) / dur)
+    pluckEnv(gain.gain, at, (0.12 + Math.random() * 0.18) * vol * fade, 0.001, 0.05 + Math.random() * 0.15)
+    ping.start(at)
+    ping.stop(at + 0.25)
+  }
+  p.toOut(out, 0.35)
+  p.finish()
+  return dur
+}

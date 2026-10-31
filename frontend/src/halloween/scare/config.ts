@@ -7,6 +7,9 @@ import {
   FACE_HIT_MS,
   RASTEJANTE_LUNGE_MS,
   RASTEJANTE_STEPS,
+  BATTERY_OFF_MS,
+  PRANK_LAUGH_MS,
+  PRANK_REVEAL_MS,
   SCREECH_AT_MS,
   VIDEO_DARK_MS,
   VIDEO_HOLD_MS,
@@ -40,6 +43,10 @@ export const SCARE_DURATION_MS: Record<ConcreteScare, number> = {
   rastejante: 4300,
   // Sem o vídeo carregado, vira o animatrônico; com ele, dura o vídeo (scareDurationMs).
   video: 2400,
+  // Pegadinhas: engana até o PRANK_REVEAL_MS e ri por PRANK_LAUGH_MS.
+  quebrada: PRANK_REVEAL_MS.quebrada + PRANK_LAUGH_MS,
+  possuida: PRANK_REVEAL_MS.possuida + PRANK_LAUGH_MS,
+  bateria: PRANK_REVEAL_MS.bateria + PRANK_LAUGH_MS,
   // Encara e grita por ~1,15 s, corta para a estática e some.
   penetra: 1700,
 }
@@ -89,6 +96,12 @@ export function scareCaption(kind: ConcreteScare, name?: string): { icon: string
       return { icon: '🕸️', text: 'ELA ESTÁ VINDO' }
     case 'video':
       return { icon: '🦊', text: 'ELE CORREU ATÉ VOCÊ' }
+    case 'quebrada':
+      return { icon: '🎃', text: 'TRAVESSURA! Sua tela tá inteira, kkkkk' }
+    case 'possuida':
+      return { icon: '🎃', text: name ? `TRAVESSURA! As fotos de ${name} estão salvas, kkkkk` : 'TRAVESSURA! Suas fotos estão salvas, kkkkk' }
+    case 'bateria':
+      return { icon: '🎃', text: 'TRAVESSURA! A bateria tá ótima, kkkkk' }
     case 'penetra':
       return { icon: '👹', text: 'O PENETRA TE ACHOU' }
   }
@@ -104,6 +117,12 @@ export function playScareSound(kind: ConcreteScare, name?: string): () => void {
   const timers: number[] = []
   const sayLater = (text: string, delayMs: number, pitch: number, rate: number) => {
     timers.push(window.setTimeout(() => speakSpooky(text, { pitch, rate }), delayMs))
+  }
+  /** A ficha cai: risada, um "pop" e a voz gritando "travessura!". */
+  const laughAt = (ms: number) => {
+    playSfx('pop', { delay: ms / 1000 })
+    playSfx('laugh', { delay: ms / 1000 + 0.1 })
+    sayLater('travessura!', ms + 150, 1.3, 1.1)
   }
 
   switch (kind) {
@@ -186,6 +205,22 @@ export function playScareSound(kind: ConcreteScare, name?: string): () => void {
       // O grito é o do próprio vídeo (caminho alto); por baixo, o soco grave.
       hushMusic(scareDurationMs('video') / 1000)
       playSfx('slam', { delay: (VIDEO_DARK_MS + 120) / 1000 })
+      break
+    case 'quebrada':
+      playSfx('shatter')
+      laughAt(PRANK_REVEAL_MS.quebrada)
+      break
+    case 'possuida':
+      playSfx('buzzer', { volume: 0.8 })
+      playSfx('static', { delay: 0.25, volume: 0.35 })
+      playSfx('buzzer', { delay: 1.9, volume: 0.6 })
+      laughAt(PRANK_REVEAL_MS.possuida)
+      break
+    case 'bateria':
+      playSfx('tick', { volume: 0.6 })
+      playSfx('tick', { delay: 1, volume: 0.6 })
+      playSfx('powerdown', { delay: BATTERY_OFF_MS / 1000 })
+      laughAt(PRANK_REVEAL_MS.bateria)
       break
     case 'penetra':
       if (playCustomJumpscareSound()) break

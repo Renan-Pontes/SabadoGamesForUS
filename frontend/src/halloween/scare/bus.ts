@@ -21,6 +21,9 @@ export const SCARE_KINDS = [
   'apagao',
   'rastejante',
   'video',
+  'quebrada',
+  'possuida',
+  'bateria',
 ] as const
 
 /**
@@ -59,8 +62,16 @@ export const SCARY_SHARE = 2 / 3
  */
 export const AUTO_SCARY_GAP_MS = NIGHTMARE.scaryGapMs
 
+/**
+ * As pegadinhas: enganam por alguns segundos (tela quebrada, aparelho
+ * possuído apagando as fotos, bateria morrendo) e terminam em
+ * "TRAVESSURA! kkkkk". Entram no sorteio dos de meme e aparecem de surpresa
+ * no celular de cada um durante os jogos (framework/phonePrank.ts).
+ */
+export const PRANK_SCARES = ['quebrada', 'possuida', 'bateria'] as const satisfies readonly (typeof SCARE_KINDS)[number][]
+
 /** Sustos que ficam melhores com o nome de alguém da sala. */
-export const SCARES_WITH_NAME: readonly ConcreteScare[] = ['zoom', 'eyes']
+export const SCARES_WITH_NAME: readonly ConcreteScare[] = ['zoom', 'eyes', 'possuida']
 
 export type ScareRequest = { id: number; kind: ConcreteScare; name?: string }
 

@@ -6,6 +6,7 @@ import type { ConcreteScare } from './bus'
 import { PENETRA_CUT_MS, scareCaption } from './config'
 import { VIDEO_DARK_MS } from './scaryTiming'
 import { customJumpscare, mountCustomVideo } from './customJumpscare'
+import { BatteryScene, CrackedScene, PossessedScene } from './prank'
 import { AnimatronicScene, ApagaoScene, FaceScene, RastejanteScene } from './scary'
 import './scare.css'
 
@@ -409,6 +410,12 @@ function Scene({ kind, name }: { kind: ConcreteScare; name?: string }) {
       return <RastejanteScene />
     case 'video':
       return customJumpscare()?.video ? <VideoJumpscare /> : <AnimatronicScene />
+    case 'quebrada':
+      return <CrackedScene />
+    case 'possuida':
+      return <PossessedScene name={name} />
+    case 'bateria':
+      return <BatteryScene />
     case 'penetra':
       return <Penetra />
   }

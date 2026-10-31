@@ -21,6 +21,7 @@ export type { ConcreteScare, ScareKind, ScareRequest } from './bus'
 export {
   AUTO_SCARY_GAP_MS,
   MEME_SCARES,
+  PRANK_SCARES,
   RARE_SCARE,
   SCARE_KINDS,
   SCARES_WITH_NAME,

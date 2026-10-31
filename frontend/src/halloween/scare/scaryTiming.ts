@@ -66,3 +66,18 @@ export const RASTEJANTE_LUNGE_MS = 3000
 export const VIDEO_DARK_MS = 350
 /** Depois do vídeo, o último quadro (a cara dele) fica parado na tela. */
 export const VIDEO_HOLD_MS = 800
+
+// --- Pegadinhas: engana por uns segundos e aí... TRAVESSURA! ---------------
+
+/** Quando cai a ficha ("TRAVESSURA! kkkkk") em cada pegadinha. */
+export const PRANK_REVEAL_MS = {
+  quebrada: 3200,
+  possuida: 3800,
+  bateria: 3400,
+} as const
+
+/** Quanto tempo o "TRAVESSURA!" fica na tela antes de tudo sumir. */
+export const PRANK_LAUGH_MS = 2200
+
+/** Bateria: quando a tela "apaga" (antes do TRAVESSURA). */
+export const BATTERY_OFF_MS = 1800

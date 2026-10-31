@@ -59,6 +59,8 @@ export const SFX_NAMES = [
   'breath',
   'dread',
   'crawl',
+  // Pegadinha da tela quebrada.
+  'shatter',
 ] as const
 
 export type SfxName = (typeof SFX_NAMES)[number]

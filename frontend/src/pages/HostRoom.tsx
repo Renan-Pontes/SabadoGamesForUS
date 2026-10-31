@@ -844,6 +844,15 @@ const SCARES: ScareButton[] = [
     named: true,
     done: (name) => (name ? `👀 Os olhos chamam ${name}...` : '👀 Olhos no escuro enviados!'),
   },
+  { kind: 'quebrada', label: 'Tela quebrada', icon: '📱', done: () => '📱💥 A TV vai "quebrar"... travessura!' },
+  {
+    kind: 'possuida',
+    label: 'TV possuída',
+    icon: '💻',
+    named: true,
+    done: (name) => (name ? `💻 Apagando as fotos de ${name}... travessura!` : '💻 A TV foi possuída... travessura!'),
+  },
+  { kind: 'bateria', label: 'Bateria 1%', icon: '🔋', done: () => '🔋 A TV vai "desligar"... travessura!' },
 ]
 
 /** Os sustos de verdade (som bem alto na TV): destaque em vermelho, acima dos de meme. */
