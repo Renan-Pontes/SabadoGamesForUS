@@ -110,7 +110,10 @@ no `roster` — quem entrou no meio vê "Partida rolando" (o framework cuida).
   e os olhos) a tela do jogo já informa.
 - **A tela só desenha.** Quem decide fase, pontos e vencedor é o motor.
 - O fim (`state.over`) é desenhado pelo seu jogo; o framework põe "Jogar de
-  novo" e "Voltar à sala" no celular do host.
+  novo" e "Voltar à sala" no celular do host. O "⏹ Encerrar" do host põe
+  `over = true` **em qualquer fase** (sem chamar o motor): teste `over`
+  antes da fase — `if (state.over) return <Fim />` — senão a TV desenha a
+  votação e o fim juntos.
 - **Rodapé do celular é do framework**: a barra do host (Pular / Encerrar /
   Susto) fica fixa embaixo e o botão de som ocupa o canto inferior esquerdo
   (38 px). Nada de botão fixo no rodapé do `Phone`.
@@ -134,6 +137,14 @@ Obrigatório (HALLOWEEN.md): regras e pontuação, rodadas especiais,
 simulações com 3, 8 e 15 jogadores em várias sementes, gente offline e `skip`.
 `registry.test.ts` também roda todo motor registrado — se o seu travar, ele
 acusa. Rode: `npx vitest run src/halloween`.
+
+Telas também têm teste de fumaça: `renderAllPhases({ engine, Tv, Phone },
+{ players, seed, options })` (`engine/renderSmoke.ts`) joga uma partida
+simulada e desenha a TV e cada celular em cada momento (antes e depois de
+responder). Copie `games/quem-morre-primeiro/render.test.ts` para a sua pasta.
+
+O jogo só aparece no catálogo quando o slug sai de `HALLOWEEN_WIP`
+(`slugs.ts`) — isso é feito na integração/deploy, não pela pasta do jogo.
 
 ## Armadilhas
 

@@ -36,19 +36,26 @@ export default function Tv({ state, players, now }: HalloweenViewProps<QmpState>
         )}
       </Box>
 
-      {state.phase === 'vote' && <VoteBoard state={state} players={players} />}
-      {state.phase === 'reveal' && <RevealBoard state={state} players={players} />}
-      {state.phase === 'scores' && <Scoreboard state={state} players={players} />}
-      {state.over && <FinalBoard state={state} players={players} />}
+      {/* "Encerrar" do host põe over = true em qualquer fase: o fim vence tudo. */}
+      {state.over ? (
+        <FinalBoard state={state} players={players} />
+      ) : (
+        <>
+          {state.phase === 'vote' && <VoteBoard state={state} players={players} />}
+          {state.phase === 'reveal' && <RevealBoard state={state} players={players} />}
+          {state.phase === 'scores' && <Scoreboard state={state} players={players} />}
+        </>
+      )}
     </Box>
   )
 }
 
 /** Sons de cada momento: tique-taque no fim da votação, rufar e grito na revelação. */
 function usePhaseSounds(state: QmpState, now: () => number) {
-  // O som toca uma vez por momento (rodada + fase), não a cada poll.
-  const moment = `${state.round}-${state.phase}`
-  const phase = state.phase
+  // O som toca uma vez por momento (rodada + fase), não a cada poll. Partida
+  // encerrada pelo host conta como o fim, qualquer que seja a fase.
+  const phase = state.over ? 'final' : state.phase
+  const moment = `${state.round}-${phase}`
   const hasDead = (state.reveal?.dead.length ?? 0) > 0
   useEffect(() => {
     if (phase === 'vote') playSfx('bell', { volume: 0.6 })
