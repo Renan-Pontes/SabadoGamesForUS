@@ -8,11 +8,11 @@ export const meta: HalloweenGameMeta = {
   pitch: 'Filmes, monstros, folclore e Halloween: acerte rápido e suba no pódio.',
   howTo: [
     'A TV faz uma pergunta de terror com quatro alternativas.',
-    'Responda no celular: cada cor é uma alternativa.',
+    'No celular, toque na cor (e no símbolo) da sua resposta.',
     'Acertou rápido, mais pontos. Acertos seguidos dão bônus.',
     'No fim, pódio de quem mais sabe de terror.',
   ],
-  duration: '8-12 min',
+  duration: '5-8 min',
   vibe: 'Festa',
   minPlayers: 1,
   maxPlayers: 15,
@@ -27,6 +27,7 @@ export const meta: HalloweenGameMeta = {
     {
       key: 'questions',
       label: 'Perguntas',
+      help: 'Placar a cada 3 perguntas e pódio no fim.',
       choices: [
         { value: 8, label: '8' },
         { value: 10, label: '10' },
@@ -37,6 +38,7 @@ export const meta: HalloweenGameMeta = {
     {
       key: 'seconds',
       label: 'Tempo por pergunta',
+      help: 'Quanto mais rápido acertar, mais pontos.',
       choices: [
         { value: 15, label: '15 s' },
         { value: 20, label: '20 s' },
