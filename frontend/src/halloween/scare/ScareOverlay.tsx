@@ -1,15 +1,28 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useReducedMotion } from '../ui/motion'
-import { onScare, setScareShowing } from './bus'
+import { isScaryScare, onScare, setScareShowing, shouldDoubleTap } from './bus'
 import type { ScareRequest } from './bus'
 import { playScareSound, scareDurationMs } from './config'
+import { NIGHTMARE, hasScareConsent } from './level'
 import ScareScene from './scenes'
+
+let followUpId = -1
+
+function vibrate(pattern: number[]) {
+  try {
+    navigator.vibrate?.(pattern)
+  } catch {
+    // Sem vibração (TV, iPhone): tudo bem.
+  }
+}
 
 /**
  * Palco dos sustos: escuta o barramento e mostra um susto por vez, por cima
  * de tudo, sem nunca receber clique. Se outro susto chega no meio, ele
  * espera a vez (só o mais recente) e entra logo depois.
+ *
+ * Nada aparece antes de alguém responder o aviso de entrada (ui/ScareWarning).
  *
  * Montado uma única vez pela camada global (HalloweenLayer).
  */
@@ -17,11 +30,14 @@ export default function ScareOverlay() {
   const [scare, setScare] = useState<ScareRequest | null>(null)
   const pending = useRef<ScareRequest | null>(null)
   const busy = useRef(false)
+  const followUp = useRef<number | undefined>(undefined)
   const reduced = useReducedMotion()
 
   useEffect(
     () =>
       onScare((request) => {
+        // Ninguém passou pelo aviso para cardíacos ainda: susto nenhum.
+        if (!hasScareConsent()) return
         if (busy.current) {
           pending.current = request
           return
@@ -36,11 +52,24 @@ export default function ScareOverlay() {
   useEffect(() => {
     if (!scare) return
     const stopSound = playScareSound(scare.kind, scare.name)
+    // No celular, o susto de verdade também treme na mão.
+    if (isScaryScare(scare.kind)) vibrate([350, 60, 500, 60, 900])
     const timer = window.setTimeout(() => {
       const next = pending.current
       pending.current = null
       if (next) {
         setScare(next)
+        return
+      }
+      if (shouldDoubleTap(scare)) {
+        // Some, deixa a sala respirar... e volta. Continua "ocupado" no meio.
+        setScare(null)
+        followUp.current = window.setTimeout(() => {
+          followUp.current = undefined
+          const queued = pending.current
+          pending.current = null
+          setScare(queued ?? { id: (followUpId -= 1), kind: 'face' })
+        }, NIGHTMARE.doubleTapGapMs)
         return
       }
       busy.current = false
@@ -55,6 +84,7 @@ export default function ScareOverlay() {
 
   useEffect(
     () => () => {
+      window.clearTimeout(followUp.current)
       busy.current = false
       setScareShowing(false)
     },

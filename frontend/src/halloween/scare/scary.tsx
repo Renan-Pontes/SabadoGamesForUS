@@ -1,9 +1,17 @@
 import type { CSSProperties } from 'react'
-import { ANIMATRONIC_FLASHES, ANIMATRONIC_RUSH_MS, FACE_HIT_MS } from './scaryTiming'
+import {
+  ANIMATRONIC_FLASHES,
+  ANIMATRONIC_RUSH_MS,
+  APAGAO_EYES_MS,
+  APAGAO_HIT_MS,
+  APAGAO_OFF_MS,
+  FACE_HIT_MS,
+  RASTEJANTE_LUNGE_MS,
+} from './scaryTiming'
 import './scary.css'
 
 /**
- * Os sustos de verdade: o animatrônico e o rosto. Tudo original, desenhado
+ * Os sustos de verdade: o animatrônico, o rosto, o apagão e a rastejante. Tudo original, desenhado
  * aqui em SVG e animado por CSS (scary.css) — nada de imagem baixada.
  *
  * Segurança (pode ter gente fotossensível na sala): no máximo 2 clarões por
@@ -218,7 +226,7 @@ function Animatronic() {
  * olheiras, buraco do nariz, boca rasgada de orelha a orelha com dentes
  * tortos e cabelo molhado em mechas. Original.
  */
-function PaleFace() {
+export function PaleFace() {
   const hair = { stroke: '#07080a', strokeLinecap: 'round' as const, fill: 'none' }
   const upperTeeth = [
     [100, 252, 12, -10],
@@ -389,6 +397,158 @@ export function FaceScene() {
         </div>
       </div>
       <Vhs late />
+    </div>
+  )
+}
+
+/**
+ * A rastejante, vista de frente vindo pelo chão: cabelo preto molhado
+ * caindo por cima da cara, cabeça torta, olhos pretos enormes, boca aberta
+ * demais e braços compridos e finos dobrados como pernas de aranha. Original.
+ * O ponto de escala (o meio da cara) fica em 50% 47% do desenho.
+ */
+function Crawler() {
+  const limb = { stroke: '#2a2d29', strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' }
+  const hair = { stroke: '#050506', strokeLinecap: 'round' as const, fill: 'none' }
+  return (
+    <svg viewBox="0 0 400 320" aria-hidden>
+      <defs>
+        <radialGradient id="hws-crawl-skin" cx="46%" cy="38%" r="70%">
+          <stop offset="0%" stopColor="#c9cfc2" />
+          <stop offset="55%" stopColor="#8d968a" />
+          <stop offset="100%" stopColor="#3b4239" />
+        </radialGradient>
+        <radialGradient id="hws-crawl-void" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#000" />
+          <stop offset="70%" stopColor="#000" />
+          <stop offset="100%" stopColor="rgba(20, 16, 22, 0)" />
+        </radialGradient>
+      </defs>
+      {/* Sombra no chão e o corpo (as costas curvadas atrás da cabeça). */}
+      <ellipse cx={200} cy={292} rx={170} ry={22} fill="rgba(0, 0, 0, 0.55)" />
+      <ellipse cx={200} cy={118} rx={92} ry={58} fill="#141614" />
+      <path d="M140 150 Q 200 120 260 150 L 250 210 Q 200 226 150 210 Z" fill="#1b1d1a" />
+      {/* Braços: ombro → cotovelo lá em cima → mão espalmada no chão. */}
+      <g {...limb} strokeWidth={13}>
+        <path d="M150 170 L 70 92 L 34 282" />
+        <path d="M250 170 L 334 86 L 368 280" />
+      </g>
+      <g {...limb} strokeWidth={4} stroke="#4a5047">
+        <path d="M34 282 l -26 10 M34 282 l -16 22 M34 282 l 2 26 M34 282 l 18 20" />
+        <path d="M368 280 l 26 12 M368 280 l 16 22 M368 280 l -2 26 M368 280 l -18 20" />
+      </g>
+      <circle cx={70} cy={92} r={9} fill="#2a2d29" />
+      <circle cx={334} cy={86} r={9} fill="#2a2d29" />
+      {/* Cabeça torta. */}
+      <g transform="rotate(-14 200 150)">
+        <path
+          d="M200 74 C 246 74 266 112 262 158 C 258 200 236 236 200 240 C 164 236 142 200 138 158 C 134 112 154 74 200 74 Z"
+          fill="url(#hws-crawl-skin)"
+        />
+        <ellipse cx={176} cy={146} rx={19} ry={25} fill="url(#hws-crawl-void)" />
+        <ellipse cx={226} cy={142} rx={21} ry={28} fill="url(#hws-crawl-void)" />
+        <circle cx={226} cy={146} r={2.6} fill="#e9e6da" opacity={0.75} />
+        <g className="hws-crawl-mouth">
+          <ellipse cx={203} cy={204} rx={17} ry={30} fill="#050101" stroke="#2b0707" strokeWidth={2} />
+        </g>
+        <path d="M168 172 C 166 190 172 204 166 226" stroke="#0a0a0c" strokeWidth={3} fill="none" />
+        {/* Cabelo molhado caindo por cima do rosto. */}
+        <g {...hair} strokeWidth={7}>
+          <path d="M200 70 C 170 86 150 140 146 250" />
+          <path d="M200 70 C 230 86 252 140 256 250" />
+          <path d="M196 72 C 186 110 190 150 182 268" />
+          <path d="M206 72 C 220 112 214 150 222 262" />
+        </g>
+        <g {...hair} strokeWidth={4}>
+          <path d="M190 74 C 160 120 166 190 156 282" />
+          <path d="M212 74 C 244 120 238 190 248 284" />
+          <path d="M200 74 C 200 130 196 200 200 300" />
+          <path d="M180 78 C 150 130 140 200 134 270" />
+          <path d="M222 78 C 252 130 262 200 268 270" />
+        </g>
+      </g>
+    </svg>
+  )
+}
+
+/** Letreiro de câmera de segurança (o REC pisca devagar, 1 vez por segundo). */
+function CamOsd({ label }: { label: string }) {
+  return (
+    <>
+      <div className="hws-vhs-osd">{label}</div>
+      <div className="hws-vhs-osd hws-cam-rec">● REC</div>
+      <div className="hws-vhs-osd hws-vhs-osd--date">31 OUT 2026 · 03:33</div>
+    </>
+  )
+}
+
+/**
+ * 🌑 A TV "desliga" como TV de tubo (a imagem vira uma linha e um ponto).
+ * Escuro total e silêncio. Alguém respira colado no ouvido. Um coração.
+ * Dois pontinhos vermelhos abrem lá longe e chegam mais perto... e, quando
+ * todo mundo já está achando que é só isso, o rosto explode na tela.
+ */
+export function ApagaoScene() {
+  return (
+    <div
+      className="hws-scary"
+      style={
+        {
+          '--hws-off': `${APAGAO_OFF_MS}ms`,
+          '--hws-eyes': `${APAGAO_EYES_MS}ms`,
+          '--hws-hit': `${APAGAO_HIT_MS}ms`,
+        } as CSSProperties
+      }
+    >
+      <div className="hws-apagao-black" />
+      <div className="hws-apagao-crt" />
+      <div className="hws-apagao-dot" />
+      <div className="hws-apagao-eyes">
+        <span />
+        <span />
+      </div>
+      <div className="hws-apagao-text">não se mexa</div>
+      <div className="hws-face-stage">
+        <div className="hws-face-burst">
+          <div className="hws-face-jitter">
+            <PaleFace />
+          </div>
+        </div>
+      </div>
+      <div className="hws-apagao-blood" />
+      <Vhs late />
+    </div>
+  )
+}
+
+/**
+ * 🕸️ Câmera do corredor, de madrugada. Lá no fundo, uma coisa de quatro.
+ * A imagem engasga e ela já está mais perto — cada vez mais rápido — até
+ * saltar da tela com a boca escancarada.
+ */
+export function RastejanteScene() {
+  return (
+    <div className="hws-scary" style={{ '--hws-lunge': `${RASTEJANTE_LUNGE_MS}ms` } as CSSProperties}>
+      <div className="hws-crawl-room">
+        <i className="hws-crawl-floor" />
+        <i className="hws-crawl-wall hws-crawl-wall--l" />
+        <i className="hws-crawl-wall hws-crawl-wall--r" />
+        <i className="hws-crawl-far" />
+      </div>
+      <div className="hws-crawl-stage">
+        <div className="hws-crawl-bot">
+          <div className="hws-crawl-steps">
+            <div className="hws-crawl-rush">
+              <Crawler />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="hws-crawl-tint" />
+      <div className="hws-vhs-grain" style={{ '--hws-rush': `${RASTEJANTE_LUNGE_MS}ms` } as CSSProperties} />
+      <div className="hws-vhs-lines" />
+      <div className="hws-vhs-roll" />
+      <CamOsd label="CAM 03 · CORREDOR" />
     </div>
   )
 }

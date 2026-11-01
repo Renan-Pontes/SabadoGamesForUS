@@ -844,6 +844,15 @@ const SCARES: ScareButton[] = [
     named: true,
     done: (name) => (name ? `👀 Os olhos chamam ${name}...` : '👀 Olhos no escuro enviados!'),
   },
+  { kind: 'quebrada', label: 'Tela quebrada', icon: '📱', done: () => '📱💥 A TV vai "quebrar"... travessura!' },
+  {
+    kind: 'possuida',
+    label: 'TV possuída',
+    icon: '💻',
+    named: true,
+    done: (name) => (name ? `💻 Apagando as fotos de ${name}... travessura!` : '💻 A TV foi possuída... travessura!'),
+  },
+  { kind: 'bateria', label: 'Bateria 1%', icon: '🔋', done: () => '🔋 A TV vai "desligar"... travessura!' },
 ]
 
 /** Os sustos de verdade (som bem alto na TV): destaque em vermelho, acima dos de meme. */
@@ -855,6 +864,9 @@ const SCARY_BUTTONS: ScareButton[] = [
     done: () => '🤖 Ele ainda funciona... olhe a cara da galera!',
   },
   { kind: 'face', label: 'Rosto', icon: '👁️', done: () => '👁️ Não olha... o rosto está indo para a TV!' },
+  { kind: 'video', label: 'Ele corre', icon: '🦊', done: () => '🦊 Ele está correndo até a TV...' },
+  { kind: 'apagao', label: 'Apagão', icon: '🌑', done: () => '🌑 A TV vai "desligar"... fiquem quietos.' },
+  { kind: 'rastejante', label: 'Rastejante', icon: '🕸️', done: () => '🕸️ Ela está vindo pelo corredor...' },
 ]
 
 /** Espera entre sustos: cada um dura uns 2 s na TV, e evita rajada de cliques. */

@@ -53,6 +53,9 @@ echo "==> Arquivos estáticos"
 echo "==> Catálogo de jogos"
 "$PYTHON_BIN" manage.py seed_games
 
+echo "==> Conta de administrador"
+"$PYTHON_BIN" manage.py seed_admin
+
 echo "==> Verificação de produção"
 "$PYTHON_BIN" manage.py check --deploy || true
 

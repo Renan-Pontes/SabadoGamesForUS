@@ -139,9 +139,28 @@ export type HalloweenViewProps<S extends BaseState = BaseState> = {
 }
 
 /** O que cada pasta `games/<slug>/index.ts` exporta. */
+/**
+ * Um momento importante da partida que assusta a sala inteira de uma vez:
+ * a TV e os celulares (todos, ou só os de `phones`) disparam o susto quando
+ * veem o estado. Cada `key` assusta uma vez só por aparelho; quem abre a tela
+ * já no meio do momento não leva susto atrasado.
+ */
+export type ScareMoment = {
+  /** Única por momento na partida (ex.: `result-3`). */
+  key: string
+  /** Só estes celulares (ids); sem isso, todos. */
+  phones?: number[]
+  /** A TV assusta junto? Padrão: sim. */
+  tv?: boolean
+  /** Espera antes do susto (deixa a tela do momento aparecer primeiro). */
+  delayMs?: number
+}
+
 export type HalloweenGameModule<S extends BaseState = BaseState> = {
   meta: HalloweenGameMeta
   engine: HalloweenEngine<S>
   Tv: ComponentType<HalloweenViewProps<S>>
   Phone: ComponentType<HalloweenViewProps<S>>
+  /** O momento de susto para todos, se o estado está num (puro; roda em todo aparelho). */
+  scareMoment?: (state: S, players: HPlayer[]) => ScareMoment | null
 }

@@ -39,10 +39,14 @@ export default function Phone(props: Props) {
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pb: 2, minWidth: 0, overflowWrap: 'anywhere' }}>
       <Header state={state} now={props.now} />
       {/* Fecha sozinho a cada fase: ninguém esquece o papel aberto na mesa. */}
-      {state.phase !== 'roles' && <RolePeek key={`${state.phase}-${state.round}`} {...panel} ghost={ghost} />}
+      {state.phase !== 'roles' && <RolePeek key={`peek-${state.phase}-${state.round}`} {...panel} ghost={ghost} />}
       {state.phase === 'roles' && <RolesPanel {...panel} />}
       {state.phase === 'night' &&
-        (ghost ? <HauntPanel key={state.inputKey} {...panel} /> : <NightPanel key={state.inputKey} {...panel} />)}
+        (ghost ? (
+          <HauntPanel key={`haunt-${state.inputKey}`} {...panel} />
+        ) : (
+          <NightPanel key={`night-${state.inputKey}`} {...panel} />
+        ))}
       {state.phase === 'morning' && <MorningPanel {...panel} ghost={ghost} />}
       {state.phase === 'day' && <DayPanel {...panel} ghost={ghost} />}
       {state.phase === 'vote' && (ghost ? <GhostNote text="Fantasma não vota. Assista à TV e torça 👻" /> : <VotePanel {...panel} />)}

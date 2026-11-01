@@ -69,7 +69,7 @@ describe('sons dos sustos de verdade', () => {
   }
 
   it('só os efeitos exclusivos dos sustos vão sempre pelo caminho alto; grito e estática dos jogos não', () => {
-    expect([...LOUD_SFX].sort()).toEqual(['jumpscare', 'screech', 'shriek'])
+    expect([...LOUD_SFX].sort()).toEqual(['jumpscare', 'screech', 'shriek', 'slam'])
     for (const name of ['screech', 'shriek', 'jumpscare'] as const) expect(isLoudSfx(name)).toBe(true)
     // Os jogos tocam 'scream'/'static' a cada rodada: no nível da v1, sem calar a música.
     for (const name of ['scream', 'static', 'boom', 'flicker', 'doot', 'heartbeat', 'whisper'] as const) {

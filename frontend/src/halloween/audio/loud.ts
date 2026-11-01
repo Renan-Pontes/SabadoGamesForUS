@@ -18,10 +18,11 @@ import type { SfxName } from './types'
 
 /**
  * Efeitos que SEMPRE tocam pelo caminho alto (e calam a música enquanto
- * soam): os que só os sustos usam. 'scream' e 'static' ficam fora — os jogos
- * tocam esses a cada rodada; as cenas de susto pedem `{ loud: true }`.
+ * soam): os que só os sustos usam ('slam' é o impacto grave do bote).
+ * 'scream' e 'static' ficam fora — os jogos tocam esses a cada rodada; as
+ * cenas de susto pedem `{ loud: true }`.
  */
-export const LOUD_SFX: readonly SfxName[] = ['screech', 'shriek', 'jumpscare']
+export const LOUD_SFX: readonly SfxName[] = ['screech', 'shriek', 'jumpscare', 'slam']
 
 export function isLoudSfx(name: SfxName): boolean {
   return LOUD_SFX.includes(name)

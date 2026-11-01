@@ -99,7 +99,7 @@ export default function TvControl() {
             control={
               <Switch checked={sound.randomScares} onChange={(_, checked) => setRandomScaresEnabled(checked)} />
             }
-            label="Sustos aleatórios (4–9 min + o raro)"
+            label="Sustos aleatórios (3–6 min + o raro) 💀"
           />
         </Box>
 

@@ -615,14 +615,32 @@
 .hws-custom-video {
   position: absolute;
   inset: 0;
-  background: #000;
 }
 
+/* O .webm tem fundo transparente: atrás dele fica o escuro do .hws-video-bg. */
 .hws-custom-video video {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: 50% 35%;
+}
+
+/* Tela preta na hora; quando o vídeo começa, um vermelho-sangue bem escuro
+   no fundo (uma transição só, sem pulsar). */
+.hws-video-bg {
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+
+.hws-video-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 45%, #3a0508 0%, #120204 60%, #000 100%);
+  opacity: 0;
+  animation: hws-in 120ms linear var(--hws-delay, 350ms) both;
 }
 
 .hws-penetra-cut {

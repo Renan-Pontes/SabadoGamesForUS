@@ -1,3 +1,5 @@
+import { NIGHTMARE } from './level'
+
 /**
  * Barramento dos sustos: quem quer assustar emite, o overlay (montado uma vez
  * pela camada global) escuta. Sem React aqui — dá para testar em Node.
@@ -16,6 +18,12 @@ export const SCARE_KINDS = [
   'eyes',
   'animatronic',
   'face',
+  'apagao',
+  'rastejante',
+  'video',
+  'quebrada',
+  'possuida',
+  'bateria',
 ] as const
 
 /**
@@ -32,8 +40,13 @@ export type ScareKind = 'random' | 'scary' | ConcreteScare
 /** Pedido de susto assustador sorteado (botão "Susto" do host, "Testar susto" da TV). */
 export const SCARY_RANDOM = 'scary'
 
-/** Os que assustam de verdade (som alto, sem meme). */
-export const SCARY_SCARES = ['animatronic', 'face', 'scream', 'static'] as const satisfies readonly (typeof SCARE_KINDS)[number][]
+/**
+ * Os que assustam de verdade (som alto, sem meme). 'apagao' e 'rastejante'
+ * são os de tensão: segundos de silêncio e escuro (ou algo chegando perto)
+ * antes do bote. 'video' é o vídeo de public/jumpscare/ (sem ele, vira o
+ * animatrônico).
+ */
+export const SCARY_SCARES = ['animatronic', 'face', 'scream', 'static', 'apagao', 'rastejante', 'video'] as const satisfies readonly (typeof SCARE_KINDS)[number][]
 
 /** Os de meme: o resto do sorteio. */
 export const MEME_SCARES = SCARE_KINDS.filter((kind) => !(SCARY_SCARES as readonly string[]).includes(kind))
@@ -42,15 +55,23 @@ export const MEME_SCARES = SCARE_KINDS.filter((kind) => !(SCARY_SCARES as readon
 export const SCARY_SHARE = 2 / 3
 
 /**
- * Sustos automáticos da TV (4–9 min): um assustador só sai se o último
- * assustador (de qualquer origem: host, jogo, teste, o raro) foi há pelo menos
- * este tempo; antes disso sai um de meme. Susto alto toda hora vira rotina e
- * a sala se acostuma — os grandes ficam para os botões do host.
+ * Sustos automáticos da TV (3–6 min, modo pesadelo): um assustador só sai se
+ * o último assustador (de qualquer origem: host, jogo, teste, o raro) foi há
+ * pelo menos este tempo; antes disso sai um de meme — susto alto toda hora
+ * vira rotina e a sala se acostuma.
  */
-export const AUTO_SCARY_GAP_MS = 15 * 60_000
+export const AUTO_SCARY_GAP_MS = NIGHTMARE.scaryGapMs
+
+/**
+ * As pegadinhas: enganam por alguns segundos (tela quebrada, aparelho
+ * possuído apagando as fotos, bateria morrendo) e terminam em
+ * "TRAVESSURA! kkkkk". Entram no sorteio dos de meme e aparecem de surpresa
+ * no celular de cada um durante os jogos (framework/phonePrank.ts).
+ */
+export const PRANK_SCARES = ['quebrada', 'possuida', 'bateria'] as const satisfies readonly (typeof SCARE_KINDS)[number][]
 
 /** Sustos que ficam melhores com o nome de alguém da sala. */
-export const SCARES_WITH_NAME: readonly ConcreteScare[] = ['zoom', 'eyes']
+export const SCARES_WITH_NAME: readonly ConcreteScare[] = ['zoom', 'eyes', 'possuida']
 
 export type ScareRequest = { id: number; kind: ConcreteScare; name?: string }
 
@@ -76,7 +97,7 @@ function pickFrom<T extends ConcreteScare>(group: readonly T[], random: () => nu
 
 /**
  * Sorteia um susto com peso: ~2/3 das vezes um assustador de verdade
- * (animatrônico, rosto, grito, estática), ~1/3 um de meme. Nunca repete o
+ * (animatrônico, rosto, grito, estática, apagão, rastejante), ~1/3 um de meme. Nunca repete o
  * último.
  */
 export function pickScare(random: () => number = Math.random, avoid: ConcreteScare | null = lastKind) {
@@ -96,7 +117,7 @@ export function isScaryScare(kind: ConcreteScare): boolean {
 
 /**
  * Sorteio do agendador automático da TV: igual ao 'random', mas só de meme
- * enquanto o último assustador tiver menos de AUTO_SCARY_GAP_MS.
+ * enquanto o último assustador tiver menos de AUTO_SCARY_GAP_MS (6 min).
  */
 export function pickAutoScare(
   random: () => number = Math.random,
@@ -114,6 +135,17 @@ export function pickAutoScare(
 export function resolveScareKind(kind: unknown, random: () => number = Math.random): ConcreteScare {
   if (isConcreteScare(kind)) return kind
   return kind === SCARY_RANDOM ? pickScaryScare(random) : pickScare(random)
+}
+
+/**
+ * Depois de um susto assustador, às vezes vem o "falso
+ * alívio" — a tela volta ao normal, a sala ri de nervoso... e o rosto vem de
+ * novo. Nunca depois do próprio rosto, nem em cadeia.
+ */
+export function shouldDoubleTap(request: ScareRequest, random: () => number = Math.random): boolean {
+  if (request.id < 0) return false
+  if (!isScaryScare(request.kind) || request.kind === 'face') return false
+  return random() < NIGHTMARE.doubleTapChance
 }
 
 /** Emite um susto para o overlay. Devolve o pedido (ou null se ninguém está ouvindo). */

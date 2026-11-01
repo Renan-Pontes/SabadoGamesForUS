@@ -1,0 +1,225 @@
+/* Pegadinhas (prefixo hwp-): enganam e terminam em TRAVESSURA. Nada pisca. */
+
+.hwp {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* --- tela quebrada --- */
+.hwp-crack-layer {
+  position: absolute;
+  inset: 0;
+  animation: hwp-fall 520ms ease-in var(--hwp-reveal, 3200ms) forwards;
+}
+
+@keyframes hwp-fall {
+  to { transform: translateY(40vh) rotate(4deg); opacity: 0; }
+}
+
+.hwp-cracks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hwp-crack-line,
+.hwp-crack-shadow {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: hwp-draw 240ms ease-out var(--hwp-d, 0ms) forwards;
+}
+
+.hwp-crack-line { stroke: rgba(255, 255, 255, 0.88); }
+.hwp-crack-shadow { stroke: rgba(0, 0, 0, 0.55); }
+
+@keyframes hwp-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Mancha preta do LCD no ponto do impacto (63% 40% = 1010,360 de 1600×900). */
+.hwp-blot {
+  position: absolute;
+  left: 63.1%;
+  top: 40%;
+  width: 26vmin;
+  height: 20vmin;
+  transform: translate(-50%, -50%) rotate(-18deg);
+  border-radius: 46% 54% 38% 62% / 52% 40% 60% 48%;
+  background: radial-gradient(ellipse at 45% 50%, #000 0%, rgba(0, 0, 0, 0.92) 45%, rgba(20, 0, 30, 0.5) 70%, rgba(0, 0, 0, 0) 100%);
+}
+
+.hwp-dead-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+
+/* --- possuído --- */
+.hwp-sys {
+  position: absolute;
+  inset: 0;
+  background: #050505;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  color: #e5e5e5;
+}
+
+.hwp-sys-box {
+  width: min(900px, 100%);
+  display: grid;
+  gap: clamp(8px, 1.6vmin, 18px);
+  font-size: clamp(14px, 2.6vmin, 30px);
+}
+
+.hwp-sys-title {
+  color: #ef4444;
+  font-weight: 800;
+  font-size: clamp(20px, 5vmin, 60px);
+  letter-spacing: 0.04em;
+}
+
+.hwp-sys-bar {
+  height: clamp(14px, 2.6vmin, 28px);
+  border: 2px solid #e5e5e5;
+  padding: 3px;
+}
+
+.hwp-sys-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: #ef4444;
+  animation: hwp-bar 3000ms steps(29, end) 200ms forwards;
+}
+
+@keyframes hwp-bar {
+  to { width: 87%; }
+}
+
+.hwp-sys-files {
+  display: grid;
+  gap: 4px;
+  font-size: clamp(12px, 2vmin, 22px);
+  color: #a3a3a3;
+  min-height: 7em;
+}
+
+.hwp-sys-file {
+  opacity: 0;
+  overflow-wrap: anywhere;
+  animation: hws-in 1ms linear var(--hwp-d, 0ms) forwards;
+}
+
+.hwp-sys-warn {
+  color: #fbbf24;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  animation: hwp-blink 1s steps(1, end) infinite;
+}
+
+@keyframes hwp-blink {
+  50% { opacity: 0.25; }
+}
+
+/* --- bateria --- */
+.hwp-batt {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.86);
+  color: #f5f5f5;
+  text-align: center;
+  animation: hws-in 160ms ease-out both;
+}
+
+.hwp-batt-icon {
+  width: clamp(120px, 26vmin, 300px);
+}
+
+.hwp-batt-title {
+  font-size: clamp(22px, 5vmin, 56px);
+  font-weight: 800;
+  color: #ef4444;
+}
+
+.hwp-batt-sub {
+  font-size: clamp(16px, 3vmin, 34px);
+  color: #a3a3a3;
+}
+
+/* A tela "apaga" devagar, como aparelho desligando. */
+.hwp-batt-off {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  animation: hwp-off 700ms ease-in var(--hwp-off, 1800ms) forwards;
+}
+
+@keyframes hwp-off {
+  to { opacity: 1; }
+}
+
+/* --- TRAVESSURA! --- */
+.hwp-reveal {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, rgba(60, 16, 80, 0.9), rgba(8, 3, 14, 0.95) 72%);
+  animation: hws-in 180ms ease-out var(--hwp-reveal, 3000ms) both;
+}
+
+.hwp-reveal-card {
+  text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.hwp-reveal-pumpkin {
+  font-size: clamp(56px, 14vmin, 180px);
+  line-height: 1;
+  animation: hwp-pop 520ms cubic-bezier(0.2, 1.6, 0.4, 1) var(--hwp-reveal, 3000ms) both;
+}
+
+.hwp-reveal-word {
+  font-size: clamp(52px, 15vmin, 210px);
+  line-height: 1;
+  color: #ff7a18;
+  text-shadow: 0 0 30px rgba(255, 122, 24, 0.55), 0 6px 0 #5c1d00;
+  animation: hwp-pop 520ms cubic-bezier(0.2, 1.6, 0.4, 1) calc(var(--hwp-reveal, 3000ms) + 80ms) both;
+}
+
+.hwp-reveal-kk {
+  font-size: clamp(24px, 6vmin, 72px);
+  font-weight: 900;
+  color: #fde68a;
+  letter-spacing: 0.06em;
+  animation: hws-in 260ms ease-out calc(var(--hwp-reveal, 3000ms) + 320ms) both;
+}
+
+.hwp-reveal-line {
+  font-size: clamp(15px, 3vmin, 36px);
+  color: #f5f0e1;
+  max-width: 900px;
+  animation: hws-in 260ms ease-out calc(var(--hwp-reveal, 3000ms) + 520ms) both;
+}
+
+@keyframes hwp-pop {
+  from { transform: scale(0.2) rotate(-14deg); }
+  to   { transform: scale(1) rotate(-4deg); }
+}

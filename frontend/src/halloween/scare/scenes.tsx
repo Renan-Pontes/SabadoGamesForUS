@@ -4,8 +4,10 @@ import PumpkinSvg from '../ui/PumpkinSvg'
 import SpiderSvg from '../ui/SpiderSvg'
 import type { ConcreteScare } from './bus'
 import { PENETRA_CUT_MS, scareCaption } from './config'
+import { VIDEO_DARK_MS } from './scaryTiming'
 import { customJumpscare, mountCustomVideo } from './customJumpscare'
-import { AnimatronicScene, FaceScene } from './scary'
+import { BatteryScene, CrackedScene, PossessedScene } from './prank'
+import { AnimatronicScene, ApagaoScene, FaceScene, RastejanteScene } from './scary'
 import './scare.css'
 
 type SceneProps = { kind: ConcreteScare; name?: string; reduced: boolean; duration: number }
@@ -402,22 +404,44 @@ function Scene({ kind, name }: { kind: ConcreteScare; name?: string }) {
       return <AnimatronicScene />
     case 'face':
       return <FaceScene />
+    case 'apagao':
+      return <ApagaoScene />
+    case 'rastejante':
+      return <RastejanteScene />
+    case 'video':
+      return customJumpscare()?.video ? <VideoJumpscare /> : <AnimatronicScene />
+    case 'quebrada':
+      return <CrackedScene />
+    case 'possuida':
+      return <PossessedScene name={name} />
+    case 'bateria':
+      return <BatteryScene />
     case 'penetra':
       return <Penetra />
   }
 }
 
-/** Vídeo do jumpscare próprio: o elemento já carregado entra na tela e toca do começo. */
-function CustomVideo() {
+/**
+ * O vídeo de public/jumpscare/: tela preta e silêncio por um instante, e ele
+ * vem correndo e enche a tela (o fundo transparente do .webm deixa ver o
+ * escuro avermelhado atrás). O último quadro fica parado até a cena sumir.
+ */
+function VideoJumpscare() {
   const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => (ref.current ? mountCustomVideo(ref.current) : undefined), [])
-  return <div ref={ref} className="hws-custom-video" />
+  useEffect(() => (ref.current ? mountCustomVideo(ref.current, VIDEO_DARK_MS) : undefined), [])
+  return (
+    <>
+      <div className="hws-video-bg" style={delay(VIDEO_DARK_MS)} />
+      <div ref={ref} className="hws-custom-video" />
+      <div className="hws-penetra-vignette" />
+      <div className="hws-scanlines" />
+    </>
+  )
 }
 
-/** O susto raro: o jumpscare próprio (public/jumpscare/) ou o Penetra desenhado. */
+/** O susto raro: a imagem própria (public/jumpscare/) ou o Penetra desenhado. */
 function Penetra() {
   const custom = customJumpscare()
-  if (custom?.video) return <CustomVideo />
   return (
     <>
       <div className="hws-penetra-bg" />

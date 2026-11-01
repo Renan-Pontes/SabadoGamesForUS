@@ -416,3 +416,23 @@
   0%, 100% { opacity: 0.85; transform: scale(1); }
   50%      { opacity: 1; transform: scale(1.04); }
 }
+
+/* ---------- aviso da entrada (ScareWarning) ---------- */
+
+/* Coração batendo: tum-tum... tum-tum. Só escala, nada pisca. */
+.hw-warning-heart {
+  display: inline-block;
+  filter: drop-shadow(0 0 18px rgba(224, 33, 58, 0.6));
+  animation: hw-warning-heart 1.1s ease-in-out infinite;
+}
+
+@keyframes hw-warning-heart {
+  0%, 40%, 100% { transform: scale(1); }
+  10%           { transform: scale(1.18); }
+  20%           { transform: scale(1.02); }
+  30%           { transform: scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hw-warning-heart { animation: none; }
+}

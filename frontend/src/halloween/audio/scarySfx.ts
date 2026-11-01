@@ -233,3 +233,214 @@ export function flicker(v: Voice, t: number, vol: number) {
   noiseHit(v, t, { type: 'highpass', freq: 3000, peak: 0.5 * vol, decay: 0.015 })
   return dur
 }
+
+/**
+ * O impacto que acompanha o bote: um soco sub-grave que despenca (sente no
+ * peito, mesmo na caixinha da TV, por causa da saturação), uma rajada de ruído
+ * e um estrondo metálico com cauda no reverb. Vai pelo caminho alto.
+ */
+export function slam(v: Voice, t: number, vol: number) {
+  const dur = 1.3
+  const p = patch(v)
+
+  // 1) Sub-grave: 72 Hz → 24 Hz, saturado (os harmônicos aparecem em caixa pequena).
+  const sub = p.osc('sine', 72)
+  sub.frequency.setValueAtTime(72, t)
+  sub.frequency.exponentialRampToValueAtTime(24, t + 0.7)
+  const subGain = p.gain(0)
+  const subDrive = p.shaper(3)
+  const subPost = p.gain(0.75)
+  sub.connect(subGain).connect(subDrive).connect(subPost)
+  pluckEnv(subGain.gain, t, 1.1 * vol, 0.002, 0.85)
+  p.toOut(subPost, 0.1)
+
+  // 2) Rajada: ruído grave, curtinho (o "ar" do golpe).
+  const burst = p.noise('brown')
+  const burstLow = p.filter('lowpass', 1400, 0.7)
+  const burstGain = p.gain(0)
+  burst.connect(burstLow).connect(burstGain)
+  pluckEnv(burstGain.gain, t, 1.2 * vol, 0.001, 0.25)
+  p.toOut(burstGain, 0.2)
+
+  // 3) Estrondo metálico: ruído em duas bandas agudas, com cauda longa no reverb.
+  const crash = p.noise('white')
+  const crashBand = p.filter('bandpass', 3800, 1.6)
+  const crashBand2 = p.filter('bandpass', 6200, 2.2)
+  const crashGain = p.gain(0)
+  crash.connect(crashBand).connect(crashGain)
+  crash.connect(crashBand2).connect(crashGain)
+  pluckEnv(crashGain.gain, t, 0.55 * vol, 0.002, 0.9)
+  p.toOut(crashGain, 0.6)
+
+  sub.start(t)
+  sub.stop(t + dur)
+  startNoise(burst, t, t + 0.35)
+  startNoise(crash, t, t + dur)
+  p.finish()
+  return dur
+}
+
+/** TV de tubo desligando: um apito que despenca e um "toc" seco. */
+export function powerdown(v: Voice, t: number, vol: number) {
+  const dur = 0.55
+  const p = patch(v)
+  const whine = p.osc('sine', 7800)
+  whine.frequency.setValueAtTime(7800, t)
+  whine.frequency.exponentialRampToValueAtTime(160, t + 0.45)
+  const whineGain = p.gain(0)
+  whine.connect(whineGain)
+  pluckEnv(whineGain.gain, t, 0.22 * vol, 0.004, 0.45)
+  p.toOut(whineGain, 0.15)
+  whine.start(t)
+  whine.stop(t + dur)
+  p.finish()
+  noiseHit(v, t, { type: 'lowpass', freq: 900, peak: 0.7 * vol, decay: 0.07 })
+  noiseHit(v, t + 0.42, { type: 'bandpass', freq: 2400, q: 2, peak: 0.25 * vol, decay: 0.03 })
+  return dur
+}
+
+/**
+ * Respiração rouca colada no ouvido direito: puxa, solta, puxa, solta. Ar
+ * filtrado com um chiado de garganta por cima; o filtro sobe na puxada e
+ * desce na soltada.
+ */
+export function breath(v: Voice, t: number, vol: number) {
+  const dur = 2.4
+  const p = patch(v)
+  const air = p.noise('white')
+  const body = p.filter('bandpass', 700, 1.2)
+  const throat = p.filter('bandpass', 1900, 4)
+  const throatGain = p.gain(0.45)
+  const gain = p.gain(0)
+  const pan = p.pan(0.45)
+  air.connect(body).connect(gain)
+  air.connect(throat).connect(throatGain).connect(gain)
+  gain.connect(pan)
+
+  // [início, fim, pico, puxada?] em segundos.
+  const phases: [number, number, number, boolean][] = [
+    [0.0, 0.6, 0.8, true],
+    [0.7, 1.15, 1.0, false],
+    [1.3, 1.85, 0.85, true],
+    [1.95, 2.4, 1.1, false],
+  ]
+  const points = 120
+  const curve = new Float32Array(points)
+  for (let i = 0; i < points; i += 1) {
+    const s = (i / (points - 1)) * dur
+    let level = 0
+    for (const [from, to, peak] of phases) {
+      if (s < from || s > to) continue
+      const x = (s - from) / (to - from)
+      level = peak * Math.sin(Math.PI * x) ** 1.5 * (0.85 + Math.random() * 0.3)
+    }
+    curve[i] = vol * 0.9 * level
+  }
+  gain.gain.setValueCurveAtTime(curve, t, dur)
+  for (const [from, to, , inhale] of phases) {
+    body.frequency.setValueAtTime(inhale ? 600 : 900, t + from)
+    body.frequency.linearRampToValueAtTime(inhale ? 1100 : 500, t + to)
+  }
+  p.toOut(pan, 0.25)
+  startNoise(air, t, t + dur + 0.02)
+  p.finish()
+  return dur
+}
+
+/**
+ * Pavor crescendo (~2,9 s): um cacho de serras desafinadas a meio-tom umas
+ * das outras subindo devagar, um sub-grave pulsando e o filtro abrindo. Corta
+ * SECO no fim: o instante de silêncio logo antes do bote é o que pega.
+ */
+export function dread(v: Voice, t: number, vol: number) {
+  const dur = 2.9
+  const p = patch(v)
+  const cluster = [110, 116.5, 123.5, 164.8, 174.6].map((hz) => p.osc('sawtooth', hz))
+  const mix = p.gain(0.22)
+  for (const osc of cluster) {
+    const f = osc.frequency.value
+    osc.frequency.setValueAtTime(f, t)
+    osc.frequency.exponentialRampToValueAtTime(f * 1.5, t + dur)
+    osc.detune.value = (Math.random() - 0.5) * 18
+    osc.connect(mix)
+  }
+  const lowpass = p.filter('lowpass', 260, 2)
+  lowpass.frequency.setValueAtTime(260, t)
+  lowpass.frequency.exponentialRampToValueAtTime(3600, t + dur)
+  const env = p.gain(0)
+  mix.connect(lowpass).connect(env)
+  env.gain.setValueAtTime(0, t)
+  env.gain.linearRampToValueAtTime(0.05 * vol, t + 0.4)
+  env.gain.exponentialRampToValueAtTime(0.75 * vol, t + dur - 0.02)
+  env.gain.linearRampToValueAtTime(0, t + dur)
+  p.toOut(env, 0.35)
+
+  // Sub-grave pulsando cada vez mais rápido (um coração que não é seu).
+  const sub = p.osc('sine', 46)
+  const subGain = p.gain(0)
+  const pulse = p.osc('sine', 1.4)
+  const pulseDepth = p.gain(0.25 * vol)
+  pulse.frequency.setValueAtTime(1.4, t)
+  pulse.frequency.linearRampToValueAtTime(5, t + dur)
+  pulse.connect(pulseDepth).connect(subGain.gain)
+  subGain.gain.setValueAtTime(0.3 * vol, t)
+  subGain.gain.setValueAtTime(0.3 * vol, t + dur - 0.02)
+  subGain.gain.linearRampToValueAtTime(0, t + dur)
+  sub.connect(subGain)
+  p.toOut(subGain, 0)
+
+  for (const source of [...cluster, sub, pulse]) {
+    source.start(t)
+    source.stop(t + dur + 0.02)
+  }
+  p.finish()
+  return dur
+}
+
+/** Um "passo" da rastejante: osso estalando e a mão batendo no chão. */
+export function crawl(v: Voice, t: number, vol: number) {
+  const dur = 0.35
+  noiseHit(v, t, { type: 'highpass', freq: 2600, peak: 0.55 * vol, decay: 0.018 })
+  noiseHit(v, t + 0.028, { type: 'highpass', freq: 3400, peak: 0.4 * vol, decay: 0.012 })
+  noiseHit(v, t + 0.05, { type: 'bandpass', freq: 1800, q: 3, peak: 0.3 * vol, decay: 0.02 })
+  const p = patch(v)
+  const thud = p.osc('sine', 90)
+  thud.frequency.setValueAtTime(90, t + 0.06)
+  thud.frequency.exponentialRampToValueAtTime(38, t + 0.3)
+  const thudGain = p.gain(0)
+  thud.connect(thudGain)
+  pluckEnv(thudGain.gain, t + 0.06, 0.9 * vol, 0.003, 0.25)
+  p.toOut(thudGain, 0.2)
+  thud.start(t + 0.06)
+  thud.stop(t + dur)
+  p.finish()
+  return dur
+}
+
+/**
+ * Vidro trincando (a pegadinha da tela quebrada): o estalo do impacto, um
+ * baque abafado, estalinhos da rachadura correndo e cacos tilintando.
+ */
+export function shatter(v: Voice, t: number, vol: number) {
+  const dur = 1.2
+  noiseHit(v, t, { type: 'highpass', freq: 1800, peak: 0.9 * vol, decay: 0.09, wet: 0.2 })
+  noiseHit(v, t, { type: 'lowpass', freq: 500, peak: 0.6 * vol, decay: 0.12 })
+  for (let i = 0; i < 8; i += 1) {
+    noiseHit(v, t + 0.03 + Math.random() * 0.4, { type: 'highpass', freq: 4000, peak: 0.3 * vol, decay: 0.01 })
+  }
+  const p = patch(v)
+  const out = p.gain(1)
+  for (let i = 0; i < 16; i += 1) {
+    const at = t + 0.02 + Math.random() ** 1.6 * 0.9
+    const ping = p.osc('sine', 2200 + Math.random() * 5000)
+    const gain = p.gain(0)
+    ping.connect(gain).connect(out)
+    const fade = Math.max(0.15, 1 - (at - t) / dur)
+    pluckEnv(gain.gain, at, (0.12 + Math.random() * 0.18) * vol * fade, 0.001, 0.05 + Math.random() * 0.15)
+    ping.start(at)
+    ping.stop(at + 0.25)
+  }
+  p.toOut(out, 0.35)
+  p.finish()
+  return dur
+}

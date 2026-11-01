@@ -119,6 +119,22 @@ no `roster` — quem entrou no meio vê "Partida rolando" (o framework cuida).
   (38 px). Nada de botão fixo no rodapé do `Phone`.
 - Nomes: `nameOf(players, id)` e `listNames([...])` ("Ana, Bia e Caio").
 
+## Susto do momento (TV e celulares juntos)
+
+Para a sala inteira pular na hora H, exporte `scareMoment(state, players)` no
+`index.ts` e passe para o `defineHalloweenGame`. Devolva
+`{ key, phones?, tv?, delayMs? }` enquanto o estado estiver "no momento"
+(o espião revelado, alguém morto ao amanhecer...) e `null` fora dele.
+
+- Cada aparelho olha o estado público e dispara uma vez por `key` (quem abre a
+  tela no meio do momento não leva susto atrasado). Nada passa pelo backend.
+- `phones` limita aos celulares desses ids (ex.: só quem segurava a
+  abóbora); `tv: false` deixa a TV de fora.
+- O susto sai de `framework/scareMoment.ts`: o mesmo em todo aparelho, com o
+  vídeo de `public/jumpscare/` pesando mais. No modo leve, vira meme.
+- Já usam: Espião (revelação), Cidade Dorme (morte), Abóbora-Bomba (BUM na
+  mão; fantasma novo para todos) e Portas do Além (celular de quem o monstro pegou).
+
 ## Testes (`engine/testkit.ts`)
 
 ```ts

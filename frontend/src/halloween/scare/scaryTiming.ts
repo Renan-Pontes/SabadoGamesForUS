@@ -35,3 +35,49 @@ export const FACE_HIT_MS = 500
 /** Regras de clarão usadas no teste. */
 export const MAX_FLASHES_PER_SCARE = 2
 export const MIN_FLASH_GAP_MS = 400
+
+// --- Apagão: a TV "desliga", silêncio no escuro... e o rosto. ---------------
+
+/** A imagem colapsa numa linha e num ponto, como TV de tubo desligando. */
+export const APAGAO_OFF_MS = 450
+/** Uma respiração colada no ouvido, no escuro total. */
+export const APAGAO_BREATH_MS = 900
+/** Dois pontinhos vermelhos abrem no escuro (pequenos e fracos: não é clarão). */
+export const APAGAO_EYES_MS = 2000
+/** O bote: depois de quase 3 s de escuro, o rosto explode na tela. */
+export const APAGAO_HIT_MS = 3300
+
+// --- Rastejante: algo vem engatinhando pelo corredor da câmera. ------------
+
+/**
+ * Cada "pulo" de quadro em que ela aparece mais perto (a câmera engasga e
+ * ela já está noutro lugar). Cada vez mais rápido. Os percentuais do
+ * @keyframes hws-crawl-steps (scary.css) saem daqui: passo / LUNGE.
+ * Nada pisca: a figura é escura sobre fundo escuro e só muda de tamanho,
+ * no máximo ~3 vezes por segundo.
+ */
+export const RASTEJANTE_STEPS: readonly number[] = [750, 1410, 1950, 2400, 2700]
+/** O bote final: ela salta da tela, junto com o guincho. */
+export const RASTEJANTE_LUNGE_MS = 3000
+
+// --- Vídeo (public/jumpscare/): escuro, e ele vem correndo. ----------------
+
+/** Um instante de tela preta e silêncio antes de o vídeo começar. */
+export const VIDEO_DARK_MS = 350
+/** Depois do vídeo, o último quadro (a cara dele) fica parado na tela. */
+export const VIDEO_HOLD_MS = 800
+
+// --- Pegadinhas: engana por uns segundos e aí... TRAVESSURA! ---------------
+
+/** Quando cai a ficha ("TRAVESSURA! kkkkk") em cada pegadinha. */
+export const PRANK_REVEAL_MS = {
+  quebrada: 3200,
+  possuida: 3800,
+  bateria: 3400,
+} as const
+
+/** Quanto tempo o "TRAVESSURA!" fica na tela antes de tudo sumir. */
+export const PRANK_LAUGH_MS = 2200
+
+/** Bateria: quando a tela "apaga" (antes do TRAVESSURA). */
+export const BATTERY_OFF_MS = 1800
