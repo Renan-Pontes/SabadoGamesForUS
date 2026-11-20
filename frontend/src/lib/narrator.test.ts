@@ -1,5 +1,26 @@
 import { describe, expect, it } from 'vitest'
-import { bestVoice, cleanForSpeech, scoreVoice } from './narrator'
+import { bestVoice, cleanForSpeech, listPortuguese, scoreVoice, voiceQuality } from './narrator'
+
+describe('lista de vozes para escolher na TV', () => {
+  it('só português, da melhor para a pior, com a qualidade de cada uma', () => {
+    const list = listPortuguese([
+      { name: 'Microsoft Maria - Portuguese (Brazil)', lang: 'pt-BR' },
+      { name: 'Google US English', lang: 'en-US' },
+      { name: 'Google português do Brasil', lang: 'pt-BR' },
+      { name: 'Microsoft Thalita Online (Natural) - Portuguese (Brazil)', lang: 'pt-BR' },
+    ])
+    expect(list.map((voice) => [voice.name.split(' ')[1], voice.quality])).toEqual([
+      ['Thalita', 'otima'],
+      ['português', 'boa'],
+      ['Maria', 'robotica'],
+    ])
+  })
+
+  it('classifica a qualidade pelo nome', () => {
+    expect(voiceQuality({ name: 'Microsoft Antonio Online (Natural)', lang: 'pt-BR' })).toBe('otima')
+    expect(voiceQuality({ name: 'Luciana', lang: 'pt-BR' })).toBe('robotica')
+  })
+})
 
 describe('texto falado pela voz do navegador', () => {
   it('tira onomatopeia que a voz soletraria', () => {

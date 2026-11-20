@@ -1,4 +1,4 @@
-import { speak } from '../../lib/narrator'
+import { narrationWorthIt, speak } from '../../lib/narrator'
 import { MUSIC_LEVEL, applyVolumes, buildGraph as buildAudioGraph, hushMusicOn, playSfxOn } from './graph'
 import { isLoudSfx } from './loud'
 import type { AudioGraph } from './graph'
@@ -302,8 +302,9 @@ export function speakFestive(text: string, options: SpookyVoiceOptions = {}): ()
 function narrate(text: string, voiceOptions: { pitch: number; rate: number }): () => void {
   const options = voiceOptions
   const s = getSoundState()
-  // Narração desligada no controle da TV: os jogos seguem só com texto e efeitos.
-  if (s.muted || !s.voice || !text.trim()) return () => undefined
+  // Narração desligada no controle da TV, ou só voz robótica e ninguém escolheu
+  // uma: os jogos seguem só com texto e efeitos.
+  if (s.muted || !s.voice || !narrationWorthIt() || !text.trim()) return () => undefined
   // Chrome só deixa falar depois de algum gesto na página.
   if (!s.unlocked && !hasUserActivation()) return () => undefined
 
