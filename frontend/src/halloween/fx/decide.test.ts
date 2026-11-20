@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { isFestiveEffect, resolveScareKind } from '../scare/bus'
+import { FESTIVE_RANDOM } from './api'
 import { FX_FRESH_MS, decideFx } from './decide'
 
 const NOW = 1_000_000
@@ -13,6 +15,16 @@ describe('decideFx', () => {
   it('primeira vez: susto recente dispara', () => {
     const result = decideFx({ id: 4, scare: 'zoom', name: 'Ana', at: NOW - 3000 }, NOW, null)
     expect(result).toEqual({ lastSeen: 4, actions: [{ type: 'scare', kind: 'zoom', name: 'Ana' }] })
+  })
+
+  it('Natal: o sorteio festivo e os efeitos com nome chegam na TV como pedidos de efeito', () => {
+    const festive = decideFx({ id: 5, scare: FESTIVE_RANDOM, at: NOW - 500 }, NOW, 4)
+    expect(festive.actions).toEqual([{ type: 'scare', kind: 'festive' }])
+    // A TV resolve 'festive' para um efeito de Natal de verdade.
+    expect(isFestiveEffect(resolveScareKind(FESTIVE_RANDOM))).toBe(true)
+    const santa = decideFx({ id: 6, scare: 'secretSanta', name: 'Ana', at: NOW - 500 }, NOW, 5)
+    expect(santa.actions).toEqual([{ type: 'scare', kind: 'secretSanta', name: 'Ana' }])
+    expect(resolveScareKind('secretSanta')).toBe('secretSanta')
   })
 
   it('primeira vez (recarregou a página): susto velho não repete', () => {

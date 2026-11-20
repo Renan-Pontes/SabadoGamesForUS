@@ -7,7 +7,7 @@ import type { EspiaoState, Phase, RoundResult } from './engine'
 import { winnerOf, type Outcome } from './rules'
 
 /**
- * Auxiliares das telas do "Espião Assombrado" (TV e celular): textos de cada
+ * Auxiliares das telas do "Espião de Natal" (TV e celular): textos de cada
  * desfecho, relógio "m:ss", trilha por fase e vibração. Ficam fora dos .tsx
  * porque o react-refresh pede que esses arquivos exportem só o componente.
  */
@@ -41,31 +41,39 @@ export function buzz(pattern: number | number[]): void {
   }
 }
 
-/** Trilha da TV: tensão na conversa, perseguição nas votações, vitória no fim. */
+/**
+ * Trilha da TV: Jingle Bells na carta e nas votações (animado), a caixinha
+ * de Noite Feliz na conversa (calma, para todo mundo se ouvir) e "We Wish You
+ * a Merry Christmas" no fim.
+ */
 export function trackFor(phase: Phase, over: boolean): MusicTrack {
-  if (over) return 'victory'
-  if (phase === 'accuse' || phase === 'final_vote' || phase === 'last_chance') return 'chase'
-  return 'tension'
+  if (over) return 'wish'
+  if (phase === 'talk' || phase === 'result' || phase === 'scores') return 'natal'
+  return 'jingle'
 }
 
-/** Fases em que susto aleatório atrapalharia (votações e revelações). */
+/** Fases em que piada aleatória da TV atrapalharia (votações e revelações). */
 export function holdsScares(phase: Phase, over: boolean): boolean {
   return over || phase === 'accuse' || phase === 'final_vote' || phase === 'last_chance' || phase === 'result'
 }
 
+/** O que a TV escreve no zoom suspeito quando ninguém é inocente. */
+export const EVERYONE_ZOOM_NAME = 'TODO MUNDO'
+
 /**
- * Susto de meme da revelação (só na TV, uma vez por partida cada — repetido
- * perde a graça): a mesa condenou um inocente = "bruh"; o espião digitou o
- * lugar errado = cano de metal caindo; todo mundo era espião = doot doot.
+ * Piada da revelação (só na TV, uma vez por partida cada — repetida perde a
+ * graça): a mesa condenou um inocente = "bruh"; o espião digitou o lugar
+ * errado = cano de metal caindo; todo mundo era espião = zoom suspeito 🤨📸
+ * em "TODO MUNDO".
  */
-export function revealMeme(outcome: Outcome): 'bruh' | 'pipe' | 'doot' | null {
+export function revealMeme(outcome: Outcome): 'bruh' | 'pipe' | 'zoom' | null {
   switch (outcome) {
     case 'innocent':
       return 'bruh'
     case 'guess-wrong':
       return 'pipe'
     case 'everyone':
-      return 'doot'
+      return 'zoom'
     default:
       return null
   }
@@ -73,7 +81,8 @@ export function revealMeme(outcome: Outcome): 'bruh' | 'pipe' | 'doot' | null {
 
 /** Narração do começo da rodada (igual em toda rodada — inclusive nas malucas). */
 export function revealNarration(round: number, spyCount: number): string {
-  return `Rodada ${round}. Olhem a carta, escondido. ${spyCount === 1 ? 'Um de vocês é o espião.' : 'Dois de vocês são espiões.'}`
+  const hello = round === 1 ? 'Ho ho ho! ' : ''
+  return `${hello}Rodada ${round}! Olhem a carta, escondidinho. ${spyCount === 1 ? 'Um de vocês é o espião' : 'Dois de vocês são espiões'} — e ninguém convidou!`
 }
 
 export type RevealCopy = {
@@ -103,12 +112,12 @@ export function revealCopy(result: RoundResult, players: readonly HPlayer[]): Re
         title: 'PEGAMOS O ESPIÃO!',
         subtitle: result.guess ? `${convicted} chutou ${guessText} — era ${place}` : `${convicted} não adivinhou o lugar a tempo`,
         tone: 'toxic',
-        sound: 'scream',
+        sound: 'win',
         headline: '🎉 A mesa venceu',
       }
     case 'escaped':
       return {
-        icon: '😈',
+        icon: '😎',
         title: `${convicted.toUpperCase()} ESCAPOU!`,
         subtitle: `Foi pego, mas acertou o lugar: ${place}`,
         tone: 'blood',
@@ -117,11 +126,11 @@ export function revealCopy(result: RoundResult, players: readonly HPlayer[]): Re
       }
     case 'guess-right':
       return {
-        icon: '🔮',
+        icon: '✨',
         title: `${guesser.toUpperCase()} ACERTOU!`,
         subtitle: `O espião adivinhou o lugar: ${place}`,
-        tone: 'witch',
-        sound: 'laugh',
+        tone: 'pumpkin',
+        sound: 'chime',
         headline: '🕵️ Os espiões venceram',
       }
     case 'guess-wrong':
@@ -130,7 +139,7 @@ export function revealCopy(result: RoundResult, players: readonly HPlayer[]): Re
         title: 'CHUTE ERRADO!',
         subtitle: `${guesser} era espião e chutou ${guessText} — era ${place}`,
         tone: 'toxic',
-        sound: 'scream',
+        sound: 'fail',
         headline: '🎉 A mesa venceu',
       }
     case 'innocent':
@@ -139,7 +148,7 @@ export function revealCopy(result: RoundResult, players: readonly HPlayer[]): Re
         title: `${convicted.toUpperCase()} ERA INOCENTE!`,
         subtitle: `${spyWord} ${spies}`,
         tone: 'blood',
-        sound: 'laugh',
+        sound: 'boing',
         headline: '🕵️ Os espiões venceram',
       }
     case 'tie':
@@ -157,8 +166,8 @@ export function revealCopy(result: RoundResult, players: readonly HPlayer[]): Re
         title: 'TODO MUNDO ERA ESPIÃO!',
         subtitle: `Ninguém sabia o lugar: era ${place}`,
         tone: 'pumpkin',
-        // O "doot doot" vem do susto do esqueleto, logo em seguida.
-        sound: 'reveal',
+        // O zoom suspeito em "TODO MUNDO" vem logo em seguida.
+        sound: 'boing',
         headline: '🤡 Rodada maluca — sem pontos',
       }
     case 'nobody-convicted':
@@ -167,16 +176,16 @@ export function revealCopy(result: RoundResult, players: readonly HPlayer[]): Re
         title: 'NÃO TINHA ESPIÃO!',
         subtitle: `${convicted} foi condenado à toa: +2 de inocente injustiçado`,
         tone: 'ghost',
-        sound: 'ghost',
+        sound: 'chime',
         headline: '😇 Rodada maluca',
       }
     case 'nobody-free':
       return {
         icon: '😇',
         title: 'NÃO TINHA ESPIÃO!',
-        subtitle: 'Ninguém foi condenado: +1 para todo mundo',
+        subtitle: 'Ninguém foi condenado: +1 de presente para todo mundo',
         tone: 'ghost',
-        sound: 'ghost',
+        sound: 'sleigh',
         headline: '😇 Rodada maluca',
       }
   }
@@ -195,11 +204,11 @@ export function myOutcome(result: RoundResult, meId: number): MyOutcome {
   }
   if (winner === 'table') {
     if (!iWasSpy) return { icon: '🎉', title: 'A mesa venceu!', good: true }
-    if (result.convicted === meId) return { icon: '💀', title: 'Você foi pego…', good: false }
-    if (result.guess?.by === meId) return { icon: '💀', title: 'Você errou o chute…', good: false }
-    return { icon: '💀', title: 'A mesa venceu os espiões…', good: false }
+    if (result.convicted === meId) return { icon: '🥶', title: 'Você foi pego…', good: false }
+    if (result.guess?.by === meId) return { icon: '🥶', title: 'Você errou o chute…', good: false }
+    return { icon: '🥶', title: 'A mesa venceu os espiões…', good: false }
   }
-  return iWasSpy ? { icon: '😈', title: 'Você venceu, espião!', good: true } : { icon: '😱', title: 'O espião venceu…', good: false }
+  return iWasSpy ? { icon: '😎', title: 'Você venceu, espião!', good: true } : { icon: '😱', title: 'O espião venceu…', good: false }
 }
 
 /** Pontos ganhos por alguém nesta rodada. */

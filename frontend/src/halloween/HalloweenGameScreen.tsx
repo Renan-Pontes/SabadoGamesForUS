@@ -12,11 +12,12 @@ import { ViewBoundary } from './framework/ViewBoundary'
 import { useWakeLock } from './framework/wakeLock'
 import { sendRoomFx } from './fx/api'
 import { getHalloweenGame } from './registry'
-import { SCARY_RANDOM, useScareNames } from './scare'
+import { FESTIVE_RANDOM, useScareNames } from './scare'
 import { isHalloweenSlug } from './slugs'
 
 /**
- * A tela única dos jogos da Noite do Terror (`/game/:code/:slug?view=...`).
+ * A tela única dos jogos novos (Noite Feliz e os Old da Noite do Terror),
+ * em `/game/:code/:slug?view=...`.
  *
  * view=tv → a TV do jogo (e, por trás, a TV é o juiz que roda o motor);
  * view=host/player → o celular. Em volta das telas de cada jogo, o
@@ -40,7 +41,7 @@ function UnknownGame({ code, slug }: { code: string; slug: string }) {
   const navigate = useNavigate()
   return (
     <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', p: 3 }}>
-      <CenterMessage icon="🪦" title="Jogo não encontrado" text={`Não existe jogo de Halloween chamado “${slug}”.`}>
+      <CenterMessage icon="🎁" title="Esse presente veio vazio" text={`Não achamos nenhum jogo chamado “${slug}”.`}>
         <Button variant="outlined" color="inherit" onClick={() => navigate(code ? `/game/${code}` : '/')}>
           Voltar
         </Button>
@@ -103,13 +104,13 @@ function GameRunner({ code, view, game }: { code: string; view: HalloweenView; g
   if (room.loading) {
     return frame(
       room.error ? (
-        <CenterMessage icon="🕸️" title="Sem sinal do além" text={`Tentando de novo… (${room.error})`} big={isTv}>
+        <CenterMessage icon="📡" title="Sem sinal do Polo Norte" text={`Tentando de novo… (${room.error})`} big={isTv}>
           <Button variant="outlined" color="inherit" onClick={() => navigate('/')}>
             Ir para o início
           </Button>
         </CenterMessage>
       ) : (
-        <CenterMessage loading title="Abrindo a cripta…" big={isTv} />
+        <CenterMessage loading title="Desembrulhando o jogo…" big={isTv} />
       ),
     )
   }
@@ -165,7 +166,7 @@ function GameRunner({ code, view, game }: { code: string; view: HalloweenView; g
         <HostBar
           onSkip={() => room.command('skip')}
           onEnd={() => room.command('end')}
-          onScare={() => sendRoomFx(code, { scare: SCARY_RANDOM })}
+          onScare={() => sendRoomFx(code, { scare: FESTIVE_RANDOM })}
         />
       )
     ) : undefined
@@ -227,7 +228,7 @@ function GameView({
     <ViewBoundary
       resetKey={`${state.phase}:${state.round ?? ''}:${state.inputKey}:${state.over}`}
       fallback={(retry) => (
-        <CenterMessage icon="💀" title="A tela tropeçou" big={isTv} text="O jogo continua — ela tenta de novo na próxima fase.">
+        <CenterMessage icon="☃️" title="A tela escorregou no gelo" big={isTv} text="O jogo continua — ela tenta de novo na próxima fase.">
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', justifyContent: 'center' }}>
             <Button variant="outlined" color="inherit" onClick={retry}>
               Tentar de novo
@@ -239,7 +240,7 @@ function GameView({
         </CenterMessage>
       )}
     >
-      <Suspense fallback={<CenterMessage loading title="Abrindo o caixão…" big={isTv} />}>
+      <Suspense fallback={<CenterMessage loading title="Tirando o laço…" big={isTv} />}>
         <Screen {...props} />
       </Suspense>
     </ViewBoundary>
@@ -249,9 +250,9 @@ function GameView({
 function Spectator() {
   return (
     <CenterMessage
-      icon="👻"
+      icon="🍪"
       title="Partida rolando"
-      text="Você entra na próxima! Enquanto isso, assista pela TV e torça (ou assombre) alguém."
+      text="Você entra na próxima! Enquanto isso, pegue um biscoito, assista pela TV e torça (ou zoe) alguém."
     />
   )
 }

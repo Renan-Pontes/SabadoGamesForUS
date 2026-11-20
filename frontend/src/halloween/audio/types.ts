@@ -61,6 +61,9 @@ export const SFX_NAMES = [
   'sleigh',
   'chime',
   'boing',
+  // Efeitos de Natal da TV: o coral de duendes (Jingle Bells) e a rena a galope.
+  'elfsong',
+  'gallop',
 ] as const
 
 export type SfxName = (typeof SFX_NAMES)[number]

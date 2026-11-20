@@ -23,8 +23,8 @@ export function PlaceholderTv({ meta, state, players, now }: Props) {
         </Typography>
         <Typography sx={{ fontSize: 'clamp(1.8rem, 2.6vw, 2.6rem)', color: 'var(--text-secondary)', mb: 3 }}>
           {state.over
-            ? 'Os fantasmas ainda estão montando este jogo.'
-            : `Toquem "Estou vivo" no celular${seconds !== null ? ` · ${seconds}s` : ''}`}
+            ? 'Os duendes ainda estão montando este jogo.'
+            : `Toquem "Estou aqui" no celular${seconds !== null ? ` · ${seconds}s` : ''}`}
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'center' }}>
           {state.roster.map((id) => (
@@ -63,7 +63,7 @@ export function PlaceholderPhone({ meta, state, myInput, send }: Props) {
           onClick={() => send({ alive: true })}
           sx={{ minHeight: 64, minWidth: 240, fontSize: '1.3rem', fontWeight: 800, background: meta.accent.main, color: meta.accent.contrast }}
         >
-          {myInput ? '✓ Anotado!' : '👻 Estou vivo'}
+          {myInput ? '✓ Anotado!' : '🙋 Estou aqui'}
         </Button>
       )}
     </Box>

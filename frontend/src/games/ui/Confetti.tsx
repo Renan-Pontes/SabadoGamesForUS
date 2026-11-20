@@ -5,7 +5,7 @@ import { prefersReducedMotion } from '../utils'
 const PIECES = 46
 const COLORS = ['#ff5a66', '#4fd67e', '#7fc4ff', '#e8394a', '#f5c242', '#f4f8ff']
 // Emoji ignora a cor; os símbolos (★ ●) pegam a cor da paleta.
-const SHAPES = ['🎃', '★', '🦇', '●', '👻', '🍬']
+const SHAPES = ['❄️', '★', '🎄', '●', '⭐', '🎁', '🔔', '❅']
 
 /**
  * Dispersão determinística a partir do índice.
@@ -18,7 +18,7 @@ function scatter(index: number, salt: number) {
   return hashed - Math.floor(hashed)
 }
 
-/** Chuva de doces e assombrações na vitória. */
+/** Chuva de flocos, estrelas e presentes na vitória. */
 export default function Confetti() {
   const pieces = useMemo(
     () =>

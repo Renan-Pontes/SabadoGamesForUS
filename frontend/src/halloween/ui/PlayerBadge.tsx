@@ -9,7 +9,7 @@ type PlayerBadgeProps = {
   color?: string
   /** Já agiu nesta fase (mostra ✓ sem revelar o quê). */
   acted?: boolean
-  /** Morreu / virou fantasma. */
+  /** Saiu da rodada (virou boneco de neve). O nome `ghost` ficou do Halloween. */
   ghost?: boolean
   host?: boolean
   offline?: boolean
@@ -21,7 +21,8 @@ type PlayerBadgeProps = {
   trailing?: ReactNode
 }
 
-const COLORS = ['#ff7a18', '#a855f7', '#84cc16', '#f43f5e', '#22d3ee', '#fbbf24', '#e879f9', '#34d399', '#fb923c', '#60a5fa']
+/** Cores de enfeite de árvore: bem diferentes entre si (até 15 na mesa). */
+const COLORS = ['#ff5a66', '#4fd67e', '#f5c242', '#7fd8ff', '#ff8fd0', '#b49cff', '#ff9f43', '#2ec4b6', '#ffd975', '#5aa9ff']
 
 function colorFor(name: string) {
   let hash = 0
@@ -36,7 +37,7 @@ const SIZES = {
 } as const
 
 /**
- * Nome do jogador em pílula: cor, ✓ de quem já agiu, 👻 de quem morreu.
+ * Nome do jogador em pílula: cor, ✓ de quem já agiu, ☃️ de quem saiu da rodada.
  *
  *   <PlayerBadge name={p.name} acted={state.acted?.includes(p.id)} ghost={dead} size="lg" />
  */
@@ -69,8 +70,8 @@ export default function PlayerBadge({
         borderRadius: 999,
         border: `2px ${offline ? 'dashed' : 'solid'} ${withAlpha(tint, highlight ? 0.95 : 0.5)}`,
         background: highlight
-          ? `linear-gradient(90deg, ${withAlpha(tint, 0.32)}, rgba(12, 6, 20, 0.85))`
-          : 'rgba(12, 6, 20, 0.72)',
+          ? `linear-gradient(90deg, ${withAlpha(tint, 0.32)}, rgba(6, 16, 31, 0.85))`
+          : 'rgba(6, 16, 31, 0.72)',
         boxShadow: highlight ? `0 0 18px ${withAlpha(tint, 0.45)}` : 'none',
         opacity: ghost ? 0.55 : offline ? 0.5 : 1,
         filter: ghost ? 'grayscale(0.7)' : 'none',
@@ -90,12 +91,12 @@ export default function PlayerBadge({
           display: 'grid',
           placeItems: 'center',
           background: ghost ? 'rgba(224, 242, 254, 0.2)' : tint,
-          color: '#0b0614',
+          color: '#06101f',
           fontSize: `calc(${s.font} * 0.8)`,
           fontWeight: 800,
         }}
       >
-        {ghost ? '👻' : initial}
+        {ghost ? '☃️' : initial}
       </Box>
       <Box
         component="span"
@@ -125,7 +126,7 @@ export default function PlayerBadge({
             borderRadius: '50%',
             display: 'grid',
             placeItems: 'center',
-            background: '#22c55e',
+            background: '#4fd67e',
             color: '#04160b',
             fontSize: `calc(${s.font} * 0.75)`,
             fontWeight: 900,

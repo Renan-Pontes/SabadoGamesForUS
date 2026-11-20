@@ -75,15 +75,15 @@ function doneCtx(state: State, done: number[], extra: Partial<EngineCtx> = {}): 
 }
 
 /** Troca os segredos da rodada: estes são os impostores, o resto sabe a palavra. */
-function withImpostors(state: State, impostors: number[], word = 'Abóbora'): State {
+function withImpostors(state: State, impostors: number[], word = 'Pisca-pisca'): State {
   const secrets: Record<string, RaSecret> = {}
   for (const id of state.roster) {
     secrets[String(id)] = impostors.includes(id) ? { role: 'impostor', word: null } : { role: 'artist', word }
   }
-  return { ...state, categoryId: 5, category: categoryLabel(5), private: secrets }
+  return { ...state, categoryId: 2, category: categoryLabel(2), private: secrets }
 }
 
-/** Rodada pronta para votar, com estes impostores (categoria "Doces e festa", palavra Abóbora). */
+/** Rodada pronta para votar, com estes impostores (categoria "Enfeites de Natal", palavra Pisca-pisca). */
 function votingWith(n: number, impostors: number[]) {
   const { state } = start(n)
   return toPhase(withImpostors(state, impostors), 'vote')
@@ -305,7 +305,7 @@ describe('pontos', () => {
     const result = engine.step(reveal, ctxAt(reveal))
     expect(result.phase).toBe('result')
     expect(result.deadline).toBe(reveal.deadline! + RESULT_SECONDS * 1000)
-    expect(result.outcome).toMatchObject({ word: 'Abóbora', guess: null, guessRight: false, escaped: [4], hits: [] })
+    expect(result.outcome).toMatchObject({ word: 'Pisca-pisca', guess: null, guessRight: false, escaped: [4], hits: [] })
     expect(result.outcome?.gains).toEqual({ 4: ESCAPE_POINTS })
     expect(result.scores).toEqual({ 1: 0, 2: 0, 3: 0, 4: ESCAPE_POINTS })
   })
@@ -334,18 +334,18 @@ describe('pontos', () => {
     expect(guess.inputKey).toBe('guess-1')
     expect(guess.deadline).toBe(reveal.deadline! + GUESS_SECONDS * 1000 + GRACE_MS)
     // A palavra ainda não é pública na hora do chute.
-    expect(JSON.stringify(publicPart(guess))).not.toContain('Abóbora')
+    expect(JSON.stringify(publicPart(guess))).not.toContain('Pisca-pisca')
 
-    const ctx = makeCtx({ players: makePlayers(4), now: NOW + 5000, inputs: { 3: { k: guess.inputKey, guess: 'fantasma' } } })
+    const ctx = makeCtx({ players: makePlayers(4), now: NOW + 5000, inputs: { 3: { k: guess.inputKey, guess: 'guirlanda' } } })
     const result = engine.step(guess, ctx)
     expect(result.phase).toBe('result')
-    expect(result.outcome).toMatchObject({ word: 'Abóbora', guess: 'fantasma', guessRight: false, hits: [1, 2], escaped: [] })
+    expect(result.outcome).toMatchObject({ word: 'Pisca-pisca', guess: 'guirlanda', guessRight: false, hits: [1, 2], escaped: [] })
     expect(result.scores).toEqual({ 1: CATCH_POINTS, 2: CATCH_POINTS, 3: 0, 4: 0 })
     expect(engine.step(result, ctx)).toBe(result)
   })
 
   it('impostor pego que acerta a palavra (sem acento, com erro de digitação) leva +2', () => {
-    for (const typed of ['abobora', 'ABÓBRA', 'a abóbora', 'moranga']) {
+    for (const typed of ['pisca pisca', 'PISCA-PICSA', 'o pisca-pisca', 'luzinhas']) {
       const vote = votingWith(4, [3])
       const reveal = engine.step(vote, votesCtx(vote, { 1: 3, 2: 3, 3: 1, 4: 3 }))
       const guess = engine.step(reveal, ctxAt(reveal))
@@ -364,13 +364,13 @@ describe('pontos', () => {
       players: makePlayers(4),
       now: NOW + 5000,
       inputs: {
-        1: { k: guess.inputKey, guess: 'abóbora' }, // não é o acusado
+        1: { k: guess.inputKey, guess: 'pisca-pisca' }, // não é o acusado
         3: { k: guess.inputKey, guess: '   ' }, // vazio
       },
     })
     expect(engine.step(guess, others)).toBe(guess)
 
-    const giant = 'abóbora '.repeat(500)
+    const giant = 'pisca-pisca '.repeat(500)
     const long = engine.step(guess, makeCtx({ players: makePlayers(4), now: NOW + 5000, inputs: { 3: { k: guess.inputKey, guess: giant } } }))
     expect(long.outcome?.guess?.length).toBeLessThanOrEqual(MAX_GUESS_LENGTH)
     expect(long.outcome?.guessRight).toBe(true)
@@ -583,8 +583,8 @@ describe('fim', () => {
       phase: 'final',
       scores: { 1: 4, 2: 1, 3: 4, 4: 0 },
       history: [
-        { round: 1, categoryId: 0, word: 'Vampiro', impostors: [1], chaos: null, accused: 2, caught: false, guessRight: false, hits: [3], escaped: [1] },
-        { round: 2, categoryId: 1, word: 'Saci', impostors: [1], chaos: null, accused: 3, caught: false, guessRight: false, hits: [3, 4], escaped: [1] },
+        { round: 1, categoryId: 0, word: 'Rena', impostors: [1], chaos: null, accused: 2, caught: false, guessRight: false, hits: [3], escaped: [1] },
+        { round: 2, categoryId: 1, word: 'Panetone', impostors: [1], chaos: null, accused: 3, caught: false, guessRight: false, hits: [3, 4], escaped: [1] },
         { round: 3, categoryId: 2, word: null, impostors: [1, 2, 3, 4], chaos: 'everyone', accused: null, caught: false, guessRight: false, hits: [], escaped: [] },
       ],
     }

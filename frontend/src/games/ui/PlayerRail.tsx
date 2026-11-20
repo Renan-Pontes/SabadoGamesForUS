@@ -10,7 +10,7 @@ export type RailInfo = {
   caption?: ReactNode
   eliminated?: boolean
   highlight?: boolean
-  /** Emblema no canto do avatar (💀, 👑, ✓). */
+  /** Emblema no canto do avatar (☃️, 👑, ✓). */
   badge?: string
 }
 

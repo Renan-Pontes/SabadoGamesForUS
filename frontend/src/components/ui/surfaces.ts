@@ -3,12 +3,12 @@
  * todo card do app. Antes cada tela repetia `border: 2px solid var(--border-subtle)`
  * com fundos ligeiramente diferentes.
  *
- * Noite do Terror: o vidro é roxo-noite e um pouco translúcido, para a
- * neblina e os morcegos do cenário (HalloweenLayer) aparecerem por trás.
+ * Noite Feliz: o vidro é azul de noite de neve e um pouco translúcido, para
+ * a neve e as estrelas do cenário (SnowBackdrop) aparecerem por trás.
  */
 
 export const PANEL_BG =
-  'linear-gradient(160deg, rgba(16, 34, 62, 0.86) 0%, rgba(12, 7, 22, 0.9) 100%)'
+  'linear-gradient(160deg, rgba(16, 34, 62, 0.86) 0%, rgba(6, 16, 31, 0.9) 100%)'
 
 export const PANEL_BORDER = 'rgba(42, 72, 118, 0.75)'
 
@@ -39,7 +39,7 @@ export function glowShadow(accent: string) {
 }
 
 /**
- * Fundo de página: névoa do acento sobre um véu roxo translúcido. O véu (e
+ * Fundo de página: névoa do acento sobre um véu azul translúcido. O véu (e
  * não um fundo sólido) é o que deixa o cenário animado aparecer.
  */
 export function pageBackdrop(accent: string, secondary = 'rgba(255, 90, 102, 0.09)') {

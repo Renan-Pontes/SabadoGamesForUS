@@ -1,9 +1,10 @@
 import type { Role } from './engine'
 
 /**
- * Conteúdo do "Cidade Dorme": os papéis, as falas da narração, os epitáfios
- * de quem morre à noite e as sugestões de recado. Tudo original, em pt-BR,
- * com humor de Halloween — é para rir do morto, não para ofender ninguém.
+ * Conteúdo do "Vila Dorme" (o Cidade Dorme de Natal): os papéis, as falas da
+ * narração, as plaquinhas de quem vira boneco de neve à noite e as sugestões
+ * de recado. Tudo original, em pt-BR, com humor natalino — ninguém morre: os
+ * Duendes Travessos transformam os moradores em boneco de neve.
  *
  * As listas são lidas por posição (noite 1 → primeira fala...): não
  * reordene no meio da festa.
@@ -13,7 +14,7 @@ export type RoleInfo = {
   name: string
   plural: string
   icon: string
-  /** Para a narração e o fim: "Era o detetive". */
+  /** Para a narração e o fim: "Era a Rena Detetive". */
   was: string
   /** A missão, na cartinha do papel (uma frase curta). */
   mission: string
@@ -26,156 +27,157 @@ export type RoleInfo = {
 
 export const ROLE_INFO: Record<Role, RoleInfo> = {
   killer: {
-    name: 'Assassino',
-    plural: 'Assassinos',
-    icon: '🔪',
-    was: 'Era assassino',
-    mission: 'Toda noite escolha quem morre. Não deixe a cidade te pegar.',
-    night: 'para morrer esta noite',
-    notePlaceholder: 'Bilhete anônimo para a cidade (a TV lê)',
-    color: '#e0213a',
+    name: 'Duende Travesso',
+    plural: 'Duendes Travessos',
+    icon: '🧝',
+    was: 'Era duende travesso',
+    mission: 'Toda noite escolha quem vira boneco de neve. Não deixe a vila te pegar.',
+    night: 'para virar boneco de neve',
+    notePlaceholder: 'Cartãozinho anônimo para a vila (a TV lê)',
+    color: '#ff4d6d',
   },
   detective: {
-    name: 'Detetive',
-    plural: 'Detetives',
-    icon: '🔎',
-    was: 'Era o detetive',
-    mission: 'Toda noite investigue alguém. De manhã você descobre se é assassino.',
-    night: 'para investigar esta noite',
-    notePlaceholder: 'Recado anônimo para o assassino',
-    color: '#22d3ee',
+    name: 'Rena Detetive',
+    plural: 'Renas Detetives',
+    icon: '🦌',
+    was: 'Era a Rena Detetive',
+    mission: 'Toda noite fareje alguém. De manhã você descobre se é duende travesso.',
+    night: 'para farejar esta noite',
+    notePlaceholder: 'Recado anônimo para os duendes',
+    color: '#7fd8ff',
   },
   angel: {
-    name: 'Anjo',
-    plural: 'Anjos',
+    name: 'Anjo do Natal',
+    plural: 'Anjos do Natal',
     icon: '😇',
-    was: 'Era o anjo',
-    mission: 'Toda noite proteja alguém (pode ser você). Só não repita a pessoa da noite anterior.',
-    night: 'para proteger esta noite',
-    notePlaceholder: 'Recado anônimo para o assassino',
-    color: '#fbbf24',
+    was: 'Era o Anjo do Natal',
+    mission: 'Toda noite proteja alguém do frio (pode ser você). Só não repita quem protegeu ontem.',
+    night: 'para cobrir com um cobertor quentinho',
+    notePlaceholder: 'Recado anônimo para os duendes',
+    color: '#f5c242',
   },
   citizen: {
-    name: 'Cidadão',
-    plural: 'Cidadãos',
-    icon: '🏘️',
-    was: 'Era um cidadão',
-    mission: 'Descubra os assassinos. À noite, aposte em quem é: acerto vale ponto de faro.',
-    night: 'que você acha que é o assassino',
-    notePlaceholder: 'Recado anônimo para o assassino',
-    color: '#a3e635',
+    name: 'Morador da Vila',
+    plural: 'Moradores da Vila',
+    icon: '🏡',
+    was: 'Era um morador da vila',
+    mission: 'Descubra os duendes travessos. À noite, aposte em quem é: acerto vale ponto de faro.',
+    night: 'que você acha que é duende travesso',
+    notePlaceholder: 'Recado anônimo para os duendes',
+    color: '#4fd67e',
   },
 }
 
-/** Quem já morreu também mexe no celular: assombra alguém (só aparece na TV). */
-export const GHOST_INFO = {
-  icon: '👻',
-  night: 'para assombrar (aparece na TV)',
+/** Quem já virou boneco de neve também mexe no celular: joga bola de neve em alguém (só aparece na TV). */
+export const SNOWMAN_INFO = {
+  icon: '⛄',
+  night: 'para levar uma bola de neve (aparece na TV)',
 }
 
 /** Narração quando a noite cai — uma por noite, em ordem (depois repete). */
 export const NIGHT_LINES: readonly string[] = [
-  'A noite caiu sobre a cidade. Ninguém fecha o olho: todo mundo mexe no celular.',
-  'Mais uma noite. Escolham alguém, e nada de espiar o celular do vizinho.',
-  'A lua está cheia e os assassinos, com fome. Celular na mão.',
-  'Silêncio na cidade. Só se ouve o barulho dos dedos na tela.',
-  'Mais uma noite escura. Alguém nesta sala está mentindo.',
-  'A neblina chegou. Cada um no seu celular, por favor.',
-  'Os cachorros uivam lá fora. Escolham com cuidado.',
-  'A cidade está cada vez mais vazia. Façam suas escolhas.',
+  'A noite caiu sobre a Vila do Papai Noel. Ninguém fecha o olho: todo mundo no celular.',
+  'Mais uma noite na vila. Escolham alguém, e nada de espiar o celular do vizinho.',
+  'As luzinhas se apagam uma a uma. Os duendes travessos acordaram. Celular na mão.',
+  'Silêncio na vila. Só se ouve a neve caindo e os dedos na tela.',
+  'Mais uma noite fria. Alguém nesta sala está mentindo mais que vendedor de panetone.',
+  'A neve não para de cair. Cada um no seu celular, por favor.',
+  'As renas estão inquietas no estábulo. Escolham com cuidado.',
+  'A vila está cada vez mais cheia de bonecos de neve. Façam suas escolhas.',
 ]
 
-/** A última noite antes de os assassinos fugirem (ver MAX_ROUNDS). */
-export const LAST_NIGHT_LINE = 'Última noite. Se a cidade não pegar os assassinos amanhã, eles fogem.'
+/** A última noite antes de os duendes fugirem (ver MAX_ROUNDS). */
+export const LAST_NIGHT_LINE = 'Última noite antes do Natal. Se a vila não pegar os duendes amanhã, eles fogem com os presentes.'
 
-/** Abertura da manhã com morte: "<abertura> Fulano foi encontrado morto." */
+/** Abertura da manhã com boneco de neve novo: "<abertura> Fulano virou boneco de neve!" */
 export const DEATH_INTROS: readonly string[] = [
-  'Amanheceu.',
-  'O galo cantou.',
-  'O sol nasceu, mas não para todos.',
-  'Bom dia, cidade.',
-  'Amanheceu com cheiro de vela.',
+  'Amanheceu na vila.',
+  'O galo cantou Jingle Bells.',
+  'Bom dia, vila!',
+  'O sol nasceu sobre a neve.',
+  'Amanheceu com cheiro de chocolate quente.',
 ]
 
 export const SAVED_LINES: readonly string[] = [
-  'Amanheceu. Os assassinos atacaram, mas o anjo salvou alguém esta noite!',
-  'Amanheceu. Teve ataque, mas o anjo chegou primeiro. Ninguém morreu!',
-  'Amanheceu. Uma asa branca passou pela janela certa. O anjo salvou alguém!',
+  'Amanheceu. Os duendes atacaram, mas o Anjo do Natal chegou primeiro. Ninguém virou boneco de neve!',
+  'Amanheceu. Teve travessura, mas o anjo cobriu alguém com um cobertor quentinho. Todo mundo inteiro!',
+  'Amanheceu. Uma asinha dourada passou pela janela certa. O anjo salvou alguém!',
 ]
 
 export const QUIET_LINES: readonly string[] = [
-  'Amanheceu. Ninguém morreu esta noite. Tranquilo até demais.',
-  'Amanheceu e todo mundo acordou. Os assassinos tiraram folga?',
-  'Amanheceu. Nenhum corpo hoje. Por enquanto.',
+  'Amanheceu. Ninguém virou boneco de neve. Tranquilo até demais.',
+  'Amanheceu e todo mundo acordou quentinho. Os duendes tiraram folga?',
+  'Amanheceu. Nenhum boneco de neve novo hoje. Por enquanto.',
 ]
 
 export const DAY_LINES: readonly string[] = [
-  'Conversem. Quem tem cara de assassino?',
+  'Conversem. Quem tem cara de duende travesso?',
   'Hora de acusar. Quem estava mexendo demais no celular?',
   'Conversem. Alguém aqui sabe mais do que está dizendo.',
-  'A cidade quer justiça. Quem foi?',
+  'A vila quer o Natal de volta. Quem foi?',
 ]
 
-export const VOTE_LINE = 'Hora da votação. Quem sai da cidade?'
+export const VOTE_LINE = 'Hora da votação. Quem vai de trenó pro Polo Norte?'
 
 /** Ninguém saiu na votação: o porquê, em uma frase (TV e narração). */
 export const NOBODY_OUT: Record<'tie' | 'few' | 'none' | 'skip', string> = {
-  tie: 'Empate! Ninguém sai da cidade hoje.',
-  few: 'Ninguém juntou dois votos. A cidade continua igual.',
-  none: 'Ninguém votou. Os assassinos agradecem.',
-  skip: 'A cidade preferiu não expulsar ninguém. Por enquanto.',
+  tie: 'Empate! Ninguém vai pro Polo Norte hoje.',
+  few: 'Ninguém juntou dois votos. A vila continua igual.',
+  none: 'Ninguém votou. Os duendes agradecem.',
+  skip: 'A vila preferiu não despachar ninguém. Por enquanto.',
 }
 
 export const END_LINES: Record<'caught' | 'outnumbered' | 'escaped', string> = {
-  caught: 'A cidade venceu! Todos os assassinos foram pegos.',
-  outnumbered: 'Os assassinos venceram. Agora a cidade dorme para sempre.',
-  escaped: 'O sol nasceu pela última vez e os assassinos fugiram. Vitória deles.',
+  caught: 'A vila venceu! Todos os duendes travessos foram pegos. O Natal está salvo!',
+  outnumbered: 'Os duendes travessos venceram. A vila virou um parque de bonecos de neve!',
+  escaped: 'Chegou a manhã de Natal e os duendes fugiram com os presentes. Vitória deles.',
 }
 
-/** Epitáfio de quem morre à noite (sorteado pelo motor). */
+/** Plaquinha de quem vira boneco de neve à noite (sorteada pelo motor). */
 export const EPITAPHS: readonly string[] = [
-  'Foi dormir cedo. Cedo demais.',
-  'Abriu a porta sem olhar o olho mágico.',
-  'Confiou no vizinho errado.',
-  'Saiu para comprar pão. Não voltou.',
-  'Dormiu de janela aberta.',
-  'Achou que era só um barulhinho.',
+  'Saiu pra ver a neve de pijama.',
+  'Abriu a porta pro “Papai Noel”.',
+  'Foi buscar panetone e congelou.',
+  'Lambeu o poste gelado.',
+  'Dormiu de janela aberta em dezembro.',
+  'Achou que era só o vento.',
   'Disse “comigo não acontece”.',
-  'Deixou o celular no silencioso.',
-  'Mandou recado para a pessoa errada.',
-  'Era bonzinho demais para esta cidade.',
-  'Falou demais na roda de conversa.',
-  'Desconfiou da pessoa certa. Tarde demais.',
+  'Confiou no duende errado.',
+  'Defendeu uva-passa no arroz. Castigo.',
+  'Comeu o biscoito do Papai Noel.',
+  'Agora tem nariz de cenoura.',
   'Foi pegar água na cozinha.',
-  'Morreu sem terminar o lanche.',
-  'Sabia demais.',
-  'Ninguém ouviu o grito.',
-  'Esqueceu de trancar a porta.',
+  'Sabia demais sobre o amigo secreto.',
+  'Contou o amigo secreto antes da hora.',
+  'Saiu pra fazer anjinho na neve.',
+  'Cantou Jingle Bells desafinado.',
+  'Deu boa noite pro duende.',
+  'Ficou vigiando o peru da ceia.',
+  'Pisou no pisca-pisca no escuro.',
   'Achou que o anjo ia aparecer.',
   'Foi o primeiro a dizer “relaxa”.',
-  'Saiu do grupo. Do grupo dos vivos.',
-  'Tinha cara de quem sabia de algo.',
-  'Deu boa noite para o assassino.',
-  'Descansa em paz (agora de verdade).',
-  'Votou certo, dormiu errado.',
+  'Agora é decoração do jardim.',
+  'Pediu meia de presente. Ganhou neve.',
+  'Votou certo, dormiu no sereno.',
+  'Tirou selfie com o duende.',
 ]
 
-/** Sugestões de recado anônimo para os assassinos (toque e pronto). */
+/** Sugestões de recado anônimo para os duendes (toque e pronto). */
 export const CITY_NOTES: readonly string[] = [
   'Me poupa, por favor 🙏',
   'Eu sei quem você é 👀',
   'Hoje não, amanhã talvez 😅',
-  'Sou só um cidadão inocente',
-  'Pega quem tá rindo demais 😈',
-  'Se me matar eu volto pra te assombrar 👻',
+  'Sou só um morador inocente',
+  'Pega quem tá rindo demais 🤭',
+  'Se me congelar, eu volto de bola de neve ⛄',
 ]
 
-/** Sugestões de bilhete dos assassinos para a cidade (a TV lê de manhã). */
+/** Sugestões de cartãozinho dos duendes para a vila (a TV lê de manhã). */
 export const KILLER_NOTES: readonly string[] = [
-  'Vocês nunca vão me pegar 😈',
-  'Quem será o próximo?',
-  'Durmam bem… se conseguirem',
-  'Foi o mordomo 🫖',
+  'Vocês nunca vão me pegar 😜',
+  'Quem será o próximo boneco? ⛄',
+  'Comi os biscoitos de vocês 🍪',
+  'Foi o Papai Noel 🎅',
   'Tô sentado do seu lado 👋',
   'Obrigado pelos recados 💌',
 ]

@@ -71,8 +71,8 @@ export default function PlayingCard({
         sx={{
           ...shared,
           background:
-            'repeating-linear-gradient(45deg, #3b1466 0 6px, #4c1d86 6px 12px)',
-          border: '2px solid rgba(255, 140, 149, 0.85)',
+            'repeating-linear-gradient(45deg, #b71c2c 0 6px, #e8394a 6px 12px, #f4f8ff 12px 15px, #e8394a 15px 18px)',
+          border: '2px solid rgba(245, 194, 66, 0.9)',
           boxShadow: '0 10px 26px rgba(0,0,0,0.5)',
           display: 'grid',
           placeItems: 'center',
@@ -91,10 +91,10 @@ export default function PlayingCard({
           sx={{
             fontSize: `calc(${dims.pip} * 0.7)`,
             lineHeight: 1,
-            opacity: 0.55,
+            opacity: 0.85,
           }}
         >
-          🎃
+          🎄
         </Typography>
       </Box>
     )

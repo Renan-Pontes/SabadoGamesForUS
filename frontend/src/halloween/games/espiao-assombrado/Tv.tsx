@@ -1,24 +1,28 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { Box, Typography } from '@mui/material'
-import { playSfx, speakSpooky, useMusic } from '../../audio'
+import { playSfx, speakFestive, useMusic } from '../../audio'
 import { GRACE_MS, nameOf } from '../../engine/helpers'
 import type { HPlayer, HalloweenViewProps } from '../../engine/types'
 import { useCountdown, useServerNow } from '../../framework/clockHooks'
 import { triggerScare, useSuppressScares } from '../../scare'
-import { BLOODY_FONT, BigReveal, CandleTimer, CandyRain, HauntedTitle, PlayerBadge, SPOOKY_COLORS, withAlpha } from '../../ui'
+import { BigReveal, CandleTimer, FESTIVE_ROUND_FONT, PlayerBadge, XMAS_COLORS, withAlpha } from '../../ui'
+import { FestiveTitle, GiftBox, Ornament, SantaHat, Sparkles, SpyMascot, XmasRain } from './Decor'
 import { finalAwards, type EspiaoState, type Phase } from './engine'
 import { meta } from './meta'
 import { RESULT_SECONDS } from './rules'
-import { clock, holdsScares, namesOf, revealCopy, revealMeme, revealNarration, spiesLabel, stagger, trackFor } from './view'
+import { EVERYONE_ZOOM_NAME, clock, holdsScares, namesOf, revealCopy, revealMeme, revealNarration, spiesLabel, stagger, trackFor } from './view'
 
 /**
- * TV do "Espião Assombrado". Só desenha o estado — quem decide fase, votos e
- * pontos é o motor — e nunca recebe segredo: o lugar, os papéis e quem é
- * espião só aparecem na revelação. Letras para 3 metros (texto ≥ 28 px,
- * títulos ≥ 64 px), vela gigante como cronômetro da conversa.
+ * TV do "Espião de Natal" — a mesa da festa. Só desenha o estado — quem
+ * decide fase, votos e pontos é o motor — e nunca recebe segredo: o lugar, os
+ * papéis e quem é espião só aparecem na revelação. Letras para 3 metros
+ * (texto ≥ 28 px, títulos ≥ 64 px), vela de Natal gigante como cronômetro da
+ * conversa, presente sacudindo no rufar e o zoom suspeito 🤨📸 com "boing".
  */
 
 const ACCENT = meta.accent
+const RED = XMAS_COLORS.red
+const GREEN = XMAS_COLORS.pine
 /** O rufar antes da revelação; depois, a manchete fica na tela um tempinho. */
 const DRUM_MS = 1900
 const BIG_MS = 4300
@@ -26,9 +30,10 @@ const BIG_MS = 4300
 const TEXT = 'clamp(1.75rem, 2.2vw, 2.4rem)'
 const TEXT_BIG = 'clamp(2rem, 3vw, 3.2rem)'
 const TITLE = 'clamp(4rem, 6.5vw, 7rem)'
+const PANEL_BG = 'var(--bg-veil-strong, rgba(6, 16, 31, 0.82))'
 
 export default function Tv({ state, players, now }: HalloweenViewProps<EspiaoState>) {
-  // Susto de meme no meio da votação ou da revelação estraga a piada.
+  // Piada aleatória no meio da votação ou da revelação estraga o momento.
   useSuppressScares(holdsScares(state.phase, state.over))
   useMusic(trackFor(state.phase, state.over))
   usePhaseSounds(state, players, now)
@@ -67,59 +72,67 @@ function usePhaseSounds(state: EspiaoState, players: HPlayer[], now: () => numbe
   const resumed = state.seg > 0
   const newMatch = state.round === 1 && phase === 'reveal'
   const firstAccusation = useRef(true)
-  /** Memes da revelação que já saíram nesta partida (cada um uma vez só). */
+  /** Piadas da revelação que já saíram nesta partida (cada uma uma vez só). */
   const memesUsed = useRef(new Set<string>())
 
   useEffect(() => {
     const timers: number[] = []
     let stopVoice: (() => void) | undefined
     const say = (text: string, delayMs: number) => {
-      if (text) timers.push(window.setTimeout(() => (stopVoice = speakSpooky(text)), delayMs))
+      if (text) timers.push(window.setTimeout(() => (stopVoice = speakFestive(text)), delayMs))
     }
     switch (phase) {
       case 'reveal':
-        // "Jogar de novo": partida nova, sustos de meme novos.
+        // "Jogar de novo": partida nova, piadas novas.
         if (newMatch) {
           firstAccusation.current = true
           memesUsed.current.clear()
         }
-        playSfx('whisper')
-        say(narration, 700)
+        playSfx('sleigh')
+        say(narration, 900)
         break
       case 'talk':
-        // Começo da conversa: sino. Volta depois de acusação rejeitada: buzina.
-        playSfx(resumed ? 'buzzer' : 'bell', { volume: 0.7 })
-        say(narration, 500)
+        // Começo da conversa: brilho mágico. Volta depois de acusação rejeitada: buzina.
+        playSfx(resumed ? 'buzzer' : 'chime', { volume: 0.8 })
+        say(narration, 600)
         break
       case 'accuse':
-        // A primeira acusação da noite ganha o zoom suspeito 🤨📸 no acusado.
+        // A primeira acusação da noite ganha o zoom suspeito 🤨📸 no acusado — com boing.
         if (firstAccusation.current) {
           firstAccusation.current = false
           triggerScare('zoom', { name: targetName })
-          say(narration, 2300)
+          playSfx('boing', { delay: 0.25 })
+          say(narration, 2400)
         } else {
-          playSfx('gong')
-          say(narration, 600)
+          playSfx('boing')
+          playSfx('gong', { delay: 0.5, volume: 0.6 })
+          say(narration, 900)
         }
         break
       case 'final_vote':
         playSfx('gong')
-        say(narration, 600)
+        say(narration, 700)
         break
-      case 'last_chance':
-        playSfx('thunder')
-        playSfx('heartbeat', { delay: 1.2 })
-        say(narration, 900)
+      case 'last_chance': {
+        const d = playSfx('boing')
+        playSfx('drumroll', { delay: d, volume: 0.7 })
+        say(narration, 1100)
         break
+      }
       case 'result':
         playSfx('drumroll')
         say(narration, DRUM_MS + 900)
-        // Meme da revelação: doot doot 💀🎺, "bruh" ou o cano caindo — uma vez por partida cada.
+        // Piada da revelação: zoom em "TODO MUNDO", "bruh" ou o cano caindo — uma vez por partida cada.
         if (meme && !memesUsed.current.has(meme)) {
           timers.push(
             window.setTimeout(() => {
               memesUsed.current.add(meme)
-              triggerScare(meme)
+              if (meme === 'zoom') {
+                triggerScare('zoom', { name: EVERYONE_ZOOM_NAME })
+                playSfx('boing', { delay: 0.25 })
+              } else {
+                triggerScare(meme)
+              }
             }, DRUM_MS + 2600),
           )
         }
@@ -128,8 +141,9 @@ function usePhaseSounds(state: EspiaoState, players: HPlayer[], now: () => numbe
         playSfx('ding')
         break
       case 'final':
-        playSfx('organ')
-        playSfx('win', { delay: 2.4 })
+        playSfx('sleigh')
+        playSfx('win', { delay: 1.2 })
+        say('Ho ho ho! Fim da festa! Palmas pro campeão — e pros espiões, um pedaço de carvão!', 2600)
         break
     }
     return () => {
@@ -148,14 +162,14 @@ function usePhaseSounds(state: EspiaoState, players: HPlayer[], now: () => numbe
     if (lastTick.current === key) return
     if (phase === 'talk' && seconds === 60) {
       lastTick.current = key
-      playSfx('clang')
-      speakSpooky('Último minuto!')
+      playSfx('sleigh')
+      speakFestive('Último minuto! Corre que o peru tá queimando!')
       return
     }
-    // Última chance: o coração da sala bate junto.
+    // Última chance: guizo a cada 3 segundos, para o espião suar.
     if (phase === 'last_chance' && seconds > 5 && seconds % 3 === 0) {
       lastTick.current = key
-      playSfx('heartbeat', { volume: 0.8 })
+      playSfx('tick', { volume: 0.8 })
       return
     }
     if (seconds > (phase === 'talk' ? 10 : 5)) return
@@ -164,17 +178,19 @@ function usePhaseSounds(state: EspiaoState, players: HPlayer[], now: () => numbe
   }, [seconds, moment, phase])
 }
 
-/** O que a voz grave da TV fala em cada momento (igual em rodada normal e maluca). */
+/** O que o apresentador da festa fala em cada momento (igual em rodada normal e maluca). */
 function narrationFor(state: EspiaoState, players: HPlayer[], phase: Phase): string {
   switch (phase) {
     case 'reveal':
       return revealNarration(state.round, state.spyCount)
     case 'talk':
-      return state.seg > 0 ? 'Acusação rejeitada. A conversa continua!' : `${nameOf(players, state.starter)} começa perguntando.`
+      return state.seg > 0
+        ? 'Acusação rejeitada! Todo mundo de volta pra conversa — e nada de briga na ceia.'
+        : `${nameOf(players, state.starter)} começa perguntando. Valendo!`
     case 'accuse':
-      return `${nameOf(players, state.accusation?.by)} acusa ${nameOf(players, state.accusation?.target)}! Votem.`
+      return `${nameOf(players, state.accusation?.by)} acusa ${nameOf(players, state.accusation?.target)}! Vai pra lista dos malcriados? Votem!`
     case 'final_vote':
-      return 'Acabou o tempo! Quem é o espião?'
+      return 'Acabou o tempo! Quem é o penetra da festa?'
     case 'last_chance':
       return `${nameOf(players, state.caught)} é espião! Última chance de adivinhar o lugar.`
     case 'result':
@@ -194,10 +210,10 @@ function TopBar({ state, now }: { state: EspiaoState; now: () => number }) {
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 3 }}>
       <Box sx={{ minWidth: 0 }}>
         <Typography sx={{ fontFamily: 'var(--font-numeric)', fontSize: 'clamp(1.8rem, 2.4vw, 2.6rem)', color: 'var(--text-secondary)', letterSpacing: '0.12em', lineHeight: 1.1 }}>
-          {state.over ? 'FIM DA NOITE' : `RODADA ${state.round}/${state.totalRounds}`}
+          {state.over ? '🎄 FIM DA NOITE' : `🎄 RODADA ${state.round}/${state.totalRounds}`}
         </Typography>
         {!state.over && (
-          <Typography sx={{ fontSize: TEXT, color: ACCENT.light, fontWeight: 700 }}>🕵️ {spiesLabel(state.spyCount)} na mesa</Typography>
+          <Typography sx={{ fontSize: TEXT, color: ACCENT.light, fontWeight: 700 }}>🕵️ {spiesLabel(state.spyCount)} infiltrado{state.spyCount > 1 ? 's' : ''} na festa</Typography>
         )}
       </Box>
       {!state.over && state.phase !== 'talk' && (
@@ -207,26 +223,29 @@ function TopBar({ state, now }: { state: EspiaoState; now: () => number }) {
   )
 }
 
+/** Relógio em forma de bola de árvore (com a tampinha dourada). */
 function Countdown({ deadline, now, graceMs, urgentCanPulse }: { deadline: number | null; now: () => number; graceMs: number; urgentCanPulse: boolean }) {
   const { seconds } = useCountdown(deadline, now, graceMs)
   if (seconds === null) return null
   const urgent = urgentCanPulse && seconds <= 5
+  const ring = urgent ? RED : ACCENT.main
   return (
-    <Box
-      className={urgent ? 'animate-urgent' : undefined}
-      sx={{
-        width: 'clamp(110px, 9vw, 150px)',
-        height: 'clamp(110px, 9vw, 150px)',
-        borderRadius: '50%',
-        display: 'grid',
-        placeItems: 'center',
-        border: `6px solid ${urgent ? SPOOKY_COLORS.blood : ACCENT.main}`,
-        boxShadow: `0 0 30px ${urgent ? withAlpha(SPOOKY_COLORS.blood, 0.55) : ACCENT.glow}`,
-        background: 'var(--bg-veil-strong, rgba(10, 6, 18, 0.82))',
-        flexShrink: 0,
-      }}
-    >
-      <Typography sx={{ fontFamily: 'var(--font-numeric)', fontSize: 'clamp(3.4rem, 4.6vw, 5rem)', lineHeight: 1 }}>{seconds}</Typography>
+    <Box className={urgent ? 'animate-urgent' : undefined} sx={{ position: 'relative', flexShrink: 0, pt: '18px' }}>
+      <Box sx={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 34, height: 22, borderRadius: '5px 5px 2px 2px', background: XMAS_COLORS.gold, boxShadow: `0 0 12px ${withAlpha(XMAS_COLORS.gold, 0.6)}` }} />
+      <Box
+        sx={{
+          width: 'clamp(110px, 9vw, 150px)',
+          height: 'clamp(110px, 9vw, 150px)',
+          borderRadius: '50%',
+          display: 'grid',
+          placeItems: 'center',
+          border: `6px solid ${ring}`,
+          boxShadow: `0 0 30px ${withAlpha(ring, 0.5)}, inset -14px -18px 30px rgba(0, 0, 0, 0.35), inset 12px 12px 24px ${withAlpha('#ffffff', 0.12)}`,
+          background: `radial-gradient(circle at 32% 28%, ${withAlpha(ring, 0.42)}, ${PANEL_BG} 70%)`,
+        }}
+      >
+        <Typography sx={{ fontFamily: FESTIVE_ROUND_FONT, fontWeight: 700, fontSize: 'clamp(3.4rem, 4.6vw, 5rem)', lineHeight: 1 }}>{seconds}</Typography>
+      </Box>
     </Box>
   )
 }
@@ -245,8 +264,15 @@ function Table({ players, ids, acted, trailing }: { players: HPlayer[]; ids: num
   )
 }
 
-function Tip({ children }: { children: ReactNode }) {
-  return <Typography sx={{ fontSize: TEXT, color: 'var(--text-secondary)', lineHeight: 1.3 }}>{children}</Typography>
+function Tip({ icon, children }: { icon: string; children: ReactNode }) {
+  return (
+    <Typography sx={{ fontSize: TEXT, color: 'var(--text-secondary)', lineHeight: 1.3 }}>
+      <span aria-hidden style={{ display: 'inline-block', width: '1.5em' }}>
+        {icon}
+      </span>
+      {children}
+    </Typography>
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -255,19 +281,30 @@ function Tip({ children }: { children: ReactNode }) {
 
 function RevealBoard({ state }: { state: EspiaoState }) {
   return (
-    <Box className="animate-pop-in" sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 3 }}>
-      <Box aria-hidden className="animate-ghost" sx={{ fontSize: 'clamp(7rem, 12vw, 11rem)', lineHeight: 1, filter: `drop-shadow(0 0 40px ${ACCENT.glow})` }}>
-        🕵️
+    <Box className="animate-pop-in" sx={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 3 }}>
+      <Sparkles />
+      {/* Enfeites pendurados nos cantos */}
+      <Box sx={{ position: 'absolute', top: 0, left: '6%', display: 'flex', gap: 3 }}>
+        <Ornament color={RED} size={70} swing />
+        <Ornament color={GREEN} size={54} swing delay={-0.9} />
       </Box>
-      <HauntedTitle drip size={TITLE} color={ACCENT.main}>
-        Olhem a carta!
-      </HauntedTitle>
-      <Typography sx={{ fontSize: TEXT_BIG, fontWeight: 800 }}>Vire o celular escondido 🤫</Typography>
+      <Box sx={{ position: 'absolute', top: 0, right: '6%', display: 'flex', gap: 3 }}>
+        <Ornament color={XMAS_COLORS.ice} size={54} swing delay={-1.4} />
+        <Ornament color={XMAS_COLORS.gold} size={70} swing delay={-0.4} />
+      </Box>
+      <SpyMascot size="clamp(7rem, 12vw, 11rem)" />
+      <FestiveTitle size={TITLE}>Olhem a carta!</FestiveTitle>
+      <Typography sx={{ fontSize: TEXT_BIG, fontWeight: 800 }}>Abra o celular escondidinho 🤫</Typography>
       <Typography sx={{ fontSize: TEXT, color: 'var(--text-secondary)', maxWidth: 1100 }}>
         {state.spyCount === 1
-          ? 'Um de vocês é o espião — e não faz ideia de onde vocês estão…'
+          ? 'Um de vocês é o espião — penetra na festa, e não faz ideia de onde vocês estão…'
           : 'Dois de vocês são espiões — e nem eles sabem um do outro…'}
       </Typography>
+      <Box sx={{ display: 'flex', gap: 4, alignItems: 'flex-end', mt: 1 }}>
+        <GiftBox color={RED} size={86} bounce />
+        <GiftBox color={XMAS_COLORS.green} ribbon={XMAS_COLORS.snow} size={110} bounce delay={-0.5} />
+        <GiftBox color={XMAS_COLORS.ice} ribbon={RED} size={76} bounce delay={-1} />
+      </Box>
     </Box>
   )
 }
@@ -283,32 +320,43 @@ function TalkBoard({ state, players, now }: { state: EspiaoState; players: HPlay
         <Typography
           className={lastMinute ? 'animate-urgent' : undefined}
           sx={{
-            fontFamily: 'var(--font-display)',
+            fontFamily: FESTIVE_ROUND_FONT,
+            fontWeight: 700,
             fontSize: 'clamp(4.5rem, 7vw, 7.5rem)',
             lineHeight: 1,
             mt: 1,
-            color: lastMinute ? SPOOKY_COLORS.blood : SPOOKY_COLORS.candle,
-            textShadow: `0 0 24px ${lastMinute ? withAlpha(SPOOKY_COLORS.blood, 0.6) : withAlpha(SPOOKY_COLORS.candle, 0.4)}`,
+            color: lastMinute ? RED : XMAS_COLORS.gold,
+            textShadow: `0 0 24px ${lastMinute ? withAlpha(RED, 0.6) : withAlpha(XMAS_COLORS.gold, 0.4)}`,
             fontVariantNumeric: 'tabular-nums',
           }}
         >
           {clock(ms)}
         </Typography>
+        {lastMinute && (
+          <Typography className="animate-pop-in" sx={{ fontSize: TEXT, fontWeight: 800, color: RED }}>
+            🔥 Último minuto!
+          </Typography>
+        )}
       </Box>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
         <Box>
           <Typography sx={{ fontSize: TEXT, color: 'var(--text-secondary)' }}>🎤 Quem começa perguntando</Typography>
-          <Typography
-            sx={{ fontFamily: 'var(--font-display)', fontSize: TITLE, lineHeight: 1, color: ACCENT.main, textShadow: `0 0 28px ${ACCENT.glow}`, wordBreak: 'break-word' }}
-          >
-            {nameOf(players, state.starter, 'Qualquer um')}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 2 }}>
+            <Typography
+              sx={{ fontFamily: 'var(--font-display)', fontSize: TITLE, lineHeight: 1, color: ACCENT.main, textShadow: `0 0 28px ${ACCENT.glow}`, wordBreak: 'break-word', minWidth: 0 }}
+            >
+              {nameOf(players, state.starter, 'Qualquer um')}
+            </Typography>
+            <Box className="ep-wiggle" sx={{ width: 'clamp(60px, 6vw, 96px)', flexShrink: 0, mb: 1 }}>
+              <SantaHat size="100%" />
+            </Box>
+          </Box>
         </Box>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-          <Tip>❓ Pergunte a alguém sobre o lugar — sem entregar.</Tip>
-          <Tip>🫵 Desconfiou? Acuse pelo celular: a maioria decide.</Tip>
-          <Tip>🔮 O espião pode digitar o lugar a qualquer hora.</Tip>
+          <Tip icon="❓">Pergunte a alguém sobre o lugar — sem entregar.</Tip>
+          <Tip icon="🫵">Desconfiou? Acuse pelo celular: a maioria decide.</Tip>
+          <Tip icon="✨">O espião pode chutar o lugar a qualquer hora.</Tip>
         </Box>
         {rejected && (
           <Typography className="animate-pop-in" sx={{ fontSize: TEXT, color: 'var(--text-muted)' }}>
@@ -330,22 +378,29 @@ function AccuseBoard({ state, players }: { state: EspiaoState; players: HPlayer[
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: { xs: 2, md: 3 } }}>
       <Box className="animate-pop-in" sx={{ textAlign: 'center' }}>
-        <Typography sx={{ fontFamily: BLOODY_FONT, fontSize: 'clamp(2.4rem, 3.6vw, 3.8rem)', color: SPOOKY_COLORS.blood, letterSpacing: '0.04em' }}>
-          ACUSAÇÃO!
+        <Typography sx={{ fontFamily: FESTIVE_ROUND_FONT, fontWeight: 700, fontSize: 'clamp(2.4rem, 3.6vw, 3.8rem)', color: RED, letterSpacing: '0.08em', textShadow: `0 0 22px ${withAlpha(RED, 0.5)}` }}>
+          🚨 ACUSAÇÃO! 🚨
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: { xs: 2, md: 4 }, flexWrap: 'wrap' }}>
           <Typography sx={{ fontSize: 'clamp(2.6rem, 4vw, 4.4rem)', fontWeight: 800 }}>{nameOf(players, accusation.by)}</Typography>
           <Typography aria-hidden sx={{ fontSize: 'clamp(3rem, 5vw, 5.2rem)', lineHeight: 1 }}>
             👉
           </Typography>
-          <Typography
-            className="hw-knock"
-            sx={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(4.5rem, 8vw, 8.5rem)', lineHeight: 1, color: ACCENT.main, textShadow: `0 0 34px ${ACCENT.glow}` }}
-          >
-            {target}
-          </Typography>
+          <Box sx={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+            <Typography
+              key={`${state.round}-${state.seg}-${accusation.target}`}
+              className="ep-boing"
+              sx={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(4.5rem, 8vw, 8.5rem)', lineHeight: 1, color: ACCENT.main, textShadow: `0 0 34px ${ACCENT.glow}` }}
+            >
+              {target}
+            </Typography>
+            <Typography aria-hidden className="ep-wiggle" sx={{ fontSize: 'clamp(3.4rem, 5.6vw, 6rem)', lineHeight: 1 }}>
+              🤨
+            </Typography>
+          </Box>
         </Box>
         <Typography sx={{ fontSize: TEXT_BIG, fontWeight: 700, mt: 1 }}>{target} é o espião? Votem no celular!</Typography>
+        <Typography sx={{ fontSize: TEXT, color: XMAS_COLORS.candy, fontWeight: 700 }}>📜 Vai pra lista dos malcriados do Papai Noel?</Typography>
       </Box>
 
       <VoteBars yes={accusation.yes} no={accusation.no} total={voters.length} />
@@ -362,29 +417,32 @@ function AccuseBoard({ state, players }: { state: EspiaoState; players: HPlayer[
   )
 }
 
+/** Barras de voto listradas como bengala doce. */
 function VoteBars({ yes, no, total }: { yes: number; no: number; total: number }) {
   const rows = [
-    { label: '👍 SIM', count: yes, color: '#22c55e' },
-    { label: '👎 NÃO', count: no, color: SPOOKY_COLORS.blood },
+    { label: '👍 SIM', count: yes, color: GREEN },
+    { label: '👎 NÃO', count: no, color: RED },
   ]
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, maxWidth: 1400, width: '100%', mx: 'auto' }}>
       {rows.map((row) => (
         <Box key={row.label} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography sx={{ width: '6.5ch', fontSize: TEXT_BIG, fontWeight: 800, flexShrink: 0 }}>{row.label}</Typography>
-          <Box sx={{ flex: 1, height: 'clamp(40px, 4.5vw, 64px)', borderRadius: 3, background: 'rgba(255, 255, 255, 0.07)', overflow: 'hidden' }}>
+          <Box sx={{ flex: 1, height: 'clamp(40px, 4.5vw, 64px)', borderRadius: 999, background: 'rgba(255, 255, 255, 0.08)', border: '2px solid rgba(255, 255, 255, 0.14)', overflow: 'hidden' }}>
             <Box
+              className="ep-candy-bar"
               sx={{
                 height: '100%',
                 width: `${(row.count / Math.max(1, total)) * 100}%`,
-                minWidth: row.count > 0 ? 18 : 0,
-                background: `linear-gradient(90deg, ${withAlpha(row.color, 0.75)}, ${row.color})`,
-                boxShadow: `0 0 24px ${withAlpha(row.color, 0.5)}`,
+                minWidth: row.count > 0 ? 24 : 0,
+                borderRadius: 999,
+                backgroundColor: row.color,
+                boxShadow: `0 0 24px ${withAlpha(row.color, 0.55)}`,
                 transition: 'width 450ms cubic-bezier(0.22, 1, 0.36, 1)',
               }}
             />
           </Box>
-          <Typography sx={{ fontFamily: 'var(--font-numeric)', fontSize: 'clamp(2.6rem, 3.6vw, 3.8rem)', minWidth: '2ch', textAlign: 'right' }}>{row.count}</Typography>
+          <Typography sx={{ fontFamily: FESTIVE_ROUND_FONT, fontWeight: 700, fontSize: 'clamp(2.6rem, 3.6vw, 3.8rem)', minWidth: '2ch', textAlign: 'right' }}>{row.count}</Typography>
         </Box>
       ))}
     </Box>
@@ -395,10 +453,15 @@ function FinalVoteBoard({ state, players }: { state: EspiaoState; players: HPlay
   const voted = new Set(state.acted)
   return (
     <Box className="animate-pop-in" sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <HauntedTitle drip size={TITLE} color={SPOOKY_COLORS.blood} align="left">
-        Acabou o tempo!
-      </HauntedTitle>
-      <Typography sx={{ fontSize: TEXT_BIG, fontWeight: 800 }}>Votem no celular: quem é o espião? 🕵️</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+        <FestiveTitle size={TITLE} align="left" color={RED}>
+          Acabou o tempo!
+        </FestiveTitle>
+        <Box className="ep-swing" sx={{ fontSize: 'clamp(4rem, 6vw, 6.5rem)', lineHeight: 1 }} aria-hidden>
+          🔔
+        </Box>
+      </Box>
+      <Typography sx={{ fontSize: TEXT_BIG, fontWeight: 800 }}>Votem no celular: quem é o penetra da festa? 🕵️</Typography>
       <Typography sx={{ fontSize: TEXT, color: 'var(--text-secondary)' }}>
         O mais votado é condenado. Empate? O espião escapa! · {voted.size}/{state.roster.length} votaram
       </Typography>
@@ -413,14 +476,18 @@ function LastChanceBoard({ state, players }: { state: EspiaoState; players: HPla
   const caught = nameOf(players, state.caught)
   const top = state.verdict?.via === 'final' ? state.finalTally.slice(0, 4) : []
   return (
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 2 }}>
-      <Typography className="hw-pulse" sx={{ fontFamily: BLOODY_FONT, fontSize: 'clamp(5rem, 10vw, 10rem)', lineHeight: 1, color: SPOOKY_COLORS.blood, textShadow: `0 0 40px ${withAlpha(SPOOKY_COLORS.blood, 0.6)}` }}>
-        PEGO!
+    <Box sx={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 2 }}>
+      <Sparkles color={RED} />
+      <Typography
+        className="ep-boing"
+        sx={{ fontFamily: FESTIVE_ROUND_FONT, fontWeight: 700, fontSize: 'clamp(5rem, 10vw, 10rem)', lineHeight: 1, color: RED, textShadow: `0 6px 0 rgba(0,0,0,0.5), 0 0 40px ${withAlpha(RED, 0.6)}` }}
+      >
+        PEGO! 📸
       </Typography>
       <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: TITLE, lineHeight: 1.05, color: ACCENT.main, wordBreak: 'break-word' }}>
         {caught} é espião! 🕵️
       </Typography>
-      <Typography sx={{ fontSize: TEXT_BIG, fontWeight: 700 }}>Última chance: tem 30 segundos para digitar o lugar…</Typography>
+      <Typography sx={{ fontSize: TEXT_BIG, fontWeight: 700 }}>Pego com a mão no panetone! Última chance: 30 segundos para digitar o lugar…</Typography>
       <Typography sx={{ fontSize: TEXT, color: 'var(--text-secondary)' }}>Acertou, os espiões vencem. 🤐 Ninguém sopra!</Typography>
       {top.length > 0 && (
         <Typography sx={{ fontSize: TEXT, color: 'var(--text-muted)' }}>
@@ -440,14 +507,19 @@ function ResultBoard({ state, players, now }: { state: EspiaoState; players: HPl
 
   if (elapsed < DRUM_MS) {
     return (
-      <Box sx={{ flex: 1, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
-        <Box>
-          <Typography className="hw-pulse" sx={{ fontSize: 'clamp(8rem, 14vw, 13rem)', lineHeight: 1 }}>
-            🥁
-          </Typography>
-          <HauntedTitle size={TITLE} color={ACCENT.main}>
-            E o espião era…
-          </HauntedTitle>
+      <Box sx={{ position: 'relative', flex: 1, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
+        <Sparkles />
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 3 }}>
+            <Typography aria-hidden className="ep-bounce" sx={{ fontSize: 'clamp(5rem, 8vw, 8rem)', lineHeight: 1 }}>
+              🥁
+            </Typography>
+            <GiftBox size="clamp(160px, 16vw, 240px)" shake />
+            <Typography aria-hidden className="ep-bounce" sx={{ fontSize: 'clamp(5rem, 8vw, 8rem)', lineHeight: 1 }}>
+              🥁
+            </Typography>
+          </Box>
+          <FestiveTitle size={TITLE}>E o espião era…</FestiveTitle>
         </Box>
       </Box>
     )
@@ -458,7 +530,7 @@ function ResultBoard({ state, players, now }: { state: EspiaoState; players: HPl
   const gains = Object.entries(result.gains)
     .map(([id, points]) => ({ id: Number(id), points }))
     .sort((a, b) => b.points - a.points || a.id - b.id)
-  const winnerColor = result.winner === 'table' ? SPOOKY_COLORS.toxic : result.winner === 'spies' ? SPOOKY_COLORS.blood : SPOOKY_COLORS.pumpkin
+  const winnerColor = result.winner === 'table' ? GREEN : result.winner === 'spies' ? RED : XMAS_COLORS.gold
 
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: { xs: 2, md: 3 } }}>
@@ -467,19 +539,15 @@ function ResultBoard({ state, players, now }: { state: EspiaoState; players: HPl
         {copy.headline}
       </Typography>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'auto 1fr' }, gap: { xs: 2, md: 5 }, alignItems: 'center' }}>
-        <Box className="hw-rise" sx={{ textAlign: 'center', px: 4, py: 3, borderRadius: 'var(--radius-xl)', border: `3px solid ${ACCENT.main}`, background: 'var(--bg-veil-strong, rgba(10, 6, 18, 0.82))', boxShadow: `0 0 40px ${ACCENT.glow}` }}>
-          <Typography sx={{ fontSize: TEXT, color: 'var(--text-secondary)', letterSpacing: '0.12em' }}>O LUGAR ERA</Typography>
-          <Typography sx={{ fontSize: 'clamp(5rem, 8vw, 8rem)', lineHeight: 1.1 }}>{result.place.icon}</Typography>
-          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.8rem, 4.4vw, 4.6rem)', lineHeight: 1, color: ACCENT.light }}>{result.place.name}</Typography>
-        </Box>
+        <PlaceTag icon={result.place.icon} name={result.place.name} />
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0 }}>
           <Typography sx={{ fontSize: TEXT_BIG, fontWeight: 800 }}>
-            🕵️ {result.kind === 'normal' && result.spies.length > 1 ? 'Espiões' : 'Espião'}: <span style={{ color: SPOOKY_COLORS.blood }}>{spiesText}</span>
+            🕵️ {result.kind === 'normal' && result.spies.length > 1 ? 'Espiões' : 'Espião'}: <span style={{ color: RED }}>{spiesText}</span>
           </Typography>
           <Typography sx={{ fontSize: TEXT_BIG, color: 'var(--text-secondary)' }}>{copy.subtitle}</Typography>
           {result.guess && (
             <Typography sx={{ fontSize: TEXT, color: 'var(--text-secondary)' }}>
-              🔮 {nameOf(players, result.guess.by)} chutou “{result.guess.text}” {result.guess.right ? '✅' : '❌'}
+              ✨ {nameOf(players, result.guess.by)} chutou “{result.guess.text}” {result.guess.right ? '✅' : '❌'}
             </Typography>
           )}
           {result.finalTally.length > 0 && (
@@ -496,7 +564,7 @@ function ResultBoard({ state, players, now }: { state: EspiaoState; players: HPl
                   style={stagger(index)}
                   sx={{ px: 2, py: 0.75, borderRadius: 'var(--radius-full)', background: withAlpha(ACCENT.main, 0.18), border: `2px solid ${ACCENT.main}`, fontSize: TEXT, fontWeight: 800 }}
                 >
-                  +{gain.points} {nameOf(players, gain.id)}
+                  🎁 +{gain.points} {nameOf(players, gain.id)}
                 </Box>
               ))}
             </Box>
@@ -504,6 +572,38 @@ function ResultBoard({ state, players, now }: { state: EspiaoState; players: HPl
         </Box>
       </Box>
       <RolesGrid state={state} players={players} />
+    </Box>
+  )
+}
+
+/** Etiqueta de presente com o lugar da rodada (furo, barbante e tudo). */
+function PlaceTag({ icon, name }: { icon: string; name: string }) {
+  return (
+    <Box className="animate-pop-in" sx={{ position: 'relative', justifySelf: 'center', pt: 4 }}>
+      <Box aria-hidden sx={{ position: 'absolute', top: 0, left: '50%', width: 4, height: 44, ml: '-2px', background: RED, borderRadius: 2 }} />
+      <Box
+        sx={{
+          position: 'relative',
+          textAlign: 'center',
+          px: 5,
+          pt: 4,
+          pb: 3,
+          minWidth: 320,
+          color: '#2b1608',
+          background: `linear-gradient(160deg, #fffaf0 0%, ${XMAS_COLORS.snow} 55%, #f6e7c8 100%)`,
+          border: `5px solid ${RED}`,
+          outline: `3px dashed ${withAlpha(XMAS_COLORS.green, 0.9)}`,
+          outlineOffset: '-14px',
+          borderRadius: '28px 28px 22px 22px',
+          clipPath: 'polygon(14% 0, 86% 0, 100% 12%, 100% 100%, 0 100%, 0 12%)',
+          boxShadow: `0 0 44px ${ACCENT.glow}`,
+        }}
+      >
+        <Box aria-hidden sx={{ position: 'absolute', top: 14, left: '50%', width: 22, height: 22, ml: '-11px', borderRadius: '50%', background: '#06101f', border: `3px solid ${XMAS_COLORS.gold}` }} />
+        <Typography sx={{ fontSize: TEXT, color: '#7a2a1a', letterSpacing: '0.12em', fontWeight: 800, mt: 1 }}>O LUGAR ERA</Typography>
+        <Typography sx={{ fontSize: 'clamp(5rem, 8vw, 8rem)', lineHeight: 1.1 }}>{icon}</Typography>
+        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.8rem, 4.4vw, 4.6rem)', lineHeight: 1, color: '#b0182c' }}>{name}</Typography>
+      </Box>
     </Box>
   )
 }
@@ -517,8 +617,8 @@ function RolesGrid({ state, players }: { state: EspiaoState; players: HPlayer[] 
       {state.roster.map((id) => {
         const spy = result.spies.includes(id)
         return (
-          <Typography key={id} noWrap sx={{ fontSize: TEXT, color: spy ? SPOOKY_COLORS.blood : 'var(--text-secondary)' }}>
-            <b style={{ color: spy ? SPOOKY_COLORS.blood : 'var(--text-primary)' }}>{nameOf(players, id)}</b> · {spy ? '🕵️ espião' : (result.roles[String(id)] ?? '—')}
+          <Typography key={id} noWrap sx={{ fontSize: TEXT, color: spy ? RED : 'var(--text-secondary)' }}>
+            <b style={{ color: spy ? RED : 'var(--text-primary)' }}>{nameOf(players, id)}</b> · {spy ? '🕵️ espião' : (result.roles[String(id)] ?? '—')}
           </Typography>
         )
       })}
@@ -530,11 +630,19 @@ function Scoreboard({ state, players }: { state: EspiaoState; players: HPlayer[]
   const { ranking } = finalAwards(state)
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: TITLE, color: ACCENT.main, lineHeight: 1 }}>Placar da mesa</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+        <FestiveTitle size={TITLE} align="left">
+          Placar da mesa
+        </FestiveTitle>
+        <Ornament color={RED} size={64} swing />
+        <Ornament color={GREEN} size={50} swing delay={-1} />
+      </Box>
       <RankList entries={ranking} players={players} gains={state.result?.gains ?? {}} />
     </Box>
   )
 }
+
+const MEDALS = ['🥇', '🥈', '🥉']
 
 function RankList({ entries, players, gains }: { entries: { id: number; score: number; place: number }[]; players: HPlayer[]; gains: Record<string, number> }) {
   const wide = entries.length > 8
@@ -542,6 +650,7 @@ function RankList({ entries, players, gains }: { entries: { id: number; score: n
     <Box sx={{ display: 'grid', gridTemplateColumns: wide ? { xs: '1fr', lg: '1fr 1fr' } : '1fr', gap: 1.25, columnGap: 5, maxWidth: wide ? 'none' : 1100 }}>
       {entries.map((entry, index) => {
         const gained = gains[String(entry.id)] ?? 0
+        const first = entry.place === 1
         return (
           <Box
             key={entry.id}
@@ -554,16 +663,18 @@ function RankList({ entries, players, gains }: { entries: { id: number; score: n
               px: 2.5,
               py: 1,
               borderRadius: 'var(--radius-lg)',
-              background: entry.place === 1 ? withAlpha(ACCENT.main, 0.16) : 'rgba(255, 255, 255, 0.04)',
-              border: `2px solid ${entry.place === 1 ? ACCENT.main : 'transparent'}`,
+              background: first ? withAlpha(ACCENT.main, 0.16) : 'rgba(255, 255, 255, 0.05)',
+              border: `2px solid ${first ? ACCENT.main : 'transparent'}`,
             }}
           >
-            <Typography sx={{ fontFamily: 'var(--font-numeric)', fontSize: 'clamp(1.8rem, 2.4vw, 2.6rem)', color: 'var(--text-muted)', minWidth: '2.2ch' }}>{entry.place}º</Typography>
+            <Typography sx={{ fontFamily: FESTIVE_ROUND_FONT, fontWeight: 700, fontSize: 'clamp(1.8rem, 2.4vw, 2.6rem)', color: 'var(--text-muted)', minWidth: '2.2ch' }}>
+              {MEDALS[entry.place - 1] ?? `${entry.place}º`}
+            </Typography>
             <Typography noWrap sx={{ flex: 1, fontSize: 'clamp(1.8rem, 2.4vw, 2.6rem)', fontWeight: 700 }}>
-              {nameOf(players, entry.id)}
+              {nameOf(players, entry.id)} {first ? '🎅' : ''}
             </Typography>
             {gained > 0 && <Typography sx={{ fontSize: TEXT, color: ACCENT.light, fontWeight: 800 }}>+{gained}</Typography>}
-            <Typography sx={{ fontFamily: 'var(--font-numeric)', fontSize: 'clamp(2rem, 2.8vw, 3rem)', minWidth: '2ch', textAlign: 'right' }}>{entry.score}</Typography>
+            <Typography sx={{ fontFamily: FESTIVE_ROUND_FONT, fontWeight: 700, fontSize: 'clamp(2rem, 2.8vw, 3rem)', minWidth: '2ch', textAlign: 'right' }}>{entry.score}</Typography>
           </Box>
         )
       })}
@@ -575,7 +686,7 @@ function FinalBoard({ state, players }: { state: EspiaoState; players: HPlayer[]
   const awards = finalAwards(state)
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <CandyRain active kind="mixed" count={30} />
+      <XmasRain active count={36} />
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
         <AwardCard
           icon="🏆"
@@ -583,6 +694,7 @@ function FinalBoard({ state, players }: { state: EspiaoState; players: HPlayer[]
           names={awards.champions.length ? namesOf(players, awards.champions) : 'Ninguém pontuou'}
           detail={awards.champions.length ? `${awards.topScore} ${awards.topScore === 1 ? 'ponto' : 'pontos'}` : 'a mesa ficou no zero'}
           delay={0}
+          color={XMAS_COLORS.gold}
         />
         <AwardCard
           icon="🕵️"
@@ -590,13 +702,15 @@ function FinalBoard({ state, players }: { state: EspiaoState; players: HPlayer[]
           names={awards.masterSpies.length ? namesOf(players, awards.masterSpies) : 'Nenhum espião escapou'}
           detail={awards.masterSpies.length ? `${awards.maxSpyWins} ${awards.maxSpyWins === 1 ? 'vitória' : 'vitórias'} como espião` : 'mesa afiada!'}
           delay={500}
+          color={RED}
         />
         <AwardCard
-          icon="🔎"
-          title="Faro fino"
-          names={awards.detectives.length ? namesOf(players, awards.detectives) : 'Ninguém acertou'}
+          icon="🦌"
+          title="Nariz de Rudolph"
+          names={awards.detectives.length ? namesOf(players, awards.detectives) : 'Ninguém farejou'}
           detail={awards.detectives.length ? `${awards.maxSharp} ${awards.maxSharp === 1 ? 'acusação certeira' : 'acusações certeiras'}` : 'os espiões agradecem'}
           delay={1000}
+          color={GREEN}
         />
       </Box>
       <RankList entries={awards.ranking} players={players} gains={{}} />
@@ -613,22 +727,29 @@ function FinalBoard({ state, players }: { state: EspiaoState; players: HPlayer[]
   )
 }
 
-function AwardCard({ icon, title, names, detail, delay }: { icon: string; title: string; names: string; detail: string; delay: number }) {
+function AwardCard({ icon, title, names, detail, delay, color }: { icon: string; title: string; names: string; detail: string; delay: number; color: string }) {
   return (
     <Box
       className="animate-pop-in"
       style={{ animationDelay: `${delay}ms` }}
       sx={{
+        position: 'relative',
         p: 3,
+        pt: 4,
         borderRadius: 'var(--radius-xl)',
-        border: `3px solid ${ACCENT.main}`,
-        background: 'var(--bg-veil-strong, rgba(10, 6, 18, 0.82))',
-        boxShadow: `0 0 40px ${ACCENT.glow}`,
+        border: `3px solid ${color}`,
+        background: `linear-gradient(180deg, ${withAlpha(color, 0.16)}, ${PANEL_BG} 60%)`,
+        boxShadow: `0 0 40px ${withAlpha(color, 0.4)}`,
         textAlign: 'center',
+        overflow: 'hidden',
       }}
     >
-      <Typography sx={{ fontSize: 'clamp(3rem, 4vw, 4.4rem)', lineHeight: 1 }}>{icon}</Typography>
-      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.2rem, 3vw, 3.2rem)', color: ACCENT.light, mt: 1 }}>{title}</Typography>
+      {/* Fita de presente cruzando o cartão */}
+      <Box aria-hidden sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 10, background: color, opacity: 0.85 }} />
+      <Typography className="ep-bounce" sx={{ fontSize: 'clamp(3rem, 4vw, 4.4rem)', lineHeight: 1, display: 'inline-block' }}>
+        {icon}
+      </Typography>
+      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.2rem, 3vw, 3.2rem)', color, mt: 1 }}>{title}</Typography>
       <Typography sx={{ fontWeight: 800, fontSize: 'clamp(2.2rem, 3vw, 3.4rem)', lineHeight: 1.1, mt: 1, wordBreak: 'break-word' }}>{names}</Typography>
       <Typography sx={{ fontSize: TEXT, color: 'var(--text-secondary)', mt: 0.5 }}>{detail}</Typography>
     </Box>

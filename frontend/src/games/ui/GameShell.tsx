@@ -26,8 +26,8 @@ type GameShellProps = {
 }
 
 /**
- * Fundo da partida: névoa do acento do jogo sobre o véu roxo translúcido —
- * o cenário da Noite do Terror (neblina, morcegos) aparece por trás. Não usa
+ * Fundo da partida: névoa do acento do jogo sobre o véu azul translúcido —
+ * o cenário de Natal (neve, estrelas) aparece por trás. Não usa
  * `accentBackdrop` de `games/theme` porque aquele termina num fundo sólido.
  */
 function shellBackdrop(accent: GameAccent) {
@@ -88,9 +88,9 @@ function TitleDrips({ color, big }: { color: string; big: boolean }) {
  * A TV recebe um tratamento diferente das telas de mão: título gigante,
  * código discreto no canto e zero botões — ninguém aperta botão na TV.
  *
- * Noite do Terror: título em Creepster escorrendo no acento do jogo,
- * fantasminha no carregamento e fundo translúcido para o cenário. As teias
- * dos cantos da tela vêm do HalloweenLayer (não repetir aqui). As props não
+ * Noite Feliz: título no acento do jogo, boneco de neve no carregamento e
+ * fundo translúcido para o cenário (a neve vem do HalloweenLayer — não
+ * repetir aqui). As props não
  * mudaram — os 25 jogos antigos dependem delas.
  */
 export default function GameShell({

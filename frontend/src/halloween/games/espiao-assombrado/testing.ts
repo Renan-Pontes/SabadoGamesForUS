@@ -6,7 +6,7 @@ import { engine, mesaOf, type EspiaoState } from './engine'
 import { MESA_KEY, REVEAL_SECONDS, type MesaSecret, type RoundKind, type SpyCard } from './rules'
 
 /**
- * Atalhos dos testes do "Espião Assombrado" (motor e telas): montar uma
+ * Atalhos dos testes do "Espião de Natal" (motor e telas): montar uma
  * partida, escolher quem é espião e chegar rápido numa fase. Só os testes
  * importam este arquivo.
  */

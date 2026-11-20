@@ -13,24 +13,25 @@ import type { BaseState, EngineCtx, HPlayer, HalloweenEngine } from '../../engin
 import { THEMES } from './content'
 
 /**
- * 🎃 Abóbora-Bomba — batata quente com pavio individual.
+ * 🎁 Presente-Bomba (slug antigo: abobora-bomba) — batata quente com pavio
+ * individual.
  *
  * O conserto do Bomba-Relógio (o povo passava sem falar): cada um tem o
- * PRÓPRIO pavio, que só queima enquanto a abóbora está na sua mão. Passou,
+ * PRÓPRIO pavio, que só queima enquanto o presente está na sua mão. Passou,
  * o seu pausa e o do próximo volta a queimar. Enrolar só queima o seu tempo.
  *
- *   theme (5 s) ──► play (a abóbora pula de mão em mão) ──► boom (8 s) ──► theme da próxima
+ *   theme (5 s) ──► play (o presente pula de mão em mão) ──► boom (8 s) ──► theme da próxima
  *                     │                                        └── sobrou 1 vivo ou 12 rodadas ──► final (over)
  *                     └── "⏭ Pular" do host: apaga o pavio — rodada acaba e NINGUÉM perde vida
  *
  * Tudo pelo relógio do servidor, nunca contando passos:
- * - a abóbora chega em `arrivedAt` (quando o juiz viu o passe); o pavio de
+ * - o presente chega em `arrivedAt` (quando o juiz viu o passe); o pavio de
  *   quem recebe só começa a queimar 1,5 s depois (`holdStartOf`), o tempo de
  *   a notícia chegar ao celular dele;
  * - `fuseEnd = holdStart + pavio ÷ ritmo` é a hora oficial do BUM, e o
  *   `deadline` espera mais 2,5 s (`LATE_MS`) por um passe que ainda esteja
  *   na rede — passe tocado antes do fim do pavio salva, mesmo chegando depois;
- * - a abóbora vai para o próximo vivo da mesa, online ou não (`nextInLine`):
+ * - o presente vai para o próximo vivo da mesa, online ou não (`nextInLine`):
  *   celular bloqueado não é escudo. Só quem começa a rodada precisa estar
  *   online (`nextAlive`);
  * - cada posse tem a sua chave (`pass-<rodada>-<n>`): cada passe é uma
@@ -38,7 +39,7 @@ import { THEMES } from './content'
  *   [chegada + 1 s, agora], e desconta só o que queimou;
  * - passe que chega com menos de 1 s de posse ainda não vale (o juiz
  *   reavalia nos passos seguintes, já com o `at` limitado à chegada + 1 s);
- * - a abóbora esquenta: a cada 30 s de rodada o pavio de quem pega queima
+ * - o presente esquenta: a cada 30 s de rodada o pavio de quem pega queima
  *   mais rápido (1×, 1,5×, 2×, 2,5×, 3×), para nenhuma rodada se arrastar
  *   com 15 pessoas falando rápido.
  *
@@ -50,7 +51,7 @@ export const FIRST_THEME_SECONDS = 8
 export const THEME_SECONDS = 5
 export const BOOM_SECONDS = 8
 export const MAX_ROUNDS = 12
-/** O pavio de quem recebe só começa a queimar 1,5 s depois de a abóbora chegar. */
+/** O pavio de quem recebe só começa a queimar 1,5 s depois de o presente chegar. */
 export const ARRIVAL_GRACE_MS = 1500
 /** Passe com menos de 1 s de posse ainda não vale. */
 export const MIN_HOLD_MS = 1000
@@ -64,7 +65,7 @@ export const LATE_MS = 2500
 export const HOLD_TO_PASS_MS = 1200
 /** No modo digitar a palavra já custou tempo: basta um toque firme. */
 export const HOLD_TO_PASS_TYPED_MS = 500
-/** A cada 30 s de rodada a abóbora esquenta. */
+/** A cada 30 s de rodada o presente esquenta. */
 export const HEAT_STEP_MS = 30_000
 /** Ritmo do pavio em cada nível de calor. */
 export const HEAT_RATES = [1, 1.5, 2, 2.5, 3] as const
@@ -85,9 +86,9 @@ export type AbbBoom = {
   victim: number | null
   /** Vidas que sobraram para quem explodiu. */
   livesLeft: number
-  /** Ficou sem vidas: virou fantasma. */
+  /** Ficou sem vidas: virou boneco de neve. */
   eliminated: boolean
-  /** Quantas vezes a abóbora trocou de mão na rodada. */
+  /** Quantas vezes o presente trocou de mão na rodada. */
   passes: number
 }
 
@@ -102,7 +103,7 @@ export type AbbState = BaseState & {
   /** Pavio cheio desta partida (ms). */
   fuseMs: number
   maxLives: number
-  /** Quem já passou a abóbora nesta rodada (✓ na TV). */
+  /** Quem já passou o presente nesta rodada (✓ na TV). */
   acted: number[]
   lives: Record<string, number>
   /** Pavio que sobra para cada um nesta rodada (ms, no ritmo 1×). */
@@ -112,13 +113,13 @@ export type AbbState = BaseState & {
   /** Temas sorteados para a partida (ids de THEMES), um por rodada. */
   deck: number[]
   theme: AbbTheme
-  /** Com quem está a abóbora (no `theme`, quem vai começar). */
+  /** Com quem está o presente (no `theme`, quem vai começar). */
   holder: number | null
   /** Quem passou por último (para a TV desenhar o pulo). */
   from: number | null
   /** Quando a rodada começou a valer (o calor conta daqui). */
   startedAt: number
-  /** Quando a abóbora chegou em quem segura. */
+  /** Quando o presente chegou em quem segura. */
   arrivedAt: number
   /** Hora oficial do BUM de quem segura; null fora do `play`. */
   fuseEnd: number | null
@@ -212,12 +213,12 @@ export function realMsLeft(state: AbbState, id: number, now: number): number {
 }
 
 /**
- * Para quem a abóbora vai num passe: o próximo vivo na ordem da mesa, esteja
+ * Para quem o presente vai num passe: o próximo vivo na ordem da mesa, esteja
  * online ou não. Pular quem está offline faria do celular bloqueado (ou do
  * Instagram) um escudo: a pessoa nunca perderia vida e venceria a partida
- * sem jogar. Assim, a abóbora chega nela, a TV mostra o nome, a mesa grita e
+ * sem jogar. Assim, o presente chega nela, a TV mostra o nome, a mesa grita e
  * ela volta a tempo de passar — ou o pavio queima e vem o BUM. Quem foi
- * embora de vez explode algumas vezes e vira fantasma; o prazo nunca trava.
+ * embora de vez explode algumas vezes e vira boneco de neve; o prazo nunca trava.
  */
 export function nextInLine(state: Pick<AbbState, 'lives' | 'roster'>, after: number | null): number | null {
   const roster = state.roster
@@ -231,8 +232,8 @@ export function nextInLine(state: Pick<AbbState, 'lives' | 'roster'>, after: num
 
 /**
  * Quem começa uma rodada: o próximo vivo na ordem da mesa depois de `after`,
- * de preferência alguém online (não vale abrir a rodada com quem sumiu — a
- * abóbora chega nele depois, nos passes). Sem ninguém online, vai para um
+ * de preferência alguém online (não vale abrir a rodada com quem sumiu — o
+ * presente chega nele depois, nos passes). Sem ninguém online, vai para um
  * vivo offline mesmo: o pavio dele queima e a rodada acaba.
  */
 export function nextAlive(
@@ -285,14 +286,14 @@ function themeFor(id: number): AbbTheme {
   return { id, text: theme.text, icon: theme.icon }
 }
 
-/** 12 temas sem repetir, alternando Halloween e dia a dia. */
+/** 12 temas sem repetir, alternando Natal/fim de ano e dia a dia. */
 function buildDeck(rng: () => number): number[] {
   const ids = THEMES.map((_, id) => id)
-  const spooky = shuffle(ids.filter((id) => THEMES[id].spooky), rng)
-  const plain = shuffle(ids.filter((id) => !THEMES[id].spooky), rng)
+  const xmas = shuffle(ids.filter((id) => THEMES[id].xmas), rng)
+  const plain = shuffle(ids.filter((id) => !THEMES[id].xmas), rng)
   const deck: number[] = []
-  for (let i = 0; deck.length < MAX_ROUNDS && (i < spooky.length || i < plain.length); i += 1) {
-    if (i < spooky.length) deck.push(spooky[i])
+  for (let i = 0; deck.length < MAX_ROUNDS && (i < xmas.length || i < plain.length); i += 1) {
+    if (i < xmas.length) deck.push(xmas[i])
     if (deck.length < MAX_ROUNDS && i < plain.length) deck.push(plain[i])
   }
   return deck
@@ -325,7 +326,7 @@ function startRound(state: AbbState, now: number, round: number, starter: number
   }
 }
 
-/** A abóbora chega em `holder` agora: nova chave, novo prazo. */
+/** O presente chega em `holder` agora: nova chave, novo prazo. */
 function possession(state: AbbState, holder: number, now: number): AbbState {
   const heat = heatAt(now - state.startedAt)
   const fuseEnd = now + ARRIVAL_GRACE_MS + Math.ceil((state.fuse[String(holder)] ?? 0) / heatRate(heat))
@@ -374,7 +375,7 @@ function readPass(state: AbbState, ctx: EngineCtx, holder: number, fuseEnd: numb
   return { at, word }
 }
 
-/** Passa a abóbora: desconta só o que queimou e entrega ao próximo vivo. */
+/** Passa o presente: desconta só o que queimou e entrega ao próximo vivo. */
 function passPumpkin(state: AbbState, ctx: EngineCtx, holder: number, pass: Pass): AbbState {
   const key = String(holder)
   const burned = Math.max(0, Math.floor((pass.at - holdStartOf(state)) * heatRate(state.heat)))

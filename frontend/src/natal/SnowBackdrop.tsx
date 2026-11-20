@@ -9,9 +9,9 @@ type SnowBackdropProps = {
   /** Quanto cenário: 'tv' (cheio), 'phone' (leve) ou 'subtle' (quase nada). */
   intensity?: SnowIntensity
   /**
-   * 'back' fica atrás do conteúdo (céu, aurora, estrelas, neve, morros, trenó);
-   * 'front' por cima, sem atrapalhar (varal de pisca-pisca, vinheta, flocos
-   * grandes); 'all' = tudo junto.
+   * 'back' fica atrás do conteúdo (céu, aurora, estrelas, neve, morros, trenó,
+   * varal de pisca-pisca); 'front' por cima, sem atrapalhar (vinheta e alguns
+   * flocos grandes); 'all' = tudo junto.
    */
   layer?: SnowLayer
   /** 'fixed' cobre a tela; 'absolute' preenche o pai (que precisa ser position: relative). */
@@ -296,6 +296,8 @@ export default function SnowBackdrop({
           {Array.from({ length: config.flakes }, (_, index) => (
             <Flake key={index} index={index} crystal={index < config.crystals} />
           ))}
+          {/* O varal fica atrás do conteúdo: por cima, cobria a marca no topo da TV. */}
+          {config.bulbs > 0 && <Garland bulbs={config.bulbs} swags={config.swags} />}
           {config.hills && (
             <div style={{ '--xm-hills-h': config.hills } as CSSProperties}>
               <Hills />
@@ -312,7 +314,6 @@ export default function SnowBackdrop({
           {Array.from({ length: config.frontFlakes }, (_, index) => (
             <Flake key={index} index={index + 100} crystal front />
           ))}
-          {config.bulbs > 0 && <Garland bulbs={config.bulbs} swags={config.swags} />}
         </>
       )}
     </div>

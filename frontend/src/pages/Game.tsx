@@ -37,7 +37,7 @@ const GAME_ROUTES: Record<string, string> = {
   'so-uma': 'so-uma',
   manada: 'manada',
   'quiz-da-mesa': 'quiz-da-mesa',
-  // Os jogos de Halloween rodam todos na mesma tela, roteada pelo slug.
+  // Os jogos novos (Natal e os Old de Halloween) rodam todos na mesma tela, roteada pelo slug.
   ...Object.fromEntries(HALLOWEEN_SLUGS.map((slug) => [slug, slug])),
 }
 
@@ -124,7 +124,7 @@ export default function Game() {
 
         {message && (
           <>
-            <Typography sx={{ fontSize: '3.5rem', mb: 1 }}>🪦</Typography>
+            <Typography sx={{ fontSize: '3.5rem', mb: 1 }}>🎁</Typography>
             <Typography variant="h4" sx={{ color: 'var(--accent-red)', mb: 1.5 }}>
               {error ? 'ALGO DEU ERRADO' : 'JOGO NÃO DISPONÍVEL'}
             </Typography>

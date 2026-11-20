@@ -50,7 +50,7 @@ import {
 } from './rules'
 
 /**
- * 🕵️ Espião Assombrado — o favorito da mesa.
+ * 🕵️ Espião de Natal — o favorito da mesa.
  *
  * Todo mundo recebe o lugar e um papel, menos o espião. A mesa conversa,
  * acusa (a maioria decide) e, no fim do tempo, aponta um suspeito. O espião

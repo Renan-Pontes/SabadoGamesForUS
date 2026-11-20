@@ -6,6 +6,9 @@ import { BLOODY_FONT, CREEPY_FONT, SPOOKY_COLORS } from './fonts'
 import { scatter } from './motion'
 import './spooky.css'
 
+/** Pingente de gelo: branco na raiz, azul-gelo transparente na ponta. */
+const ICICLE = 'linear-gradient(180deg, #ffffff 0%, #e6f4ff 40%, rgba(127, 216, 255, 0.35) 100%)'
+
 type HauntedTitleProps = {
   children: ReactNode
   /** Tamanho da fonte (número em px ou valor CSS/responsivo do MUI). */
@@ -13,7 +16,7 @@ type HauntedTitleProps = {
   color?: string
   /** Cor do brilho (padrão: a própria cor). */
   glow?: string
-  /** Gotas escorrendo das letras. */
+  /** Pingentes de gelo crescendo das letras (no Halloween eram gotas). */
   drip?: boolean
   /** Brilho que falha de leve, como lâmpada velha (sem pisca-pisca). */
   flicker?: boolean
@@ -24,7 +27,9 @@ type HauntedTitleProps = {
 }
 
 /**
- * Título de filme de terror (Creepster), com brilho e escorrido opcional.
+ * Título de cartão de Natal (Mountains of Christmas), com brilho e
+ * pingentes de gelo opcionais. `font="nosifer"` ainda dá a letra "sangrando"
+ * dos jogos Old de Halloween.
  *
  *   <HauntedTitle size={{ xs: 44, md: 96 }} drip>Cidade Dorme</HauntedTitle>
  *   <HauntedTitle font="nosifer" color="#dc2626" size={72}>MORREU</HauntedTitle>
@@ -70,7 +75,11 @@ export default function HauntedTitle({
           const style = {
             left: `${8 + scatter(index, 21) * 84}%`,
             height: `${0.35 + scatter(index, 22) * 0.6}em`,
-            background: color,
+            // Natal: em vez de gota, pingente de gelo crescendo das letras
+            // (a Nosifer dos jogos Old continua pingando na cor do título).
+            background: font === 'nosifer' ? color : ICICLE,
+            clipPath: font === 'nosifer' ? undefined : 'polygon(0 0, 100% 0, 50% 100%)',
+            width: font === 'nosifer' ? undefined : '0.16em',
             '--hw-drip-dur': `${2.6 + scatter(index, 23) * 2.2}s`,
             '--hw-drip-delay': `${-scatter(index, 24) * 3}s`,
           } as CSSProperties

@@ -4,9 +4,10 @@ import type { HPlayer, HalloweenGameMeta, HalloweenView } from '../engine/types'
 import { fitScale } from './fit'
 
 /**
- * Moldura das telas de Halloween: cabeçalho fino (o jogo precisa do espaço,
- * principalmente na TV) e fundo translúcido, para o cenário global —
- * neblina, morcegos — continuar aparecendo por trás.
+ * Moldura das telas dos jogos: cabeçalho fino (o jogo precisa do espaço,
+ * principalmente na TV) com um varal de pisca-pisca embaixo, e fundo
+ * translúcido, para o cenário global — neve, estrelas — continuar
+ * aparecendo por trás. (O nome `HalloweenFrame` ficou da Noite do Terror.)
  */
 export function HalloweenFrame({
   meta,
@@ -37,7 +38,7 @@ export function HalloweenFrame({
         color: 'var(--text-primary)',
         background: `
           radial-gradient(ellipse 110% 70% at 50% -10%, ${accent.glow} 0%, transparent 60%),
-          var(--bg-veil, rgba(10, 6, 18, 0.6))
+          var(--bg-veil, rgba(6, 16, 31, 0.56))
         `,
         px: isTv ? { xs: 2, md: 4 } : 2,
         pt: isTv ? { xs: 1.5, md: 2 } : 1.5,
@@ -52,7 +53,7 @@ export function HalloweenFrame({
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 2,
-          mb: isTv ? 2 : 1.5,
+          mb: isTv ? 0.75 : 0.5,
           minWidth: 0,
         }}
       >
@@ -96,6 +97,8 @@ export function HalloweenFrame({
         </Box>
       </Box>
 
+      <Lights big={isTv} />
+
       <Box component="main" sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         {isTv ? <TvFit>{children}</TvFit> : children}
       </Box>
@@ -105,12 +108,47 @@ export function HalloweenFrame({
   )
 }
 
+/** Cores do pisca-pisca (as mesmas do varal do cenário). */
+const LIGHT_COLORS = ['#ff4d5e', '#f5c242', '#4fd67e', '#5ab4ff', '#ff8fd0']
+
+/**
+ * Varal de pisca-pisca embaixo do cabeçalho: só CSS (gradientes), sem um
+ * elemento por lâmpada — barato para a TV.
+ */
+function Lights({ big }: { big: boolean }) {
+  const gap = big ? 46 : 30
+  const radius = big ? 5 : 3.5
+  const height = big ? 16 : 11
+  const bulbs = LIGHT_COLORS.map(
+    (color, index) =>
+      `radial-gradient(circle at ${gap * index + gap / 2}px ${height - radius - 1}px, ${color} ${radius}px, transparent ${radius + 1.5}px)`,
+  )
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        flexShrink: 0,
+        height,
+        mb: big ? 1.5 : 1,
+        mx: big ? -4 : -2,
+        backgroundImage: [
+          ...bulbs,
+          'linear-gradient(180deg, transparent 0 2px, rgba(20, 60, 36, 0.9) 2px 4px, transparent 4px)',
+        ].join(', '),
+        backgroundSize: `${gap * LIGHT_COLORS.length}px ${height}px`,
+        backgroundRepeat: 'repeat-x',
+        filter: 'drop-shadow(0 0 4px rgba(255, 230, 160, 0.55))',
+      }}
+    />
+  )
+}
+
 /**
  * Na TV ninguém rola a página: se a tela do jogo ficar mais alta que o espaço
  * (15 nomes num notebook de 864 px ligado na TV, por exemplo), encolhe tudo
  * por igual até caber. A escala é por transform, que não mexe no layout — a
  * medida não entra em laço. As revelações em tela cheia (BigReveal, chuva de
- * doces) e os sustos vão por portal para o body e não encolhem junto.
+ * presentes) e os efeitos vão por portal para o body e não encolhem junto.
  */
 function TvFit({ children }: { children: ReactNode }) {
   const outerRef = useRef<HTMLDivElement>(null)

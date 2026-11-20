@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Box, Button, FormControlLabel, IconButton, Popover, Slider, Switch, Typography } from '@mui/material'
 import { setMuted, setMusicEnabled, setRandomScaresEnabled, setVolume, useSoundState } from '../audio'
-import { RARE_SCARE, SCARY_RANDOM, triggerScare } from '../scare'
+import { AUTO_SCARES } from '../../season'
+import { FESTIVE_RANDOM, RARE_SCARE, SCARY_RANDOM, triggerScare } from '../scare'
 import { CREEPY_FONT } from '../ui/fonts'
 
 /**
- * Controle discreto no canto da TV: um fantasminha quase transparente que,
- * clicado, abre som, volume, música, sustos aleatórios e "testar susto".
+ * Controle discreto no canto da TV: uma arvorezinha quase transparente que,
+ * clicada, abre som, volume, música e "testar efeito" (no Natal, os sustos
+ * aleatórios ficam desligados — AUTO_SCARES — e os botões deles somem).
  * Ninguém aperta botão na TV — mas quem está no notebook precisa poder.
  */
 export default function TvControl() {
@@ -17,7 +19,7 @@ export default function TvControl() {
   return (
     <>
       <IconButton
-        aria-label="Som e sustos da TV"
+        aria-label="Som e efeitos da TV"
         onClick={(event) => setAnchor(event.currentTarget)}
         sx={{
           position: 'fixed',
@@ -28,13 +30,13 @@ export default function TvControl() {
           height: 46,
           fontSize: 22,
           opacity: open ? 1 : 0.3,
-          background: 'rgba(12, 6, 20, 0.6)',
-          border: '1px solid rgba(255, 122, 24, 0.35)',
+          background: 'rgba(6, 16, 31, 0.6)',
+          border: '1px solid rgba(245, 194, 66, 0.4)',
           transition: 'opacity 200ms ease',
-          '&:hover, &:focus-visible': { opacity: 1, background: 'rgba(12, 6, 20, 0.92)' },
+          '&:hover, &:focus-visible': { opacity: 1, background: 'rgba(6, 16, 31, 0.92)' },
         }}
       >
-        <span aria-hidden>{sound.muted ? '🔇' : '👻'}</span>
+        <span aria-hidden>{sound.muted ? '🔇' : '🎄'}</span>
       </IconButton>
 
       <Popover
@@ -50,24 +52,24 @@ export default function TvControl() {
               p: 2.5,
               width: 300,
               borderRadius: 3,
-              background: 'linear-gradient(165deg, rgba(30, 16, 44, 0.98), rgba(10, 6, 16, 0.98))',
-              border: '1px solid rgba(255, 122, 24, 0.35)',
+              background: 'linear-gradient(165deg, rgba(14, 40, 30, 0.98), rgba(6, 16, 31, 0.98))',
+              border: '1px solid rgba(245, 194, 66, 0.4)',
             },
           },
         }}
       >
-        <Typography sx={{ fontFamily: CREEPY_FONT, fontSize: '1.6rem', color: '#ff7a18', lineHeight: 1.1, mb: 1 }}>
-          Assombração da TV
+        <Typography sx={{ fontFamily: CREEPY_FONT, fontSize: '1.6rem', color: '#f5c242', lineHeight: 1.1, mb: 1 }}>
+          Controle da TV
         </Typography>
 
         {!sound.supported && (
           <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.9rem', mb: 1 }}>
-            Este navegador não tem som. Os sustos aparecem mudos. 😢
+            Este navegador não tem som. Os efeitos aparecem mudos. 😢
           </Typography>
         )}
         {sound.supported && !sound.unlocked && !sound.muted && (
           <Typography sx={{ color: '#fbbf24', fontSize: '0.9rem', mb: 1 }}>
-            O navegador segurou o som: clique em qualquer lugar para acordar os mortos.
+            O navegador segurou o som: clique em qualquer lugar para acordar o Papai Noel.
           </Typography>
         )}
 
@@ -88,19 +90,21 @@ export default function TvControl() {
               min={0}
               max={100}
               size="small"
-              sx={{ color: '#ff7a18' }}
+              sx={{ color: '#f5c242' }}
             />
           </Box>
           <FormControlLabel
             control={<Switch checked={sound.music} onChange={(_, checked) => setMusicEnabled(checked)} />}
             label="Música"
           />
-          <FormControlLabel
-            control={
-              <Switch checked={sound.randomScares} onChange={(_, checked) => setRandomScaresEnabled(checked)} />
-            }
-            label="Sustos aleatórios (4–9 min + o raro)"
-          />
+          {AUTO_SCARES && (
+            <FormControlLabel
+              control={
+                <Switch checked={sound.randomScares} onChange={(_, checked) => setRandomScaresEnabled(checked)} />
+              }
+              label="Sustos aleatórios (4–9 min + o raro)"
+            />
+          )}
         </Box>
 
         <Button
@@ -109,23 +113,25 @@ export default function TvControl() {
           sx={{ mt: 1.5 }}
           onClick={() => {
             setAnchor(null)
-            // Um dos assustadores de verdade (animatrônico, rosto, grito, estática).
-            triggerScare(SCARY_RANDOM)
+            // Natal: um efeito cômico sorteado. Com os sustos ligados: um assustador de verdade.
+            triggerScare(AUTO_SCARES ? SCARY_RANDOM : FESTIVE_RANDOM)
           }}
         >
-          Testar susto 😱
+          {AUTO_SCARES ? 'Testar susto 😱' : 'Testar efeito 🎅'}
         </Button>
-        <Button
-          fullWidth
-          size="small"
-          sx={{ mt: 1, color: 'var(--text-secondary)' }}
-          onClick={() => {
-            setAnchor(null)
-            triggerScare(RARE_SCARE)
-          }}
-        >
-          Testar o susto raro 👹 (1 em 5000/s)
-        </Button>
+        {AUTO_SCARES && (
+          <Button
+            fullWidth
+            size="small"
+            sx={{ mt: 1, color: 'var(--text-secondary)' }}
+            onClick={() => {
+              setAnchor(null)
+              triggerScare(RARE_SCARE)
+            }}
+          >
+            Testar o susto raro 👹 (1 em 5000/s)
+          </Button>
+        )}
       </Popover>
     </>
   )

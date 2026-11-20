@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { Box, Typography } from '@mui/material'
-import { playSfx, speakSpooky, useMusic } from '../../audio'
+import { playSfx, speakFestive, useMusic } from '../../audio'
 import { GRACE_MS, nameOf, type TallyEntry } from '../../engine/helpers'
 import type { HPlayer, HalloweenViewProps } from '../../engine/types'
 import { useCountdown, useServerNow } from '../../framework/clockHooks'
@@ -12,9 +12,10 @@ import {
   HauntedTitle,
   PlayerBadge,
   SPOOKY_COLORS,
-  Tombstone,
+  XMAS_COLORS,
   withAlpha,
 } from '../../ui'
+import { SleighTicket, SnowmanPlaque, VillageScene } from './art'
 import { NOBODY_OUT, ROLE_INFO } from './content'
 import {
   MAX_ROUNDS,
@@ -31,11 +32,11 @@ import {
 } from './engine'
 import { meta } from './meta'
 import { SUSPENSE_MS, tvCue, type Stinger } from './narration'
-import { aliveActed, ghostsOf, graceFor, killersAtLarge, musicFor, namesOf, phaseLabel, plural, revealedRoles } from './screens'
+import { aliveActed, graceFor, killersAtLarge, musicFor, namesOf, phaseLabel, plural, revealedRoles, snowmenOf } from './screens'
 
 /**
- * TV do "Cidade Dorme". Só desenha o estado — quem decide fase, mortes e
- * vencedor é o motor. Letras para 3 metros (texto ≥ 28 px, títulos ≥ 64 px),
+ * TV do "Vila Dorme" (o Cidade Dorme de Natal). Só desenha o estado — quem
+ * decide fase, bonecos de neve e vencedor é o motor. Letras para 3 metros (texto ≥ 28 px, títulos ≥ 64 px),
  * vela sempre à vista, ✓ de quem já agiu sem nunca dizer o papel de ninguém.
  */
 
@@ -44,16 +45,16 @@ const ACCENT = meta.accent
 const TEXT = 'clamp(1.8rem, 2.3vw, 2.5rem)'
 const SMALL = 'clamp(1.75rem, 2vw, 2.1rem)'
 const TITLE = 'clamp(4rem, 6.2vw, 7rem)'
-/** A revelação da morte cobre a TV no começo da manhã. */
+/** A revelação do boneco de neve novo cobre a TV no começo da manhã. */
 const DEATH_REVEAL_MS = 4500
 /** Cada página do fim fica este tempo na tela. */
 const END_PAGE_MS = 10_000
 const END_PAGES = ['Quem era quem', 'Linha do tempo', 'Melhor faro'] as const
 const ROLE_ORDER: Role[] = ['killer', 'detective', 'angel', 'citizen']
 const END_SUBTITLE: Record<EndReason, string> = {
-  caught: 'Todos os assassinos foram pegos',
-  outnumbered: 'Os assassinos tomaram a cidade',
-  escaped: `Depois de ${MAX_ROUNDS} noites, os assassinos fugiram`,
+  caught: 'Todos os duendes travessos foram pegos',
+  outnumbered: 'Os duendes tomaram a vila',
+  escaped: `Depois de ${MAX_ROUNDS} noites, os duendes fugiram com os presentes`,
 }
 
 type Board = { state: State; players: HPlayer[] }
@@ -99,10 +100,10 @@ function PhaseMusic({ phase }: { phase: Phase }) {
   return null
 }
 
-/** Efeito, narração e susto de cada momento — uma vez só por rodada + fase. */
+/** Efeito, narração e meme de cada momento — uma vez só por rodada + fase. */
 function useTvCue(state: State, players: HPlayer[]) {
   const cue = tvCue(state, players)
-  const { moment, stinger, speech, speechDelayMs } = cue
+  const { moment, stinger, speech, voice: tone, speechDelayMs } = cue
   const scareKind = cue.scare?.kind ?? null
   const scareName = cue.scare?.name ?? ''
   const scareDelay = cue.scare?.delayMs ?? 0
@@ -115,7 +116,8 @@ function useTvCue(state: State, players: HPlayer[]) {
     playStinger(stinger, later)
     if (speech) {
       later(speechDelayMs, () => {
-        voice.stop = speakSpooky(speech)
+        // Noite: contador de histórias aconchegante (mais devagar); resto: animado.
+        voice.stop = speakFestive(speech, tone === 'cozy' ? { rate: 0.9, pitch: 1 } : { rate: 1.05, pitch: 1.08 })
       })
     }
     if (scareKind) later(scareDelay, () => triggerScare(scareKind, scareName ? { name: scareName } : undefined))
@@ -123,39 +125,46 @@ function useTvCue(state: State, players: HPlayer[]) {
       for (const timer of timers) window.clearTimeout(timer)
       voice.stop()
     }
-  }, [moment, stinger, speech, speechDelayMs, scareKind, scareName, scareDelay])
+  }, [moment, stinger, speech, tone, speechDelayMs, scareKind, scareName, scareDelay])
 }
 
 function playStinger(stinger: Stinger | null, later: (ms: number, run: () => void) => void) {
   switch (stinger) {
     case 'roles':
-      playSfx('organ', { volume: 0.8 })
+      playSfx('sleigh', { volume: 0.8 })
+      playSfx('chime', { delay: 0.7 })
       break
     case 'night':
-      playSfx('bell', { volume: 0.8 })
-      playSfx('creak', { delay: 1.6, volume: 0.6 })
+      // As luzinhas da vila se apagam: brilho mágico e o vento lá fora.
+      playSfx('chime', { volume: 0.7 })
+      playSfx('whoosh', { delay: 1.4, volume: 0.5 })
       break
     case 'death':
-      // A ferroada de cada morte: trovão e grito.
-      playSfx('thunder')
-      playSfx('scream', { delay: 0.45 })
+      // Nevasca, BOING e pop: nasceu um boneco de neve.
+      playSfx('whoosh')
+      playSfx('boing', { delay: 0.55 })
+      playSfx('pop', { delay: 1.1 })
       break
     case 'saved':
-      playSfx('reveal')
+      playSfx('chime')
+      playSfx('ding', { delay: 0.6 })
       break
     case 'quiet':
-      playSfx('creak')
-      playSfx('ghost', { delay: 0.8, volume: 0.6 })
+      playSfx('sleigh', { volume: 0.6 })
       break
     case 'day':
       playSfx('ding', { volume: 0.7 })
+      playSfx('sleigh', { delay: 0.4, volume: 0.5 })
       break
     case 'vote':
       playSfx('gong')
       break
     case 'caught':
       playSfx('drumroll')
-      later(SUSPENSE_MS, () => playSfx('scream', { delay: 0.5, volume: 0.8 }))
+      later(SUSPENSE_MS, () => {
+        playSfx('reveal', { volume: 0.8 })
+        playSfx('boing', { delay: 0.3 })
+      })
       break
     case 'innocent':
       playSfx('drumroll')
@@ -163,17 +172,19 @@ function playStinger(stinger: Stinger | null, later: (ms: number, run: () => voi
       break
     case 'nobody':
       playSfx('drumroll')
-      later(SUSPENSE_MS, () => playSfx('laugh'))
+      later(SUSPENSE_MS, () => playSfx('boing'))
       break
     case 'city':
       playSfx('win')
+      playSfx('sleigh', { delay: 1.2 })
       break
     case 'killers':
+      // A risada de vilão dos duendes, com mola de desenho animado.
       playSfx('laugh')
-      playSfx('thunder', { delay: 0.8 })
+      playSfx('boing', { delay: 1.1 })
       break
     case 'ended':
-      playSfx('organ')
+      playSfx('chime')
       break
     default:
       break
@@ -218,13 +229,13 @@ function TopBar({ state, now }: { state: State; now: () => number }) {
 }
 
 function TownCount({ state }: { state: State }) {
-  const ghosts = state.roster.length - state.alive.length
+  const snowmen = state.roster.length - state.alive.length
   const atLarge = killersAtLarge(state)
-  const killers = atLarge === null ? `🔪 ${roleCounts(state.roster.length).killer} no começo` : `🔪 ${atLarge} à solta`
+  const killers = atLarge === null ? `🧝 ${roleCounts(state.roster.length).killer} no começo` : `🧝 ${atLarge} à solta`
   return (
     <Typography sx={{ fontSize: TEXT, fontWeight: 700, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-      🧍 {state.alive.length} {state.alive.length === 1 ? 'vivo' : 'vivos'}
-      {ghosts > 0 ? ` · 👻 ${ghosts}` : ''}
+      🏡 {state.alive.length} na vila
+      {snowmen > 0 ? ` · ⛄ ${snowmen}` : ''}
       {!state.over ? ` · ${killers}` : ''}
     </Typography>
   )
@@ -258,34 +269,59 @@ function Countdown({ deadline, now, graceMs, urgent }: { deadline: number | null
 // Peças
 // ---------------------------------------------------------------------------
 
+/** Quem virou boneco de neve fica clarinho e com ⛄ (sem o 👻 do kit). */
+function SnowBadge({ name, trailing, acted = false, offline = false }: { name: string; trailing: string; acted?: boolean; offline?: boolean }) {
+  return (
+    <Box component="span" sx={{ display: 'inline-flex', opacity: 0.72, filter: 'saturate(0.35) brightness(1.1)' }}>
+      <PlayerBadge name={name} acted={acted} offline={offline} size="lg" color={XMAS_COLORS.ice} trailing={trailing} />
+    </Box>
+  )
+}
+
 function BadgeRow({
   ids,
   players,
   acted,
-  ghost = false,
+  snow = false,
   center = false,
 }: {
   ids: number[]
   players: HPlayer[]
   acted: Set<number>
-  ghost?: boolean
+  snow?: boolean
   center?: boolean
 }) {
   return (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: center ? 'center' : 'flex-start' }}>
       {ids.map((id) => {
         const player = players.find((candidate) => candidate.id === id)
-        return (
-          <PlayerBadge
-            key={id}
-            name={nameOf(players, id)}
-            acted={acted.has(id)}
-            ghost={ghost}
-            offline={player ? !player.online : false}
-            size="lg"
-          />
+        const offline = player ? !player.online : false
+        return snow ? (
+          <SnowBadge key={id} name={nameOf(players, id)} acted={acted.has(id)} offline={offline} trailing="⛄" />
+        ) : (
+          <PlayerBadge key={id} name={nameOf(players, id)} acted={acted.has(id)} offline={offline} size="lg" />
         )
       })}
+    </Box>
+  )
+}
+
+/** Palco com a vila nevada atrás (noite, manhã ou a abertura). */
+function Stage({ mode, children }: { mode: 'night' | 'morning' | 'day'; children: ReactNode }) {
+  return (
+    <Box
+      sx={{
+        flex: 1,
+        position: 'relative',
+        overflow: 'hidden',
+        borderRadius: 'var(--radius-xl)',
+        border: `3px solid ${mode === 'night' ? 'rgba(127, 216, 255, 0.3)' : 'rgba(245, 194, 66, 0.4)'}`,
+        boxShadow: mode === 'night' ? '0 0 40px rgba(127, 216, 255, 0.15)' : '0 0 50px rgba(255, 179, 107, 0.25)',
+        textShadow: '0 2px 10px rgba(0, 0, 0, 0.85)',
+      }}
+    >
+      <VillageScene mode={mode} />
+      <Box sx={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column' }}>{children}</Box>
     </Box>
   )
 }
@@ -323,20 +359,18 @@ function SectionTitle({ children }: { children: ReactNode }) {
   )
 }
 
-/** Quem já morreu, com o papel quando foi revelado. */
+/** Quem já saiu do jogo (⛄ virou boneco de neve, 🛷 foi pro Polo Norte), com o papel quando revelado. */
 function Graveyard({ state, players }: Board) {
   if (!state.graveyard.length) return null
   return (
     <Box>
-      <Typography sx={{ fontSize: SMALL, color: 'var(--text-muted)', mb: 1 }}>🪦 Cemitério da cidade</Typography>
+      <Typography sx={{ fontSize: SMALL, color: 'var(--text-muted)', mb: 1 }}>⛄ Fora da brincadeira</Typography>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
         {state.graveyard.map((grave) => (
-          <PlayerBadge
+          <SnowBadge
             key={grave.id}
             name={nameOf(players, grave.id)}
-            ghost
-            size="lg"
-            trailing={`${grave.how === 'vote' ? '⚖️' : '🔪'} ${grave.role ? ROLE_INFO[grave.role].icon : '❔'}`}
+            trailing={`${grave.how === 'vote' ? '🛷' : '⛄'} ${grave.role ? ROLE_INFO[grave.role].icon : '❔'}`}
           />
         ))}
       </Box>
@@ -351,31 +385,34 @@ function Graveyard({ state, players }: Board) {
 function RolesBoard({ state, players }: Board) {
   const counts = roleCounts(state.roster.length)
   return (
-    <Box
-      className="animate-pop-in"
-      sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: { xs: 3, md: 4 }, textAlign: 'center' }}
-    >
-      <HauntedTitle size="clamp(4.5rem, 9vw, 9.5rem)" color={ACCENT.main} glow={ACCENT.light} drip>
-        Cidade Dorme
-      </HauntedTitle>
-      <Typography sx={{ fontSize: 'clamp(2.2rem, 3.4vw, 3.8rem)', fontWeight: 800, lineHeight: 1.15 }}>
-        📱 Olhem seu papel no celular — e escondam a tela!
-      </Typography>
-      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {ROLE_ORDER.filter((role) => counts[role] > 0).map((role, index) => (
-          <RoleChip key={role} role={role} count={counts[role]} delay={index * 150} />
-        ))}
-      </Box>
-      <Typography sx={{ fontSize: TEXT, color: 'var(--text-secondary)', maxWidth: 1300 }}>
-        Ninguém fecha o olho: de noite, <b>todo mundo</b> mexe no celular ao mesmo tempo.
-      </Typography>
-      <Box>
-        <Typography sx={{ fontSize: TEXT, color: ACCENT.light, fontWeight: 700, mb: 1.5 }}>
-          {state.acted.length}/{state.roster.length} já viram o papel
+    <Stage mode="night">
+      <Box
+        className="animate-pop-in"
+        sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: { xs: 3, md: 4 }, textAlign: 'center', p: { xs: 2, md: 4 } }}
+      >
+        <HauntedTitle size="clamp(4.5rem, 9vw, 9.5rem)" color={XMAS_COLORS.snow} glow={ACCENT.main}>
+          🎄 Vila Dorme 🧝
+        </HauntedTitle>
+        <Typography sx={{ fontSize: 'clamp(2.2rem, 3.4vw, 3.8rem)', fontWeight: 800, lineHeight: 1.15 }}>
+          🎁 Abram o presente no celular — e escondam a tela!
         </Typography>
-        <BadgeRow ids={state.roster} players={players} acted={new Set(state.acted)} center />
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {ROLE_ORDER.filter((role) => counts[role] > 0).map((role, index) => (
+            <RoleChip key={role} role={role} count={counts[role]} delay={index * 150} />
+          ))}
+        </Box>
+        <Typography sx={{ fontSize: TEXT, color: 'var(--text-secondary)', maxWidth: 1300 }}>
+          Duendes travessos querem transformar a vila em bonecos de neve ⛄ De noite, <b>todo mundo</b> mexe no celular ao
+          mesmo tempo — ninguém fecha o olho!
+        </Typography>
+        <Box>
+          <Typography sx={{ fontSize: TEXT, color: ACCENT.light, fontWeight: 700, mb: 1.5 }}>
+            {state.acted.length}/{state.roster.length} já abriram o presente
+          </Typography>
+          <BadgeRow ids={state.roster} players={players} acted={new Set(state.acted)} center />
+        </Box>
       </Box>
-    </Box>
+    </Stage>
   )
 }
 
@@ -413,68 +450,66 @@ function RoleChip({ role, count, delay }: { role: Role; count: number; delay: nu
 
 function NightBoard({ state, players, now }: Board & { now: () => number }) {
   const acted = new Set(state.acted)
-  const ghosts = ghostsOf(state)
+  const snowmen = snowmenOf(state)
   return (
-    <Box
-      sx={{
-        flex: 1,
-        display: 'grid',
-        gridTemplateColumns: { xs: '1fr', lg: '1fr auto' },
-        gap: { xs: 3, lg: 6 },
-        alignItems: 'center',
-        p: { xs: 2, md: 4 },
-        borderRadius: 'var(--radius-xl)',
-        background:
-          'radial-gradient(ellipse at 85% 0%, rgba(147, 197, 253, 0.16), transparent 55%), linear-gradient(180deg, rgba(8, 12, 40, 0.78), rgba(10, 6, 18, 0.55))',
-        border: '2px solid rgba(147, 197, 253, 0.18)',
-      }}
-    >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          <Box
-            aria-hidden
-            className="hw-float"
-            sx={{ fontSize: 'clamp(5rem, 8vw, 8.5rem)', lineHeight: 1, filter: 'drop-shadow(0 0 30px rgba(254, 243, 199, 0.55))' }}
-          >
-            🌙
+    <Stage mode="night">
+      <Box
+        sx={{
+          flex: 1,
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', lg: '1fr auto' },
+          gap: { xs: 3, lg: 6 },
+          alignItems: 'center',
+          p: { xs: 2, md: 4 },
+        }}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <Box
+              aria-hidden
+              className="hw-float"
+              sx={{ fontSize: 'clamp(5rem, 8vw, 8.5rem)', lineHeight: 1, filter: 'drop-shadow(0 0 30px rgba(254, 243, 199, 0.55))' }}
+            >
+              🌙
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+              <HauntedTitle align="left" size={TITLE} color={SPOOKY_COLORS.moon} glow={XMAS_COLORS.ice}>
+                A vila dorme…
+              </HauntedTitle>
+              <Typography sx={{ fontSize: 'clamp(2rem, 2.8vw, 3rem)', fontWeight: 700, color: 'var(--text-secondary)', lineHeight: 1.2 }}>
+                …mas ninguém fecha o olho 👀 Todo mundo no celular!
+              </Typography>
+            </Box>
           </Box>
-          <Box sx={{ minWidth: 0 }}>
-            <HauntedTitle align="left" size={TITLE} color={SPOOKY_COLORS.moon} glow="#93c5fd">
-              A cidade dorme…
-            </HauntedTitle>
-            <Typography sx={{ fontSize: 'clamp(2rem, 2.8vw, 3rem)', fontWeight: 700, color: 'var(--text-secondary)', lineHeight: 1.2 }}>
-              …mas ninguém fecha o olho 👀 Todo mundo no celular!
+          {state.round >= MAX_ROUNDS && (
+            <Typography sx={{ fontSize: TEXT, fontWeight: 800, color: SPOOKY_COLORS.blood }}>
+              ⚠️ Última noite antes do Natal: amanhã é a última chance da vila!
             </Typography>
-          </Box>
-        </Box>
-        {state.round >= MAX_ROUNDS && (
-          <Typography sx={{ fontSize: TEXT, fontWeight: 800, color: SPOOKY_COLORS.blood }}>
-            ⚠️ Última noite: amanhã é a última chance da cidade!
+          )}
+          <Typography
+            sx={{ fontFamily: 'var(--font-numeric)', fontSize: 'clamp(2.8rem, 4vw, 4.4rem)', color: ACCENT.light, letterSpacing: '0.06em', lineHeight: 1 }}
+          >
+            {aliveActed(state)}/{state.alive.length} já agiram
           </Typography>
-        )}
-        <Typography
-          sx={{ fontFamily: 'var(--font-numeric)', fontSize: 'clamp(2.8rem, 4vw, 4.4rem)', color: ACCENT.light, letterSpacing: '0.06em', lineHeight: 1 }}
-        >
-          {aliveActed(state)}/{state.alive.length} já agiram
-        </Typography>
-        <BadgeRow ids={state.alive} players={players} acted={acted} />
-        {ghosts.length > 0 && (
-          <Box>
-            <Typography sx={{ fontSize: SMALL, color: 'var(--text-muted)', mb: 1 }}>👻 Fantasmas escolhendo quem assombrar</Typography>
-            <BadgeRow ids={ghosts} players={players} acted={acted} ghost />
-          </Box>
-        )}
+          <BadgeRow ids={state.alive} players={players} acted={acted} />
+          {snowmen.length > 0 && (
+            <Box>
+              <Typography sx={{ fontSize: SMALL, color: 'var(--text-secondary)', mb: 1 }}>⛄ Bonecos de neve mirando a bola de neve ❄️</Typography>
+              <BadgeRow ids={snowmen} players={players} acted={acted} snow />
+            </Box>
+          )}
+        </Box>
+        <Box sx={{ justifySelf: 'center' }}>
+          <CandleTimer
+            deadline={state.deadline === null ? null : state.deadline - GRACE_MS}
+            total={NIGHT_SECONDS * 1000}
+            now={now}
+            size={320}
+            label="até o amanhecer"
+          />
+        </Box>
       </Box>
-      <Box sx={{ justifySelf: 'center' }}>
-        <CandleTimer
-          deadline={state.deadline === null ? null : state.deadline - GRACE_MS}
-          total={NIGHT_SECONDS * 1000}
-          now={now}
-          size={320}
-          label="até o amanhecer"
-        />
-      </Box>
-    </Box>
+    </Stage>
   )
 }
 
@@ -488,81 +523,87 @@ function MorningBoard({ state, players, clock }: Board & { clock: number }) {
   const dead = news.killed
   const role = news.role ? ROLE_INFO[news.role] : null
   return (
-    <Box
-      sx={{ flex: 1, display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1.05fr 1fr' }, gap: { xs: 3, lg: 5 }, alignItems: 'center' }}
-    >
-      <BigReveal
-        open={dead !== null && clock < state.since + DEATH_REVEAL_MS}
-        icon="💀"
-        tone="blood"
-        sound={null}
-        title={`${nameOf(players, dead)} morreu`}
-        subtitle={role ? `${role.icon} ${role.was}` : 'encontrado sem vida ao amanhecer'}
-      />
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, textAlign: 'center' }}>
-        <HauntedTitle size={TITLE} color={SPOOKY_COLORS.candle}>
-          ☀️ Amanheceu
-        </HauntedTitle>
-        {dead !== null ? (
-          <Tombstone name={nameOf(players, dead)} epitaph={`“${news.epitaph}”`} width={460} rise>
-            <Box sx={{ fontWeight: 800, fontSize: '1.9rem' }}>{role ? `${role.icon} ${role.name}` : 'papel: segredo 🤫'}</Box>
-          </Tombstone>
-        ) : news.saved ? (
-          <Banner icon="😇" title="O anjo salvou alguém!" text="Os assassinos atacaram, mas ninguém morreu esta noite." color={ROLE_INFO.angel.color} />
-        ) : (
-          <Banner icon="🌙" title="Noite tranquila…" text="Ninguém morreu. Tranquilo até demais." color={SPOOKY_COLORS.moon} />
-        )}
-      </Box>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, minWidth: 0 }}>
-        {news.notes.map((note, index) => (
-          <NoteCard key={`${index}-${note}`} text={note} index={index} />
-        ))}
-        {news.haunts.length > 0 && (
-          <Box className="stagger-in" style={{ animationDelay: '900ms' }}>
-            <Typography sx={{ fontSize: TEXT, fontWeight: 800, color: SPOOKY_COLORS.ghost }}>👻 Os fantasmas assombraram:</Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 1 }}>
-              {news.haunts.map((haunt) => (
-                <PlayerBadge
-                  key={haunt.id}
-                  name={nameOf(players, haunt.id)}
-                  size="lg"
-                  highlight
-                  color={SPOOKY_COLORS.ghost}
-                  trailing={haunt.count > 1 ? `👻×${haunt.count}` : '👻'}
-                />
-              ))}
+    <Stage mode="morning">
+      <Box
+        sx={{ flex: 1, display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1.05fr 1fr' }, gap: { xs: 3, lg: 5 }, alignItems: 'center', p: { xs: 2, md: 3 } }}
+      >
+        <BigReveal
+          open={dead !== null && clock < state.since + DEATH_REVEAL_MS}
+          icon="⛄"
+          tone="witch"
+          sound={null}
+          title={`${nameOf(players, dead)} virou boneco de neve!`}
+          subtitle={role ? `${role.icon} ${role.was}` : 'amanheceu congelado no jardim'}
+        />
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, textAlign: 'center' }}>
+          <HauntedTitle size={TITLE} color={SPOOKY_COLORS.candle}>
+            ☀️ Bom dia, vila!
+          </HauntedTitle>
+          {dead !== null ? (
+            <SnowmanPlaque
+              name={nameOf(players, dead)}
+              epitaph={`“${news.epitaph}”`}
+              footer={role ? `${role.icon} ${role.name}` : 'papel: segredo 🤫'}
+            />
+          ) : news.saved ? (
+            <Banner icon="😇" title="O anjo salvou alguém!" text="Os duendes atacaram, mas ninguém virou boneco de neve." color={ROLE_INFO.angel.color} />
+          ) : (
+            <Banner icon="😴" title="Noite tranquila…" text="Ninguém virou boneco de neve. Tranquilo até demais." color={SPOOKY_COLORS.moon} />
+          )}
+        </Box>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, minWidth: 0 }}>
+          {news.notes.map((note, index) => (
+            <NoteCard key={`${index}-${note}`} text={note} index={index} />
+          ))}
+          {news.haunts.length > 0 && (
+            <Box className="stagger-in" style={{ animationDelay: '900ms' }}>
+              <Typography sx={{ fontSize: TEXT, fontWeight: 800, color: XMAS_COLORS.ice }}>❄️ Os bonecos de neve jogaram bola de neve em:</Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 1 }}>
+                {news.haunts.map((haunt) => (
+                  <PlayerBadge
+                    key={haunt.id}
+                    name={nameOf(players, haunt.id)}
+                    size="lg"
+                    highlight
+                    color={XMAS_COLORS.ice}
+                    trailing={haunt.count > 1 ? `❄️×${haunt.count}` : '❄️'}
+                  />
+                ))}
+              </Box>
             </Box>
-          </Box>
-        )}
-        <Typography sx={{ fontSize: TEXT, color: 'var(--text-secondary)' }}>
-          📨{' '}
-          {news.letters === 0
-            ? 'Nenhum recado chegou aos assassinos.'
-            : `${plural(news.letters, 'recado anônimo chegou', 'recados anônimos chegaram')} aos assassinos.`}
-        </Typography>
-        <Graveyard state={state} players={players} />
+          )}
+          <Typography sx={{ fontSize: TEXT, color: 'var(--text-secondary)' }}>
+            📨{' '}
+            {news.letters === 0
+              ? 'Nenhum recado chegou aos duendes.'
+              : `${plural(news.letters, 'recado anônimo chegou', 'recados anônimos chegaram')} aos duendes.`}
+          </Typography>
+          <Graveyard state={state} players={players} />
+        </Box>
       </Box>
-    </Box>
+    </Stage>
   )
 }
 
-/** Bilhete do assassino, em papel amassado. */
+/** Cartãozinho do duende, de Natal, com borda de bengala doce. */
 function NoteCard({ text, index }: { text: string; index: number }) {
   return (
     <Box className="stagger-in" style={{ animationDelay: `${600 + index * 450}ms` }}>
       <Box
         sx={{
           p: 2.5,
-          borderRadius: '6px',
-          background: 'linear-gradient(170deg, #f5f0e1, #e2d5b5)',
-          color: '#2a1810',
+          borderRadius: '14px',
+          border: '8px solid transparent',
+          background:
+            'linear-gradient(170deg, #fffaf0, #f3e6c8) padding-box, repeating-linear-gradient(45deg, #e8394a 0 14px, #ffffff 14px 28px) border-box',
+          color: '#1b2e4d',
+          textShadow: 'none',
           transform: `rotate(${index % 2 ? 1.2 : -1.5}deg)`,
           boxShadow: '0 12px 30px rgba(0, 0, 0, 0.5)',
-          border: '1px solid rgba(120, 80, 40, 0.4)',
         }}
       >
-        <Typography sx={{ fontFamily: CREEPY_FONT, fontSize: 'clamp(1.8rem, 2.2vw, 2.4rem)', color: SPOOKY_COLORS.blood, lineHeight: 1 }}>
-          🩸 Bilhete na cena do crime
+        <Typography sx={{ fontFamily: CREEPY_FONT, fontWeight: 700, fontSize: 'clamp(1.8rem, 2.2vw, 2.4rem)', color: '#c21f33', lineHeight: 1 }}>
+          💌 Cartãozinho achado na neve
         </Typography>
         <Typography sx={{ fontSize: 'clamp(2.1rem, 2.9vw, 3.1rem)', fontWeight: 700, lineHeight: 1.15, mt: 1, wordBreak: 'break-word' }}>
           “{text}”
@@ -585,13 +626,13 @@ function DayBoard({ state, players, now }: Board & { now: () => number }) {
             ☀️ Conversem!
           </HauntedTitle>
           <Typography sx={{ fontSize: 'clamp(2rem, 2.8vw, 3rem)', fontWeight: 700, color: 'var(--text-secondary)' }}>
-            Quem tem cara de assassino? Acusem, defendam, blefem.
+            Quem tem cara de duende travesso? Acusem, defendam, blefem.
           </Typography>
         </Box>
         <LastNight state={state} players={players} />
         {state.round >= MAX_ROUNDS && (
           <Typography sx={{ fontSize: TEXT, fontWeight: 800, color: SPOOKY_COLORS.blood }}>
-            ⚠️ Última chance: sem assassino expulso hoje, eles fogem da cidade!
+            ⚠️ Última chance: sem duende pego hoje, eles fogem com os presentes!
           </Typography>
         )}
         <Box>
@@ -615,16 +656,16 @@ function LastNight({ state, players }: Board) {
   if (!news) return null
   const what =
     news.killed !== null
-      ? `💀 ${nameOf(players, news.killed)} morreu${news.role ? ` (${ROLE_INFO[news.role].icon} ${ROLE_INFO[news.role].name})` : ''}`
+      ? `⛄ ${nameOf(players, news.killed)} virou boneco de neve${news.role ? ` (${ROLE_INFO[news.role].icon} ${ROLE_INFO[news.role].name})` : ''}`
       : news.saved
         ? '😇 o anjo salvou alguém'
-        : '🌙 ninguém morreu'
+        : '😴 ninguém virou boneco de neve'
   return (
     <Box sx={{ p: 2, borderRadius: 'var(--radius-lg)', background: 'rgba(255, 255, 255, 0.05)', borderLeft: `6px solid ${ACCENT.main}` }}>
       <Typography sx={{ fontSize: TEXT, fontWeight: 700 }}>Esta noite: {what}</Typography>
       {news.notes.map((note, index) => (
         <Typography key={`${index}-${note}`} sx={{ fontSize: SMALL, color: 'var(--text-secondary)', fontStyle: 'italic', wordBreak: 'break-word' }}>
-          🩸 “{note}”
+          💌 “{note}”
         </Typography>
       ))}
     </Box>
@@ -648,7 +689,7 @@ function VoteBoard({ state, players }: Board) {
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
       <Box>
         <HauntedTitle align="left" size={TITLE} color={ACCENT.main}>
-          🗳️ Quem sai da cidade?
+          🛷 Quem vai pro Polo Norte?
         </HauntedTitle>
         <Typography sx={{ fontSize: TEXT, color: 'var(--text-secondary)' }}>
           Votem no celular · precisa de {MIN_VOTES} votos · empate: ninguém sai
@@ -657,7 +698,7 @@ function VoteBoard({ state, players }: Board) {
       <Box sx={{ flex: 1, display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1.4fr 1fr' }, gap: 5, alignItems: 'start' }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           {entries.length === 0 && abstain === 0 ? (
-            <Typography sx={{ fontSize: 'clamp(2.4rem, 3.4vw, 3.6rem)', color: 'var(--text-muted)' }}>Ninguém votou ainda… 🕯️</Typography>
+            <Typography sx={{ fontSize: 'clamp(2.4rem, 3.4vw, 3.6rem)', color: 'var(--text-muted)' }}>Ninguém votou ainda… ❄️</Typography>
           ) : (
             entries.slice(0, 6).map((entry) => (
               <VoteRow key={entry.id} entry={entry} best={best} players={players} leading={entry.id === leader} />
@@ -714,7 +755,7 @@ function VoteRow({
             sx={{
               height: '100%',
               width: `${(entry.count / Math.max(1, best)) * 100}%`,
-              background: leading ? `linear-gradient(90deg, ${ACCENT.main}, ${ACCENT.light})` : 'linear-gradient(90deg, #5b4a7a, #8c7fa8)',
+              background: leading ? `linear-gradient(90deg, ${ACCENT.main}, ${ACCENT.light})` : 'linear-gradient(90deg, #2c4a7a, #5f86b8)',
               borderRadius: 2,
               transition: 'width 400ms ease',
             }}
@@ -760,7 +801,7 @@ function VerdictBoard({ state, players }: Board) {
                   sx={{
                     height: '100%',
                     width: `${(entry.count / Math.max(1, best)) * 100}%`,
-                    background: entry.id === out ? `linear-gradient(90deg, ${ACCENT.main}, ${ACCENT.light})` : 'linear-gradient(90deg, #5b4a7a, #8c7fa8)',
+                    background: entry.id === out ? `linear-gradient(90deg, ${ACCENT.main}, ${ACCENT.light})` : 'linear-gradient(90deg, #2c4a7a, #5f86b8)',
                     borderRadius: 2,
                     transformOrigin: 'left',
                     animation: 'cdGrow 900ms cubic-bezier(0.22, 1, 0.36, 1) both',
@@ -789,22 +830,19 @@ function VerdictBoard({ state, players }: Board) {
         }}
       >
         {out !== null ? (
-          <Tombstone
-            title="FORA DA CIDADE"
-            name={nameOf(players, out)}
-            width={460}
-            epitaph={
-              role === null ? (
-                'papel: segredo 🤫'
-              ) : role === 'killer' ? (
-                <Box component="span" sx={{ color: '#7f1020', fontWeight: 900, fontStyle: 'normal' }}>
-                  🔪 ERA ASSASSINO!
-                </Box>
-              ) : (
-                `${ROLE_INFO[role].icon} ${ROLE_INFO[role].was}… 😬`
-              )
-            }
-          />
+          <SleighTicket name={nameOf(players, out)} caught={role === 'killer'}>
+            {role === null ? (
+              'papel: segredo 🤫'
+            ) : role === 'killer' ? (
+              <Box component="span" sx={{ color: '#1f7a43' }}>
+                🧝 ERA DUENDE TRAVESSO!
+              </Box>
+            ) : (
+              <Box component="span" sx={{ color: '#c21f33' }}>
+                {`${ROLE_INFO[role].icon} ${ROLE_INFO[role].was}… 😬`}
+              </Box>
+            )}
+          </SleighTicket>
         ) : (
           <Banner icon="🤷" title="Ninguém saiu" text={NOBODY_OUT[verdict.reason === 'out' ? 'few' : verdict.reason]} color={SPOOKY_COLORS.moon} />
         )}
@@ -853,11 +891,11 @@ function WinnerBanner({ final, state, players }: Board & { final: Final }) {
   const killers = state.roster.filter((id) => final.roles[String(id)] === 'killer')
   return (
     <Box sx={{ textAlign: 'center' }}>
-      <HauntedTitle size="clamp(4rem, 7vw, 7.5rem)" color={killersWon ? SPOOKY_COLORS.blood : SPOOKY_COLORS.toxic} drip={killersWon}>
-        {killersWon ? '🔪 Os assassinos venceram!' : '🏆 A cidade venceu!'}
+      <HauntedTitle size="clamp(4rem, 7vw, 7.5rem)" color={killersWon ? SPOOKY_COLORS.blood : SPOOKY_COLORS.toxic}>
+        {killersWon ? '🧝 Os duendes travessos venceram!' : '🎄 A vila venceu! O Natal está salvo!'}
       </HauntedTitle>
       <Typography sx={{ fontSize: 'clamp(2rem, 2.8vw, 3rem)', fontWeight: 700, mt: 1 }}>
-        {END_SUBTITLE[final.reason]} · {killers.length > 1 ? 'Os assassinos eram' : 'O assassino era'}{' '}
+        {END_SUBTITLE[final.reason]} · {killers.length > 1 ? 'Os duendes eram' : 'O duende era'}{' '}
         <Box component="span" sx={{ color: SPOOKY_COLORS.blood }}>
           {namesOf(players, killers)}
         </Box>
@@ -900,7 +938,7 @@ function RolesReveal({ final, state, players }: Board & { final: Final }) {
               </Box>
               <Box sx={{ minWidth: 0 }}>
                 <Typography noWrap sx={{ fontSize: TEXT, fontWeight: 800, lineHeight: 1.1, opacity: dead ? 0.7 : 1 }}>
-                  {dead ? '👻 ' : ''}
+                  {dead ? '⛄ ' : ''}
                   {nameOf(players, id)}
                 </Typography>
                 <Typography noWrap sx={{ fontSize: SMALL, color: info.color, lineHeight: 1.1 }}>
@@ -919,7 +957,7 @@ function TimelineBoard({ nights, players }: { nights: NightRecap[]; players: HPl
   const name = (id: number | null) => nameOf(players, id)
   return (
     <Box>
-      <SectionTitle>🕯️ Linha do tempo das noites</SectionTitle>
+      <SectionTitle>📜 Linha do tempo das noites</SectionTitle>
       {nights.length === 0 ? (
         <Typography sx={{ fontSize: TEXT, color: 'var(--text-muted)' }}>Nem deu tempo de anoitecer.</Typography>
       ) : (
@@ -927,15 +965,15 @@ function TimelineBoard({ nights, players }: { nights: NightRecap[]; players: HPl
           {nights.map((night, index) => {
             const attack =
               night.target === null
-                ? '🔪 ninguém atacado'
+                ? '🧝 ninguém atacado'
                 : night.saved
-                  ? `🔪 ${name(night.target)} → 😇 salvo`
-                  : `🔪 ${name(night.target)} morreu`
+                  ? `🧝 ${name(night.target)} → 😇 salvo`
+                  : `⛄ ${name(night.target)} virou boneco de neve`
             const parts = [
               attack,
               night.guard !== null && !night.saved ? `😇 protegeu ${name(night.guard)}` : null,
-              night.clue ? `🔎 ${name(night.clue.target)}: ${night.clue.killer ? 'ASSASSINO!' : 'inocente'}` : null,
-              !night.voted ? null : night.out !== null ? `⚖️ ${name(night.out)} saiu` : '⚖️ ninguém saiu',
+              night.clue ? `🦌 ${name(night.clue.target)}: ${night.clue.killer ? 'DUENDE!' : 'inocente'}` : null,
+              !night.voted ? null : night.out !== null ? `🛷 ${name(night.out)} foi pro Polo Norte` : '🛷 ninguém foi',
             ].filter((part): part is string => part !== null)
             return (
               <Box
@@ -964,7 +1002,7 @@ function FaroBoard({ final, players }: { final: Final; players: HPlayer[] }) {
     <Box>
       <SectionTitle>👃 Melhor faro</SectionTitle>
       <Typography sx={{ fontSize: SMALL, color: 'var(--text-muted)', mb: 2 }}>
-        {sniffed ? 'Apostas certas dos cidadãos em quem era assassino' : 'Ninguém farejou nada 🤧 — os assassinos agradecem'}
+        {sniffed ? 'Apostas certas dos moradores em quem era duende' : 'Ninguém farejou nada 🤧 — os duendes agradecem'}
       </Typography>
       {entries.length > 0 && (
         <Box sx={{ display: 'grid', gridTemplateColumns: entries.length > 6 ? { xs: '1fr', lg: '1fr 1fr' } : '1fr', gap: 1.25, columnGap: 5, maxWidth: entries.length > 6 ? 'none' : 1100 }}>
@@ -1027,11 +1065,11 @@ function EndedEarly({ state, players, slots }: Board & { slots: Slots }) {
       </HauntedTitle>
       {killers.length > 0 ? (
         <Typography className="animate-pop-in" sx={{ fontSize: 'clamp(2.4rem, 3.6vw, 4rem)', fontWeight: 800 }}>
-          🔪 {killers.length > 1 || missing > 0 ? 'Os assassinos eram' : 'O assassino era'}{' '}
+          🧝 {killers.length > 1 || missing > 0 ? 'Os duendes eram' : 'O duende era'}{' '}
           <Box component="span" sx={{ color: SPOOKY_COLORS.blood }}>
             {namesOf(players, killers)}
           </Box>
-          {missing > 0 ? ` e mais ${missing} que fugiu sem contar` : ''}
+          {missing > 0 ? ` e mais ${missing} que fugiu de trenó sem contar` : ''}
         </Typography>
       ) : (
         <Typography sx={{ fontSize: 'clamp(2rem, 3vw, 3.2rem)', fontWeight: 700 }}>

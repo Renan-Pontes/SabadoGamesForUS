@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { Box, Button } from '@mui/material'
 import type { GameAccent } from '../../games/theme'
 import { scareRoomTv } from '../fx/api'
-import { SCARY_RANDOM } from '../scare'
+import { FESTIVE_RANDOM } from '../scare'
 
 /**
  * Controles do host, numa barra discreta presa ao rodapé do celular. O jogo
@@ -27,7 +27,7 @@ function Bar({ children }: { children: ReactNode }) {
         pr: 1.5,
         pt: 1,
         pb: 'calc(10px + env(safe-area-inset-bottom, 0px))',
-        background: 'linear-gradient(180deg, transparent, rgba(10, 6, 18, 0.92) 30%)',
+        background: 'linear-gradient(180deg, transparent, rgba(6, 16, 31, 0.92) 30%)',
         backdropFilter: 'blur(6px)',
       }}
     >
@@ -47,14 +47,15 @@ const barButton = {
   textTransform: 'none',
   borderColor: 'var(--border-medium)',
   color: 'var(--text-primary)',
-  background: 'rgba(37, 22, 64, 0.85)',
+  background: 'rgba(26, 47, 80, 0.85)',
   whiteSpace: 'nowrap',
 } as const
 
 /**
- * Durante a partida: pular a fase, encerrar (com confirmação) e susto na TV.
+ * Durante a partida: pular a fase, encerrar (com confirmação) e a
+ * "Surpresa" na TV.
  *
- * O "Susto" manda um dos assustadores de verdade (animatrônico, rosto,
+ * A "Surpresa" (o antigo botão de Susto) manda um dos assustadores de verdade (animatrônico, rosto,
  * grito, estática), sorteado na TV, direto para a sala da URL
  * (`/game/:code/...`). `onScare` fica de reserva para uma tela sem código
  * na URL.
@@ -73,7 +74,7 @@ export function HostBar({
   const [scareState, setScareState] = useState<'idle' | 'sent' | 'error'>('idle')
   const { code } = useParams()
   const roomCode = code?.trim().toUpperCase()
-  const sendScare = () => (roomCode ? scareRoomTv(roomCode, SCARY_RANDOM) : onScare())
+  const sendScare = () => (roomCode ? scareRoomTv(roomCode, FESTIVE_RANDOM) : onScare())
 
   if (confirming) {
     return (
@@ -128,7 +129,7 @@ export function HostBar({
             })
         }}
       >
-        {scareState === 'sent' ? '😱 Foi!' : scareState === 'error' ? '😶 Falhou' : '😱 Susto'}
+        {scareState === 'sent' ? '🎁 Foi!' : scareState === 'error' ? '😶 Falhou' : '🎁 Surpresa'}
       </Button>
     </Bar>
   )
@@ -169,7 +170,7 @@ export function EndBar({
           setTimeout(() => setBusy(false), 4000)
         }}
       >
-        🚪 Voltar à sala
+        🛷 Voltar à sala
       </Button>
     </Bar>
   )

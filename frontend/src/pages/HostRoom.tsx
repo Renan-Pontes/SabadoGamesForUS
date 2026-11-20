@@ -33,7 +33,13 @@ import { saveLastRoom } from '../lib/roomHistory'
 import { gameRoute, getGameColor, getGameMeta, PERFIL_THEMES } from '../lib/gameCatalog'
 import type { Game, Player, Room } from '../lib/types'
 import { isHalloweenSlug } from '../halloween/slugs'
-import { RANDOM_SCARES_OFF, RANDOM_SCARES_ON, sendRoomFx } from '../halloween/fx/api'
+import {
+  FESTIVE_RANDOM,
+  RANDOM_SCARES_OFF,
+  RANDOM_SCARES_ON,
+  RANDOM_SCARES_TOGGLE,
+  sendRoomFx,
+} from '../halloween/fx/api'
 import type { RoomFxRequest } from '../halloween/fx/api'
 import {
   AppShell,
@@ -168,7 +174,7 @@ export default function HostRoom() {
   const notReady = others.filter((p) => !p.ready)
   const minPlayers = selectedGame?.min_players ?? 2
   const enoughPlayers = onlinePlayers.length >= minPlayers
-  // Nos jogos de Halloween o próprio jogo tem a tela de "quem joga"; aqui só
+  // Nos jogos novos (Natal e Halloween) o próprio jogo tem a tela de "quem joga"; aqui só
   // cobra o mínimo de gente. Nos antigos, todo mundo precisa estar pronto.
   const canStart = Boolean(selectedGame) && enoughPlayers && !starting && (spooky || notReady.length === 0)
 
@@ -469,7 +475,7 @@ export default function HostRoom() {
                 ready: player.ready,
                 status:
                   player.online === false
-                    ? 'Sumiu 👻 (offline)'
+                    ? 'Sumiu ❄️ (offline)'
                     : player.ready
                       ? 'Pronto'
                       : 'Ainda não confirmou',
@@ -672,7 +678,7 @@ export default function HostRoom() {
 
           {spooky && (
             <Typography sx={{ mb: 2, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-              🎃 As opções (rodadas, tempo...) aparecem na TV e no seu celular logo depois de começar.
+              🎄 As opções (rodadas, tempo...) aparecem na TV e no seu celular logo depois de começar.
             </Typography>
           )}
 
@@ -741,7 +747,7 @@ export default function HostRoom() {
               '&:hover': { bgcolor: accent, backgroundImage: 'none', filter: 'brightness(1.1)' },
             }}
           >
-            {starting ? 'Começando...' : 'Começar'}
+            {starting ? 'Começando...' : '🎄 Começar'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -771,7 +777,7 @@ export default function HostRoom() {
               width: 'min(260px, 70vw)',
             }}
           >
-            <QRCodeSVG value={playUrl} size={240} level="M" fgColor="#140b22" bgColor="#fff7ed" style={{ width: '100%', height: 'auto', display: 'block' }} />
+            <QRCodeSVG value={playUrl} size={240} level="M" fgColor="#06101f" bgColor="#fff7ed" style={{ width: '100%', height: 'auto', display: 'block' }} />
           </Box>
           <Typography sx={{ mt: 2, fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-muted)', overflowWrap: 'anywhere' }}>
             {playUrl.replace(/^https?:\/\//, '')}
@@ -813,20 +819,26 @@ export default function HostRoom() {
 }
 
 // ---------------------------------------------------------------------------
-// Efeitos da TV: o host assusta a sala pelo celular
+// Efeitos da TV: o host anima a sala pelo celular (Natal: comédia, nada de susto)
 // ---------------------------------------------------------------------------
 
 type ScareButton = {
   kind: string
   label: string
   icon: string
-  /** O susto usa o nome de alguém da mesa (sorteado na hora). */
+  /** O efeito usa o nome de alguém da mesa (sorteado na hora). */
   named?: boolean
   done: (name?: string) => string
 }
 
 const SCARES: ScareButton[] = [
-  { kind: 'doot', label: 'Doot doot', icon: '🎺', done: () => '🎺 O esqueleto do trompete vai tocar!' },
+  {
+    kind: 'hohoho',
+    label: 'Ho ho ho!',
+    icon: '🎅',
+    named: true,
+    done: (name) => (name ? `🎅 Papai Noel vai pôr ${name} na lista dos malcriados!` : '🎅 Ho ho ho a caminho!'),
+  },
   {
     kind: 'zoom',
     label: 'Zoom suspeito',
@@ -834,30 +846,21 @@ const SCARES: ScareButton[] = [
     named: true,
     done: (name) => (name ? `🤨 A TV está desconfiada de ${name}...` : '🤨 Zoom suspeito enviado!'),
   },
-  { kind: 'scream', label: 'Grito', icon: '😱', done: () => '😱 Grito a caminho da TV!' },
-  { kind: 'skeletons', label: 'Esqueletos', icon: '💀', done: () => '💀 Os esqueletos vão dançar!' },
-  { kind: 'spider', label: 'Aranha', icon: '🕷️', done: () => '🕷️ Aranha descendo na TV!' },
   {
-    kind: 'eyes',
-    label: 'Olhos no escuro',
-    icon: '👀',
+    kind: 'secretSanta',
+    label: 'Amigo secreto',
+    icon: '🥁',
     named: true,
-    done: (name) => (name ? `👀 Os olhos chamam ${name}...` : '👀 Olhos no escuro enviados!'),
+    done: (name) => (name ? `🥁 Rufem os tambores: o amigo secreto é ${name}!` : '🥁 Amigo secreto a caminho!'),
   },
+  { kind: 'blizzard', label: 'Nevasca', icon: '🥶', done: () => '🥶 Nevasca na sala! Brrrr...' },
+  { kind: 'giftRain', label: 'Presentes', icon: '🎁', done: () => '🎁 Chuva de presentes na TV!' },
+  { kind: 'reindeer', label: 'Rena sem freio', icon: '🦌', done: () => '🦌 Sai da frente que a rena tá sem freio!' },
+  { kind: 'lightsParty', label: 'Pisca-pisca', icon: '💡', done: () => '💡 O pisca-pisca vai enlouquecer!' },
+  { kind: 'elfChoir', label: 'Duendes', icon: '🧝', done: () => '🧝 O coral dos duendes vai cantar!' },
 ]
 
-/** Os sustos de verdade (som bem alto na TV): destaque em vermelho, acima dos de meme. */
-const SCARY_BUTTONS: ScareButton[] = [
-  {
-    kind: 'animatronic',
-    label: 'Animatrônico',
-    icon: '🤖',
-    done: () => '🤖 Ele ainda funciona... olhe a cara da galera!',
-  },
-  { kind: 'face', label: 'Rosto', icon: '👁️', done: () => '👁️ Não olha... o rosto está indo para a TV!' },
-]
-
-/** Espera entre sustos: cada um dura uns 2 s na TV, e evita rajada de cliques. */
+/** Espera entre efeitos: cada um dura uns 3–4 s na TV (ela enfileira o próximo), e evita rajada de cliques. */
 const FX_COOLDOWN_MS = 2500
 const MUSIC_KEY_PREFIX = 'sabado_tv_music_'
 const RANDOM_SCARES_KEY_PREFIX = 'sabado_tv_scares_'
@@ -938,7 +941,7 @@ function TvFxPanel({ code, players, tvConnected }: { code: string; players: Play
   }
 
   return (
-    <Panel title="EFEITOS DA TV" icon="👻" accent="var(--neon-purple)" index={4}>
+    <Panel title="EFEITOS DA TV" icon="🎄" accent="var(--neon-purple)" index={4}>
       <Button
         fullWidth
         variant="contained"
@@ -946,42 +949,14 @@ function TvFxPanel({ code, players, tvConnected }: { code: string; players: Play
         size="large"
         disabled={busy}
         onClick={() =>
-          send({ scare: 'random' }, '😱 Susto a caminho! Olhe a cara da galera.')
+          send({ scare: FESTIVE_RANDOM }, '🎅 Surpresa a caminho! Olhe a cara da galera.')
         }
         sx={{ py: 1.7, fontSize: '1.08rem' }}
       >
-        😱&nbsp;&nbsp;Assustar a TV
+        🎅&nbsp;&nbsp;Surpresa na TV
       </Button>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1, mt: 1.5 }}>
-        {SCARY_BUTTONS.map((button) => (
-          <Button
-            key={button.kind}
-            variant="outlined"
-            color="error"
-            disabled={busy}
-            onClick={() => scare(button)}
-            aria-label={button.label}
-            sx={{
-              gap: 1,
-              py: 1.1,
-              minWidth: 0,
-              textTransform: 'none',
-              fontWeight: 800,
-              fontSize: '0.92rem',
-              borderWidth: 2,
-              '&:hover': { borderWidth: 2 },
-            }}
-          >
-            <Box component="span" sx={{ fontSize: '1.4rem', lineHeight: 1 }}>
-              {button.icon}
-            </Box>
-            {button.label}
-          </Button>
-        ))}
-      </Box>
-
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1, mt: 1 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 1, mt: 1.5 }}>
         {SCARES.map((button) => (
           <Button
             key={button.kind}
@@ -1024,19 +999,22 @@ function TvFxPanel({ code, players, tvConnected }: { code: string; players: Play
         </Box>
       </Button>
 
-      <Button
-        fullWidth
-        variant="outlined"
-        color={randomScaresOn ? 'success' : 'inherit'}
-        disabled={busy}
-        onClick={toggleRandomScares}
-        sx={{ mt: 1, py: 1.2, justifyContent: 'space-between', textTransform: 'none', fontSize: '0.95rem' }}
-      >
-        <span>👻 Sustos aleatórios: {randomScaresOn ? 'ligados' : 'desligados'}</span>
-        <Box component="span" sx={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.08em' }}>
-          {randomScaresOn ? 'DESLIGAR' : 'LIGAR'}
-        </Box>
-      </Button>
+      {/* Sustos automáticos só existem fora do Natal (AUTO_SCARES em season.ts). */}
+      {RANDOM_SCARES_TOGGLE && (
+        <Button
+          fullWidth
+          variant="outlined"
+          color={randomScaresOn ? 'success' : 'inherit'}
+          disabled={busy}
+          onClick={toggleRandomScares}
+          sx={{ mt: 1, py: 1.2, justifyContent: 'space-between', textTransform: 'none', fontSize: '0.95rem' }}
+        >
+          <span>👻 Sustos aleatórios: {randomScaresOn ? 'ligados' : 'desligados'}</span>
+          <Box component="span" sx={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.08em' }}>
+            {randomScaresOn ? 'DESLIGAR' : 'LIGAR'}
+          </Box>
+        </Button>
+      )}
 
       <Typography
         role="status"
@@ -1050,7 +1028,7 @@ function TvFxPanel({ code, players, tvConnected }: { code: string; players: Play
       >
         {feedback?.text ??
           (tvConnected
-            ? 'Os sustos e a música tocam na TV.'
+            ? 'Os efeitos e a música tocam na TV.'
             : 'A TV ainda não está aberta: os efeitos só aparecem quando ela conectar.')}
       </Typography>
     </Panel>

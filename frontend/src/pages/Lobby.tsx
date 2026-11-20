@@ -245,7 +245,7 @@ export default function Lobby() {
                   color: 'var(--pumpkin)',
                 }}
               >
-                SUA MESA AINDA ESTÁ ASSOMBRADA
+                SUA MESA AINDA ESTÁ POSTA 🎄
               </Typography>
               <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                 Sala {resumeInfo.code.toUpperCase()}
@@ -284,7 +284,7 @@ export default function Lobby() {
         >
           {gamesLoading ? (
             <Typography sx={{ color: 'var(--text-muted)', py: 4, textAlign: 'center' }}>
-              Desenterrando os jogos da mesa...
+              Desembrulhando os jogos...
             </Typography>
           ) : games.length === 0 ? (
             <Typography sx={{ color: 'var(--text-muted)', py: 4, textAlign: 'center' }}>
@@ -338,7 +338,7 @@ export default function Lobby() {
               disabled={gamesLoading || creating || !selectedGame}
               sx={{ py: 1.8, fontSize: '1.05rem' }}
             >
-              {creating ? 'Acendendo as velas...' : '🕯️ Criar nova sala'}
+              {creating ? 'Acendendo o pisca-pisca...' : '🎄 Criar nova sala'}
             </Button>
           </Panel>
 

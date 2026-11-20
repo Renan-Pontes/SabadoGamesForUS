@@ -7,13 +7,13 @@ import Confetti from './Confetti'
 
 export type ResultTone = 'win' | 'lose' | 'neutral' | 'danger'
 
-// Noite do Terror: vitória é abóbora acesa, derrota é sangue, perigo é
-// chama de vela e o neutro é roxo de bruxa.
+// Noite Feliz: vitória é dourado de estrela, derrota é vermelho-Noel (com
+// boneco de neve derretido), perigo é chama de vela e o neutro é azul-gelo.
 const TONES: Record<ResultTone, { color: string; glow: string; sigil: string }> = {
-  win: { color: '#ff8c95', glow: 'rgba(255, 90, 102, 0.5)', sigil: '🏆' },
-  lose: { color: '#ff6b78', glow: 'rgba(232, 57, 74, 0.5)', sigil: '💀' },
+  win: { color: '#ffd975', glow: 'rgba(245, 194, 66, 0.5)', sigil: '🏆' },
+  lose: { color: '#ff6b78', glow: 'rgba(232, 57, 74, 0.5)', sigil: '🫠' },
   danger: { color: '#f5c242', glow: 'rgba(245, 194, 66, 0.45)', sigil: '🔥' },
-  neutral: { color: '#a8d8ff', glow: 'rgba(47, 127, 217, 0.5)', sigil: '🔮' },
+  neutral: { color: '#a8d8ff', glow: 'rgba(47, 127, 217, 0.5)', sigil: '❄️' },
 }
 
 type ResultOverlayProps = {

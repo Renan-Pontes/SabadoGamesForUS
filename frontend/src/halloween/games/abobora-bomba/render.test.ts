@@ -9,7 +9,7 @@ import Phone from './Phone'
 import Tv from './Tv'
 
 /**
- * Cada posse da abóbora é um momento novo (a chave muda a cada passe), então
+ * Cada posse do presente é um momento novo (a chave muda a cada passe), então
  * uma partida simulada tem muitos momentos para desenhar — TV e todos os
  * celulares em cada um. Os bots aqui passam devagar (actProbability baixa)
  * e com 1 vida, para as rodadas explodirem logo; o limite de tempo é
@@ -17,7 +17,7 @@ import Tv from './Tv'
  */
 const SLOW = 60_000
 
-describe('telas da Abóbora-Bomba em todas as fases', () => {
+describe('telas do Presente-Bomba em todas as fases', () => {
   it.each([
     [2, 0.35],
     [8, 0.3],
@@ -47,7 +47,7 @@ describe('telas da Abóbora-Bomba em todas as fases', () => {
     SLOW,
   )
 
-  it('abóbora com quem está offline: a TV pede para a mesa chamar a pessoa', () => {
+  it('presente com quem está offline: a TV pede para a mesa chamar a pessoa', () => {
     const players = makePlayers(4)
     const ctx = makeCtx({ players, now: 10_000 })
     const theme = engine.init(ctx)

@@ -1,0 +1,796 @@
+/* ==========================================================================
+   Efeitos de Natal da TV (prefixo hwx-), por cima de .hws-root/.hws-out.
+
+   Comédia de festa, nada de susto. Fotossensibilidade: nada pisca mais que
+   3 vezes por segundo (o pisca-pisca troca 2×/s), nenhum clarão branco, e
+   tremor rápido só pequeno (≤ 1,2vmin, sem giro) — veja xmas.test.ts.
+   ========================================================================== */
+
+/* ---------- comum ---------- */
+
+.hwx-title {
+  position: absolute;
+  top: 5vh;
+  left: 0;
+  right: 0;
+  padding: 0 16px;
+  text-align: center;
+  font-family: 'Mountains of Christmas', 'Fredoka', cursive;
+  font-weight: 700;
+  font-size: clamp(28px, 8.5vmin, 110px);
+  line-height: 1.05;
+  text-shadow: 0 0.5vmin 0 rgba(0, 0, 0, 0.85), 0 0 3vmin rgba(0, 0, 0, 0.6);
+  animation: hwx-pop-in 500ms cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.hwx-title--gold  { color: #f5c242; }
+.hwx-title--red   { color: #ff5a66; }
+.hwx-title--green { color: #4fd67e; }
+
+@keyframes hwx-pop-in {
+  0%   { opacity: 0; transform: scale(0.3); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.hwx-caption {
+  font-family: var(--font-display, 'Fredoka'), sans-serif;
+  color: #fff6dc;
+}
+
+/* ---------- hohoho ---------- */
+
+.hwx-santa {
+  position: absolute;
+  bottom: 0;
+  left: 36%;
+  width: min(62vmin, 58vw);
+  transform: translate(-50%, 100%);
+  animation: hwx-rise var(--hws-dur, 3600ms) both;
+}
+
+.hwx-santa-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@keyframes hwx-rise {
+  0%   { transform: translate(-50%, 100%); animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1.3); }
+  13%  { transform: translate(-50%, -4%); }
+  17%  { transform: translate(-50%, 0); }
+  86%  { transform: translate(-50%, 0); animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.5); }
+  100% { transform: translate(-50%, 105%); }
+}
+
+/* Gargalhada: a barriga chacoalha e a cabeça vai para trás. */
+.hwx-santa-belly {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: hwx-jiggle 260ms ease-in-out 400ms infinite alternate;
+}
+
+@keyframes hwx-jiggle {
+  from { transform: scale(1, 1); }
+  to   { transform: scale(1.04, 0.95); }
+}
+
+.hwx-santa-head {
+  transform-box: fill-box;
+  transform-origin: 50% 90%;
+  animation: hwx-laugh 260ms ease-in-out 400ms infinite alternate;
+}
+
+@keyframes hwx-laugh {
+  from { transform: rotate(-4deg) translateY(0); }
+  to   { transform: rotate(3deg) translateY(-6px); }
+}
+
+.hwx-ho {
+  position: absolute;
+  left: var(--hwx-x, 10vw);
+  top: var(--hwx-y, 10vh);
+  font-family: var(--font-display, 'Fredoka'), sans-serif;
+  font-weight: 900;
+  font-size: 13vmin;
+  line-height: 1;
+  color: #f5c242;
+  text-shadow: 0 0.6vmin 0 #8e1222, 0 0 3vmin rgba(245, 194, 66, 0.55);
+  opacity: 0;
+  animation: hwx-pop-word 500ms cubic-bezier(0.2, 1.6, 0.4, 1) var(--hws-delay, 0ms) both;
+}
+
+@keyframes hwx-pop-word {
+  0%   { opacity: 0; transform: scale(0) rotate(-24deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-8deg); }
+}
+
+/* A lista dos malcriados (papel de carta) entra voando pela direita. */
+.hwx-sign {
+  position: absolute;
+  right: 5vw;
+  top: 20vh;
+  width: min(40vw, 48vmin);
+  padding: 3vmin 3vmin 3.5vmin;
+  text-align: center;
+  color: #3b2a20;
+  background: linear-gradient(#fff9e8, #f3e2bd);
+  border-radius: 1.4vmin;
+  box-shadow: 0 1.5vmin 4vmin rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  animation: hwx-sign 650ms cubic-bezier(0.2, 1.5, 0.4, 1) var(--hws-delay, 1400ms) both;
+}
+
+@keyframes hwx-sign {
+  0%   { opacity: 0; transform: translateX(60vw) rotate(24deg); }
+  100% { opacity: 1; transform: translateX(0) rotate(4deg); }
+}
+
+.hwx-sign-title {
+  font-family: 'Mountains of Christmas', 'Fredoka', cursive;
+  font-weight: 700;
+  font-size: 4.6vmin;
+  color: #c21f33;
+  border-bottom: 0.4vmin dashed rgba(194, 31, 51, 0.5);
+  padding-bottom: 1vmin;
+}
+
+.hwx-sign-name {
+  margin-top: 1.5vmin;
+  font-family: var(--font-display, 'Fredoka'), sans-serif;
+  font-weight: 900;
+  font-size: 8vmin;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.hwx-sign-stamp {
+  display: inline-block;
+  margin-top: 1.5vmin;
+  padding: 0.4vmin 1.6vmin;
+  font-family: var(--font-display, 'Fredoka'), sans-serif;
+  font-weight: 900;
+  font-size: 4vmin;
+  color: #c21f33;
+  border: 0.6vmin solid #c21f33;
+  border-radius: 1vmin;
+  opacity: 0;
+  animation: hwx-stamp 260ms ease-in calc(var(--hws-delay, 1400ms) + 500ms) both;
+}
+
+@keyframes hwx-stamp {
+  0%   { opacity: 0; transform: scale(3) rotate(-10deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-10deg); }
+}
+
+/* ---------- blizzard ---------- */
+
+.hwx-whiteout {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(190, 220, 255, 0.35), rgba(230, 242, 255, 0.55));
+  animation: hws-in 600ms ease-out both;
+}
+
+.hwx-flakes {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.hwx-flake {
+  position: absolute;
+  width: var(--hwx-size, 1vmin);
+  height: var(--hwx-size, 1vmin);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0.6vmin rgba(255, 255, 255, 0.9);
+  animation-name: hwx-blow;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes hwx-blow {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(-40vw, 110vh); }
+}
+
+/* Geada nas bordas da tela: entra devagar e fica. */
+.hwx-frost {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0) 45%,
+    rgba(214, 236, 255, 0.7) 85%,
+    rgba(240, 248, 255, 0.95) 100%
+  );
+  opacity: 0;
+  animation: hwx-frost 1200ms ease-out 200ms both;
+}
+
+@keyframes hwx-frost {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.hwx-brr-box {
+  text-align: center;
+  animation: hwx-shiver 120ms linear 500ms 20;
+}
+
+/* Tremor rápido: pequeno e sem giro (fotossensibilidade). */
+@keyframes hwx-shiver {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-0.6vmin, 0.35vmin); }
+  50%  { transform: translate(0.55vmin, -0.4vmin); }
+  75%  { transform: translate(-0.35vmin, -0.3vmin); }
+  100% { transform: translate(0, 0); }
+}
+
+.hwx-brr-face {
+  font-size: 22vmin;
+  line-height: 1;
+  animation: hwx-pop-in 450ms cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.hwx-brr {
+  font-family: var(--font-display, 'Fredoka'), sans-serif;
+  font-weight: 900;
+  font-size: 14vmin;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: #7fd8ff;
+  text-shadow: 0 0.6vmin 0 #0b3a5c, 0 0 3vmin rgba(127, 216, 255, 0.8);
+  animation: hwx-pop-in 450ms cubic-bezier(0.2, 1.6, 0.4, 1) 200ms both;
+}
+
+/* ---------- giftRain ---------- */
+
+.hwx-rain-gift {
+  position: absolute;
+  animation: hwx-fall 950ms var(--hws-delay, 0ms) both;
+}
+
+.hwx-rain-gift svg,
+.hwx-drop svg,
+.hwx-big-gift-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Cai, quica uma vez e assenta (antes do atraso fica lá em cima, fora da tela). */
+@keyframes hwx-fall {
+  0%   { transform: translateY(-115vh) rotate(calc(var(--hwx-tilt, 0deg) * -3)); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+  60%  { transform: translateY(0) rotate(var(--hwx-tilt, 0deg)); animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1); }
+  78%  { transform: translateY(-9vh) rotate(calc(var(--hwx-tilt, 0deg) * 0.5)); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+  100% { transform: translateY(0) rotate(var(--hwx-tilt, 0deg)); }
+}
+
+.hwx-big-gift {
+  --hwx-tilt: 0deg;
+  position: absolute;
+  left: 50%;
+  bottom: 4vh;
+  width: 30vmin;
+  margin-left: -15vmin;
+  animation: hwx-fall 1000ms 700ms both;
+}
+
+.hwx-big-gift .hwx-gift-lid {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  animation: hwx-lid 650ms cubic-bezier(0.2, 0.8, 0.3, 1) var(--hwx-open, 1900ms) both;
+}
+
+/* Unidades do viewBox (100×100) do presente. */
+@keyframes hwx-lid {
+  from { transform: translate(0, 0) rotate(0deg); }
+  to   { transform: translate(-34px, -70px) rotate(-55deg); }
+}
+
+/* A meia sai do presentão numa mola (atrás da caixa: vem antes no DOM). */
+.hwx-sock-spring {
+  position: absolute;
+  left: 50%;
+  bottom: 58%;
+  width: 14vmin;
+  margin-left: -7vmin;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  transform-origin: 50% 100%;
+  animation: hwx-spring 700ms cubic-bezier(0.2, 1.8, 0.4, 1) calc(var(--hwx-open, 1900ms) + 50ms) both;
+}
+
+@keyframes hwx-spring {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+.hwx-spring {
+  display: block;
+  width: 5vmin;
+  height: 12vmin;
+}
+
+.hwx-sock {
+  width: 12vmin;
+  transform-origin: 50% 100%;
+  animation: hwx-wobble 300ms ease-in-out calc(var(--hwx-open, 1900ms) + 650ms) infinite alternate;
+}
+
+.hwx-sock svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@keyframes hwx-wobble {
+  from { transform: rotate(-12deg); }
+  to   { transform: rotate(12deg); }
+}
+
+/* ---------- reindeer ---------- */
+
+.hwx-speedlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent 0 6vh, rgba(255, 255, 255, 0.09) 6vh 6.4vh);
+  opacity: 0;
+  animation: hwx-speed 1700ms ease-in-out 150ms both;
+}
+
+@keyframes hwx-speed {
+  0%, 100% { opacity: 0; }
+  30%, 70% { opacity: 1; }
+}
+
+.hwx-run {
+  position: absolute;
+  left: 0;
+  bottom: 14vh;
+  width: min(110vmin, 95vw);
+  transform: translateX(-105%);
+  animation: hwx-run 1700ms cubic-bezier(0.3, 0.1, 0.7, 0.9) 150ms both;
+}
+
+@keyframes hwx-run {
+  from { transform: translateX(-105%); }
+  to   { transform: translateX(105vw); }
+}
+
+.hwx-gallop {
+  animation: hwx-gallop 270ms ease-in-out infinite alternate;
+}
+
+@keyframes hwx-gallop {
+  from { transform: translateY(0) rotate(-2deg); }
+  to   { transform: translateY(-3vh) rotate(2deg); }
+}
+
+.hwx-reindeer-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.hwx-leg {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: hwx-leg 270ms ease-in-out infinite alternate;
+}
+
+.hwx-leg--alt {
+  animation-direction: alternate-reverse;
+}
+
+@keyframes hwx-leg {
+  from { transform: rotate(-28deg); }
+  to   { transform: rotate(28deg); }
+}
+
+.hwx-tongue {
+  transform-box: fill-box;
+  transform-origin: 80% 0;
+  animation: hwx-flap 135ms ease-in-out infinite alternate;
+}
+
+@keyframes hwx-flap {
+  from { transform: rotate(-16deg); }
+  to   { transform: rotate(16deg); }
+}
+
+.hwx-drop {
+  --hwx-tilt: 12deg;
+  position: absolute;
+  left: 50%;
+  bottom: 6vh;
+  width: 16vmin;
+  margin-left: -8vmin;
+  animation: hwx-fall 900ms var(--hws-delay, 1800ms) both;
+}
+
+/* ---------- lightsParty ---------- */
+
+.hwx-lights {
+  position: absolute;
+  inset: 0;
+}
+
+/* Fachos coloridos girando devagar e bem fracos: luz de festa, não estrobo. */
+.hwx-beams {
+  position: absolute;
+  inset: -50%;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(255, 59, 79, 0.16) 0deg 10deg,
+    transparent 10deg 30deg,
+    rgba(62, 224, 124, 0.16) 30deg 40deg,
+    transparent 40deg 60deg,
+    rgba(74, 168, 255, 0.16) 60deg 70deg,
+    transparent 70deg 90deg
+  );
+  animation: hwx-spin 8000ms linear infinite;
+}
+
+@keyframes hwx-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.hwx-garland {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 12vh;
+}
+
+.hwx-garland--top    { top: 0; }
+.hwx-garland--bottom { bottom: 0; transform: scaleY(-1); }
+
+.hwx-wire {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 4vh;
+}
+
+/* Cada lâmpada: acesa/apagada a 2 Hz (LIGHTS_BLINK_MS); metade em contratempo. */
+.hwx-bulb {
+  position: absolute;
+  top: 2.4vh;
+  width: 3.4vmin;
+  height: 4.8vmin;
+  margin-left: -1.7vmin;
+  border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+  background: var(--hwx-bulb, #ffd54a);
+  box-shadow: 0 0 2.5vmin 0.8vmin var(--hwx-bulb, #ffd54a);
+  animation: hwx-blink var(--hwx-blink, 500ms) steps(1, end) infinite;
+}
+
+.hwx-bulb::before {
+  content: '';
+  position: absolute;
+  left: 25%;
+  top: -1.2vmin;
+  width: 50%;
+  height: 1.6vmin;
+  border-radius: 0.4vmin;
+  background: #1f2937;
+}
+
+.hwx-bulb--b {
+  animation-delay: calc(var(--hwx-blink, 500ms) / -2);
+}
+
+@keyframes hwx-blink {
+  0%  { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.hwx-party-title {
+  text-align: center;
+  font-family: var(--font-display, 'Fredoka'), sans-serif;
+  font-weight: 900;
+  font-size: 13vmin;
+  line-height: 1;
+}
+
+/* Cores fixas por letra (arco-íris sem piscar); só pulam. */
+.hwx-party-title > span {
+  display: inline-block;
+  color: hsl(calc(var(--hwx-i, 0) * 33) 95% 62%);
+  text-shadow: 0 0.6vmin 0 rgba(0, 0, 0, 0.8);
+  animation: hwx-hop 500ms ease-in-out calc(var(--hwx-i, 0) * -60ms) infinite alternate;
+}
+
+@keyframes hwx-hop {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-2.5vh); }
+}
+
+.hwx-party-sub {
+  font-family: 'Mountains of Christmas', 'Fredoka', cursive;
+  font-weight: 700;
+  font-size: 9vmin;
+  color: #f5c242;
+  text-shadow: 0 0.5vmin 0 rgba(0, 0, 0, 0.85);
+  animation: hwx-pop-in 500ms cubic-bezier(0.2, 1.6, 0.4, 1) 300ms both;
+}
+
+/* O fusível queima: escurece UMA vez (sem voltar a acender). */
+.hwx-blackout {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  opacity: 0;
+  animation: hws-in 160ms linear var(--hwx-blackout, 2400ms) both;
+}
+
+.hwx-zap {
+  position: absolute;
+  top: 3vh;
+  left: 62%;
+  font-size: 12vmin;
+  opacity: 0;
+  animation: hwx-zap 600ms ease-out var(--hwx-blackout, 2400ms) both;
+}
+
+@keyframes hwx-zap {
+  0%   { opacity: 0; transform: scale(0.2); }
+  30%  { opacity: 1; transform: scale(1.3); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+
+.hwx-smoke {
+  position: absolute;
+  top: 8vh;
+  left: 63%;
+  font-size: 10vmin;
+  opacity: 0;
+  animation: hwx-smoke 1000ms ease-out calc(var(--hwx-blackout, 2400ms) + 200ms) both;
+}
+
+@keyframes hwx-smoke {
+  0%   { opacity: 0; transform: translateY(0) scale(0.6); }
+  30%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-6vh) scale(1.4); }
+}
+
+/* ---------- secretSanta ---------- */
+
+.hwx-secret {
+  position: absolute;
+  inset: 0;
+}
+
+/* O holofote passeia pela sala durante o rufar e para no meio. */
+.hwx-spot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 36vmin;
+  height: 36vmin;
+  margin: -18vmin 0 0 -18vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 244, 214, 0.26) 0%, rgba(255, 244, 214, 0.1) 55%, rgba(255, 244, 214, 0) 72%);
+  box-shadow: 0 0 0 200vmax rgba(3, 6, 14, 0.84);
+  animation:
+    hwx-wander var(--hwx-reveal, 1750ms) ease-in-out both,
+    hwx-spot-grow 500ms cubic-bezier(0.2, 1.4, 0.4, 1) var(--hwx-reveal, 1750ms) forwards;
+}
+
+@keyframes hwx-wander {
+  0%   { opacity: 0; transform: translate(-30vw, -16vh) scale(1); }
+  8%   { opacity: 1; }
+  35%  { transform: translate(26vw, 14vh) scale(1); }
+  68%  { transform: translate(-20vw, 18vh) scale(1); }
+  100% { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+
+@keyframes hwx-spot-grow {
+  from { opacity: 1; transform: translate(0, 0) scale(1); }
+  to   { opacity: 1; transform: translate(0, 0) scale(2); }
+}
+
+.hwx-secret-card {
+  position: relative;
+  max-width: 80vw;
+  padding: 2.5vmin 6vmin;
+  text-align: center;
+  border-radius: 2.4vmin;
+  background: linear-gradient(#c21f33, #8e1222);
+  border: 0.8vmin solid #f5c242;
+  box-shadow: 0 0 6vmin rgba(245, 194, 66, 0.55);
+  opacity: 0;
+  animation: hwx-card 600ms cubic-bezier(0.2, 1.6, 0.4, 1) var(--hwx-reveal, 1750ms) both;
+}
+
+@keyframes hwx-card {
+  0%   { opacity: 0; transform: scale(0.2) rotate(-12deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-2deg); }
+}
+
+.hwx-secret-name {
+  font-family: var(--font-display, 'Fredoka'), sans-serif;
+  font-weight: 900;
+  font-size: min(12vw, 14vmin);
+  line-height: 1.05;
+  color: #fff6dc;
+  text-shadow: 0 0.6vmin 0 rgba(0, 0, 0, 0.6);
+  overflow-wrap: anywhere;
+}
+
+.hwx-confetti {
+  position: absolute;
+  left: -7vmin;
+  top: -7vmin;
+  font-size: 10vmin;
+  line-height: 1;
+}
+
+.hwx-confetti--r {
+  left: auto;
+  right: -7vmin;
+}
+
+.hwx-secret-gift {
+  color: #f5c242;
+  opacity: 0;
+  animation: hws-in 400ms ease-out var(--hwx-gift, 2800ms) both;
+}
+
+/* ---------- elfChoir ---------- */
+
+.hwx-lyrics {
+  position: absolute;
+  top: 19vh;
+  left: 0;
+  right: 0;
+  padding: 0 16px;
+  text-align: center;
+  font-family: var(--font-display, 'Fredoka'), sans-serif;
+  font-style: italic;
+  font-size: clamp(18px, 4.6vmin, 56px);
+  color: #fff6dc;
+  opacity: 0;
+  animation: hws-in 400ms ease-out 300ms both;
+}
+
+.hwx-choir {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 2vw;
+}
+
+.hwx-elf {
+  transform: translateY(110%);
+  animation: hwx-elf-up 500ms cubic-bezier(0.2, 1.5, 0.4, 1) var(--hws-delay, 0ms) both;
+}
+
+@keyframes hwx-elf-up {
+  from { transform: translateY(110%); }
+  to   { transform: translateY(0); }
+}
+
+/* O menorzinho pula e grita "Feliz Natal!" no fim. */
+.hwx-elf--shout {
+  animation:
+    hwx-elf-up 500ms cubic-bezier(0.2, 1.5, 0.4, 1) var(--hws-delay, 0ms) both,
+    hwx-elf-jump 600ms ease-out var(--hwx-shout, 3550ms);
+}
+
+@keyframes hwx-elf-jump {
+  0%   { transform: translateY(0); }
+  40%  { transform: translateY(-16vh); }
+  100% { transform: translateY(0); }
+}
+
+.hwx-elf svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  transform-origin: 50% 100%;
+  animation: hwx-sway 480ms ease-in-out infinite alternate;
+}
+
+@keyframes hwx-sway {
+  from { transform: rotate(calc(var(--hwx-sway, 1) * -6deg)); }
+  to   { transform: rotate(calc(var(--hwx-sway, 1) * 6deg)); }
+}
+
+.hwx-elf-mouth {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: hwx-sing 240ms ease-in-out infinite alternate;
+}
+
+@keyframes hwx-sing {
+  from { transform: scaleY(0.35); }
+  to   { transform: scaleY(1.15); }
+}
+
+.hwx-note {
+  position: absolute;
+  bottom: 30vh;
+  font-size: 7vmin;
+  color: #f5c242;
+  text-shadow: 0 0.4vmin 0 rgba(0, 0, 0, 0.7);
+  opacity: 0;
+  animation: hwx-note 1400ms ease-out var(--hws-delay, 0ms) both;
+}
+
+@keyframes hwx-note {
+  0%   { opacity: 0; transform: translateY(0) rotate(0deg); }
+  20%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-30vh) rotate(20deg); }
+}
+
+.hwx-bubble {
+  position: absolute;
+  left: 50%;
+  bottom: 40vh;
+  padding: 1.5vmin 3vmin;
+  font-family: var(--font-display, 'Fredoka'), sans-serif;
+  font-weight: 900;
+  font-size: 6vmin;
+  color: #c21f33;
+  background: #fff;
+  border-radius: 3vmin;
+  box-shadow: 0 1vmin 3vmin rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  animation: hwx-bubble 400ms cubic-bezier(0.2, 1.6, 0.4, 1) var(--hws-delay, 3550ms) both;
+}
+
+@keyframes hwx-bubble {
+  from { opacity: 0; transform: translate(-50%, 2vh) scale(0.3); }
+  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+/* ---------- zoom suspeito (versão de Natal: com gorro e moldura de bengala) ---------- */
+
+.hws-zoom-face {
+  position: relative;
+  display: inline-block;
+}
+
+.hws-zoom-hat {
+  position: absolute;
+  left: 50%;
+  top: -6vmin;
+  width: 12vmin;
+  height: auto;
+  transform: translateX(-62%) rotate(-14deg);
+}
+
+.hwx-candy {
+  height: 1.6vmin;
+  margin-top: 1.2vmin;
+  border-radius: 0.8vmin;
+  background: repeating-linear-gradient(45deg, #e8394a 0 1.6vmin, #fff6dc 1.6vmin 3.2vmin);
+}
+
+/* ---------- versão calma (reduzir movimento) dos efeitos de Natal ---------- */
+
+.hws-calm--xmas {
+  background: rgba(4, 12, 10, 0.74);
+}
+
+.hws-calm--xmas .hws-calm-card {
+  background: rgba(10, 30, 22, 0.94);
+  border-color: rgba(245, 194, 66, 0.6);
+}
+
+.hws-calm--xmas .hws-calm-text {
+  font-family: 'Mountains of Christmas', 'Fredoka', cursive;
+  font-weight: 700;
+  color: #f5c242;
+}

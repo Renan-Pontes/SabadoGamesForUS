@@ -10,7 +10,7 @@ type SeatGridProps = {
   variant?: 'tv' | 'compact'
 }
 
-/** A mesa da Noite do Terror vai até 15 pessoas. */
+/** A mesa da festa vai até 15 pessoas. */
 const MAX_SEATS = 15
 
 /** Acima disso a TV quebra a mesa em duas fileiras equilibradas (8 + 7). */
@@ -19,7 +19,8 @@ const ONE_ROW_LIMIT = 8
 /**
  * A mesa se enchendo. As cadeiras vazias são desenhadas de propósito: numa
  * TV de sala, ver quantos lugares faltam é mais útil do que só a lista de
- * quem já entrou.
+ * quem já entrou. No Natal cada pessoa é uma bola de árvore (com o
+ * pendurador dourado e o brilho) que entra quicando; a vaga é um presente.
  *
  * Os tamanhos vêm de variáveis CSS (`--seat-w`, `--seat-gap`) calculadas pela
  * largura da tela, e a largura máxima força fileiras equilibradas: 15 pessoas
@@ -88,7 +89,35 @@ export default function SeatGrid({
                 boxShadow: player.ready
                   ? '0 0 26px var(--slime-glow), 0 10px 24px rgba(0,0,0,0.45)'
                   : '0 10px 24px rgba(0,0,0,0.45)',
-                transition: 'all 320ms ease',
+                transition: 'border-color 320ms ease, box-shadow 320ms ease',
+                // Chegou alguém: a bola entra quicando.
+                animation: 'popIn 650ms cubic-bezier(0.2, 1.4, 0.4, 1) both',
+                // Pendurador dourado da bola de Natal.
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: '-13%',
+                  left: '50%',
+                  width: '28%',
+                  height: '14%',
+                  transform: 'translateX(-50%)',
+                  borderRadius: '3px 3px 2px 2px',
+                  background: 'linear-gradient(180deg, #ffd975, #c48a12)',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
+                },
+                // Reflexo de vidro.
+                '&::after': {
+                  content: '""',
+                  position: 'absolute',
+                  top: '14%',
+                  left: '20%',
+                  width: '22%',
+                  height: '16%',
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.55)',
+                  transform: 'rotate(-30deg)',
+                  pointerEvents: 'none',
+                },
               }}
             >
               {playerInitials(player)}
@@ -138,7 +167,7 @@ export default function SeatGrid({
                     : 'var(--status-waiting)',
               }}
             >
-              {!online ? 'SUMIU 👻' : player.ready ? '✓ PRONTO' : 'CHEGANDO...'}
+              {!online ? 'SUMIU ❄️' : player.ready ? '✓ PRONTO' : 'CHEGANDO...'}
             </Typography>
           </Box>
         )
@@ -171,7 +200,7 @@ export default function SeatGrid({
               animationDelay: `${index * 220}ms`,
             }}
           >
-            🎃
+            🎁
           </Box>
           <Typography
             sx={{
@@ -188,7 +217,7 @@ export default function SeatGrid({
       ))}
 
       {players.length === 0 && emptySeats === 0 && (
-        <Typography sx={{ color: 'var(--text-muted)' }}>Ninguém entrou ainda. Que silêncio assustador...</Typography>
+        <Typography sx={{ color: 'var(--text-muted)' }}>Ninguém entrou ainda. Só o boneco de neve. ☃️</Typography>
       )}
     </Box>
   )

@@ -27,7 +27,7 @@ type AppShellProps = {
  *
  * As telas de jogo usam `games/ui/GameShell`, que é a versão com acento por
  * jogo e relógio; as duas compartilham as mesmas superfícies. O fundo é um
- * véu translúcido: o cenário da Noite do Terror aparece por trás.
+ * véu translúcido: o cenário de Natal (neve, estrelas) aparece por trás.
  */
 export default function AppShell({
   title,

@@ -40,7 +40,7 @@ export default function GameCard({
         borderRadius: 'var(--radius-xl)',
         border: `1px solid ${highlight && accent ? accent : 'rgba(42, 72, 118, 0.75)'}`,
         background:
-          'linear-gradient(160deg, rgba(16, 34, 62, 0.88) 0%, rgba(12, 7, 22, 0.92) 100%)',
+          'linear-gradient(160deg, rgba(16, 34, 62, 0.88) 0%, rgba(6, 16, 31, 0.92) 100%)',
         backdropFilter: 'blur(10px)',
         boxShadow: highlight && accent
           ? `0 18px 44px rgba(0,0,0,0.45), 0 0 30px ${withAlpha(accent, 0.2)}`

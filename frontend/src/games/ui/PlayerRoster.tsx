@@ -32,7 +32,7 @@ const DENSE_FROM = 9
 /**
  * Lista de jogadores — usada nas telas de host, celular e TV.
  *
- * Com mesa cheia (até 15 na Noite do Terror) uma coluna só passava da altura
+ * Com mesa cheia (até 15 na festa) uma coluna só passava da altura
  * da TV: a partir de 7 pessoas a lista vira grade de colunas de ~230 px. No
  * celular continua uma coluna (não cabe duas), só que mais compacta.
  */
@@ -105,7 +105,7 @@ export default function PlayerRoster({
                 boxShadow: info.highlight ? `0 0 16px ${color}` : 'none',
               }}
             >
-              {info.eliminated ? '💀' : playerInitials(player)}
+              {info.eliminated ? '☃️' : playerInitials(player)}
               {info.ready && (
                 <Box
                   aria-hidden

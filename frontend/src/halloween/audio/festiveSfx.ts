@@ -1,4 +1,5 @@
-import { bell as bellNote, noiseHit, patch, pluckEnv } from './synth'
+import { freq } from './notes'
+import { bell as bellNote, clop, noiseHit, patch, pluckEnv, xylo } from './synth'
 import type { Voice } from './synth'
 
 /**
@@ -50,4 +51,52 @@ export function boing(v: Voice, t: number, vol: number): number {
   osc.stop(t + dur + 0.05)
   p.finish()
   return dur
+}
+
+/**
+ * Coral de duendes: o refrão de Jingle Bells (domínio público) num glockenspiel
+ * agudinho, com sininho na oitava de cima e um guizo em cada tempo forte.
+ * [nota, duração em tempos]; um tempo = 0,24 s.
+ */
+const ELF_SONG: [string, number][] = [
+  ['E5', 1],
+  ['E5', 1],
+  ['E5', 2],
+  ['E5', 1],
+  ['E5', 1],
+  ['E5', 2],
+  ['E5', 1],
+  ['G5', 1],
+  ['C5', 1.5],
+  ['D5', 0.5],
+  ['E5', 3],
+]
+const ELF_BEAT = 0.24
+
+export function elfsong(v: Voice, t: number, vol: number): number {
+  let at = t
+  ELF_SONG.forEach(([note, beats], index) => {
+    const f = freq(note)
+    xylo(v, at, f, 0.9 * vol, 0.3)
+    bellNote(v, at, f * 2, 0.22 * vol, 0.9, 0.4)
+    if (index % 2 === 0) {
+      noiseHit(v, at, { type: 'highpass', freq: 7000, q: 0.6, peak: 0.12 * vol, decay: 0.07, wet: 0.2 })
+    }
+    at += beats * ELF_BEAT
+  })
+  return at - t + 0.6
+}
+
+/** Rena a galope: cascos em trios ("pa-ca-tum"), chegando e indo embora. */
+export function gallop(v: Voice, t: number, vol: number): number {
+  const strides = 6
+  for (let i = 0; i < strides; i += 1) {
+    const start = t + i * 0.27
+    // Mais forte no meio (a rena passando na frente da TV).
+    const near = 0.55 + 0.45 * Math.sin((Math.PI * (i + 0.5)) / strides)
+    clop(v, start, 760, 0.8 * vol * near)
+    clop(v, start + 0.07, 880, 0.7 * vol * near)
+    clop(v, start + 0.14, 640, 1 * vol * near)
+  }
+  return strides * 0.27 + 0.1
 }

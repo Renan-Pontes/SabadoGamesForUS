@@ -2,10 +2,12 @@ import { useEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
 import PumpkinSvg from '../ui/PumpkinSvg'
 import SpiderSvg from '../ui/SpiderSvg'
+import { isFestiveEffect } from './bus'
 import type { ConcreteScare } from './bus'
 import { PENETRA_CUT_MS, scareCaption } from './config'
 import { customJumpscare, mountCustomVideo } from './customJumpscare'
 import { AnimatronicScene, FaceScene } from './scary'
+import XmasScene, { SantaHat } from './xmas'
 import './scare.css'
 
 type SceneProps = { kind: ConcreteScare; name?: string; reduced: boolean; duration: number }
@@ -226,7 +228,7 @@ function StaticCanvas() {
 function Calm({ kind, name }: { kind: ConcreteScare; name?: string }) {
   const { icon, text } = scareCaption(kind, name)
   return (
-    <div className="hws-calm">
+    <div className={isFestiveEffect(kind) ? 'hws-calm hws-calm--xmas' : 'hws-calm'}>
       <div className="hws-calm-card">
         <div className="hws-calm-icon">{icon}</div>
         <div className="hws-calm-text">{text}</div>
@@ -262,11 +264,18 @@ function Scene({ kind, name }: { kind: ConcreteScare; name?: string }) {
     case 'zoom':
       return (
         <>
-          <div className="hws-dim" style={{ background: 'rgba(0, 0, 0, 0.8)' }} />
+          <div
+            className="hws-dim"
+            style={{ background: 'radial-gradient(ellipse at center, rgba(12, 48, 30, 0.82), rgba(0, 0, 0, 0.88) 70%)' }}
+          />
           <div className="hws-center">
             <div className="hws-zoom-target">
-              <div className="hws-zoom-face">🤨</div>
+              <div className="hws-zoom-face">
+                🤨
+                <SantaHat className="hws-zoom-hat" />
+              </div>
               <div className="hws-zoom-name">{name ?? 'ALGUÉM AQUI'}</div>
+              <div className="hwx-candy" />
             </div>
           </div>
           <div className="hws-camera">📸</div>
@@ -404,6 +413,14 @@ function Scene({ kind, name }: { kind: ConcreteScare; name?: string }) {
       return <FaceScene />
     case 'penetra':
       return <Penetra />
+    case 'hohoho':
+    case 'blizzard':
+    case 'giftRain':
+    case 'reindeer':
+    case 'lightsParty':
+    case 'secretSanta':
+    case 'elfChoir':
+      return <XmasScene kind={kind} name={name} />
   }
 }
 

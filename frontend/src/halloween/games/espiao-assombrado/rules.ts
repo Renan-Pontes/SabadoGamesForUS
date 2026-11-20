@@ -2,7 +2,7 @@ import { fuzzyMatch, levenshtein, normalizeText, typoTolerance } from '../../eng
 import { PLACES } from './content'
 
 /**
- * Regras do "Espião Assombrado" que o motor e as telas dividem: tempos,
+ * Regras do "Espião de Natal" que o motor e as telas dividem: tempos,
  * pontos, quantos espiões, o formato das cartas e como conferir o chute
  * digitado. Tudo puro — nada de relógio, sorteio ou React aqui.
  */

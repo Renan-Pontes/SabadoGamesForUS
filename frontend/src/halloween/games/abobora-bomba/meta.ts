@@ -1,27 +1,31 @@
 import type { HalloweenGameMeta } from '../../engine/types'
 
+/**
+ * Presente-Bomba: a batata quente de Natal. O slug continua 'abobora-bomba'
+ * (salas e links antigos seguem funcionando); só o nome e a roupa mudaram.
+ */
 export const meta: HalloweenGameMeta = {
   slug: 'abobora-bomba',
-  name: 'Abóbora-Bomba',
-  icon: '🎃',
-  tagline: 'Fale rápido. O pavio é seu.',
-  pitch: 'Batata quente com pavio individual: enrolar só queima o seu tempo.',
+  name: 'Presente-Bomba',
+  icon: '🎁',
+  tagline: 'Batata quente de Natal: fala e passa!',
+  pitch: 'Batata quente natalina com pavio individual: quem enrola só queima o próprio tempo — e o presente faz POF!',
   howTo: [
-    'A TV mostra um tema. Com a abóbora na mão, fale uma palavra dele.',
-    'Segure o botão do celular para passar a abóbora adiante.',
-    'Seu pavio só queima enquanto a abóbora está com você.',
-    'Acabou o pavio: BUM, perde uma vida. Vence quem sobrar com mais vidas.',
+    'A TV mostra um tema. Com o presente na mão, fale uma palavra dele.',
+    'Segure o botão do celular para passar o presente — é batata quente!',
+    'Seu pavio só queima enquanto o presente está com você.',
+    'Acabou o pavio: POF! Perde uma vida. Vence quem sobrar com mais vidas.',
   ],
   duration: '10-25 min',
   vibe: 'Festa',
   minPlayers: 2,
   maxPlayers: 15,
   accent: {
-    main: '#ff7b1c',
-    light: '#ffb36b',
-    glow: 'rgba(255, 123, 28, 0.5)',
-    contrast: '#1f0d02',
-    sigil: '✸',
+    main: '#ff4057',
+    light: '#ffd166',
+    glow: 'rgba(255, 64, 87, 0.5)',
+    contrast: '#2a0509',
+    sigil: '✦',
   },
   options: [
     {
@@ -39,7 +43,7 @@ export const meta: HalloweenGameMeta = {
     {
       key: 'lives',
       label: 'Vidas',
-      help: 'Perdeu todas, vira fantasma e só assiste.',
+      help: 'Perdeu todas, vira boneco de neve ☃️ e só assiste (e torce).',
       choices: [
         { value: 1, label: '1' },
         { value: 2, label: '2' },
@@ -58,6 +62,7 @@ export const meta: HalloweenGameMeta = {
       default: 'falar',
     },
   ],
-  music: 'chase',
+  music: 'jingle',
+  victoryMusic: 'wish',
   phonePollMs: 700,
 }

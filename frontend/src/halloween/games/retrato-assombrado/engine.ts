@@ -25,7 +25,7 @@ import { CATEGORIES, answersFor, categoryAt, categoryLabel } from './content'
 import { botStrokes, readDrawing } from './drawing'
 
 /**
- * 🎨 Retrato Assombrado — desenho com impostor, todo mundo ao mesmo tempo.
+ * 🎅 Retrato de Natal — desenho com impostor, todo mundo ao mesmo tempo.
  *
  * Todo mundo vê a categoria; só quem não é impostor vê a palavra. Todos
  * desenham juntos no celular, em duas etapas, com uma espiadinha na TV no
@@ -547,7 +547,7 @@ export const engine: HalloweenEngine<State> = {
       case 'guess': {
         if (state.reveal?.accused !== playerId) return null
         const word = wordOf(state)
-        return { guess: word && ctx.rng() < 0.4 ? word : pick(['abóbora', 'fantasma', 'sei lá'], ctx.rng) }
+        return { guess: word && ctx.rng() < 0.4 ? word : pick(['rena', 'panetone', 'sei lá'], ctx.rng) }
       }
       default:
         return null
@@ -564,10 +564,10 @@ export type RaAwards = {
   /** Quem fez mais pontos (vazio se ninguém pontuou). */
   champions: number[]
   topScore: number
-  /** 🎭 Mestre do disfarce: quem mais escapou como impostor. */
+  /** 🥸 Duende disfarçado: quem mais escapou como impostor. */
   disguise: number[]
   maxEscapes: number
-  /** 🦅 Olho de lince: quem mais votou certo no impostor. */
+  /** 🔍 Olho de Papai Noel: quem mais votou certo no impostor. */
   eagle: number[]
   maxHits: number
 }

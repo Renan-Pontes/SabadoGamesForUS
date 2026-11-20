@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Box, Typography } from '@mui/material'
-import { SPOOKY_COLORS } from './fonts'
+import { SPOOKY_COLORS, XMAS_COLORS } from './fonts'
 import './spooky.css'
 
 type CandleTimerProps = {
@@ -17,7 +17,7 @@ type CandleTimerProps = {
   showSeconds?: boolean
   /** Fração do tempo a partir da qual a vela entra em pânico (padrão: último quarto). */
   urgentAt?: number
-  /** Cor da cera. */
+  /** Cor da cera (padrão: vermelho de Natal, com listras de bengala). */
   wax?: string
 }
 
@@ -27,8 +27,9 @@ const MAX_HEIGHT = 170
 const BASE_Y = 236
 
 /**
- * Cronômetro em forma de vela: a cera derrete até o prazo; no último quarto
- * a chama fica vermelha e nervosa; no fim, apaga e solta fumaça.
+ * Cronômetro em forma de vela de Natal (listrada de bengala, num pratinho
+ * dourado com azevinho): a cera derrete até o prazo; no último quarto a
+ * chama fica vermelha e nervosa; no fim, apaga e solta fumaça.
  *
  *   <CandleTimer deadline={state.deadline} total={30_000} now={now} size={260} label="para votar" />
  */
@@ -40,7 +41,7 @@ export default function CandleTimer({
   label,
   showSeconds = true,
   urgentAt = 0.25,
-  wax = SPOOKY_COLORS.bone,
+  wax = XMAS_COLORS.red,
 }: CandleTimerProps) {
   const [, setFrame] = useState(0)
   const nowRef = useRef(now)
@@ -99,17 +100,21 @@ export default function CandleTimer({
             <stop offset="100%" stopColor={wax} stopOpacity={0.6} />
           </linearGradient>
           <linearGradient id={`${id}-plate`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#6b5a3a" />
-            <stop offset="100%" stopColor="#2a2016" />
+            <stop offset="0%" stopColor="#ffd975" />
+            <stop offset="100%" stopColor="#8a5a0a" />
           </linearGradient>
+          <pattern id={`${id}-stripes`} width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+            <rect width="6" height="16" fill="#ffffff" opacity="0.7" />
+          </pattern>
         </defs>
 
         {/* Prato */}
         <ellipse cx="60" cy="244" rx="52" ry="11" fill={`url(#${id}-plate)`} />
-        <ellipse cx="60" cy="238" rx="32" ry="7" fill="#3a2e1f" />
+        <ellipse cx="60" cy="238" rx="32" ry="7" fill="#6b4608" />
 
         {/* Cera */}
         <rect x="38" y={top} width="44" height={height} rx="3" fill={`url(#${id}-wax)`} />
+        <rect x="38" y={top} width="44" height={height} rx="3" fill={`url(#${id}-stripes)`} />
         <path
           d={`M41 ${top} v ${dripA} a3 3 0 0 0 6 0 v ${-dripA} Z M70 ${top} v ${dripB} a2.5 2.5 0 0 0 5 0 v ${-dripB} Z`}
           fill={wax}
@@ -117,6 +122,15 @@ export default function CandleTimer({
         />
         <ellipse cx="60" cy={top} rx="22" ry="5" fill={wax} />
         <ellipse cx="60" cy={top} rx="16" ry="3" fill="rgba(0,0,0,0.12)" />
+
+        {/* Azevinho na frente do prato */}
+        <g transform="translate(60 246)">
+          <path d="M-2 0 C -10 -8 -22 -6 -26 2 C -20 0 -18 6 -12 4 C -10 8 -4 6 -2 0 Z" fill={XMAS_COLORS.green} />
+          <path d="M2 0 C 10 -8 22 -6 26 2 C 20 0 18 6 12 4 C 10 8 4 6 2 0 Z" fill={XMAS_COLORS.green} />
+          <circle cx="-3" cy="-2" r="3.2" fill={XMAS_COLORS.red} />
+          <circle cx="3" cy="-2" r="3.2" fill={XMAS_COLORS.red} />
+          <circle cx="0" cy="-6" r="3.2" fill={XMAS_COLORS.candy} />
+        </g>
 
         {/* Pavio */}
         <line x1="60" y1={top - 1} x2="60" y2={top - 11} stroke="#1f1a17" strokeWidth={2.2} strokeLinecap="round" />
@@ -152,7 +166,7 @@ export default function CandleTimer({
             fontSize: Math.max(22, size * 0.2),
             lineHeight: 1,
             color: urgent || out ? SPOOKY_COLORS.blood : SPOOKY_COLORS.candle,
-            textShadow: urgent ? '0 0 18px rgba(220,38,38,0.6)' : '0 0 14px rgba(251,191,36,0.35)',
+            textShadow: urgent ? '0 0 18px rgba(232,57,74,0.6)' : '0 0 14px rgba(245,194,66,0.35)',
             fontVariantNumeric: 'tabular-nums',
           }}
         >

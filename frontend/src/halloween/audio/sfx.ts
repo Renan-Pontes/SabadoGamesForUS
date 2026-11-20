@@ -1,6 +1,6 @@
 import { freq } from './notes'
 import { flicker, screech, shriek } from './scarySfx'
-import { boing, chime, sleigh } from './festiveSfx'
+import { boing, chime, elfsong, gallop, sleigh } from './festiveSfx'
 import {
   SILENCE,
   bell as bellNote,
@@ -937,6 +937,8 @@ const RAW: Record<SfxName, SfxFn> = {
   sleigh,
   chime,
   boing,
+  elfsong,
+  gallop,
 }
 
 export const SFX = Object.fromEntries(

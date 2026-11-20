@@ -8,9 +8,19 @@ import { clearStayInLobby, getStayInLobby, saveLastRoom } from '../lib/roomHisto
 import { gameRoute, getGameColor, getGameMeta, gameName } from '../lib/gameCatalog'
 import type { Player, Room } from '../lib/types'
 import { isHalloweenSlug } from '../halloween/slugs'
-import { AppShell, Snowman, LoadingScreen, MIST, Panel, RoomCode, TutorialOverlay, withAlpha } from '../components/ui'
+import { AppShell, GiftSvg, Snowman, LoadingScreen, MIST, Panel, RoomCode, TutorialOverlay, withAlpha } from '../components/ui'
 import { PlayerRoster } from '../games/ui'
 import { haptic } from '../games/utils'
+
+/** Recadinho da espera (um por pessoa, sempre o mesmo: sai do id do jogador). */
+const WAITING_TIPS = [
+  'Enquanto isso, ajeite o gorro. 🎅',
+  'Quem chegar por último lava a louça da ceia. 🍽️',
+  'Proibido espiar o celular do vizinho. O Noel está vendo. 👀',
+  'Aproveite para tirar a uva-passa do arroz. 🍚',
+  'Pegue um panetone. Ou dois. Ninguém está contando. 🍞',
+  'Calma: amigo-secreto não é aqui. 🎁',
+]
 
 export default function PlayerController() {
   const { code } = useParams()
@@ -98,7 +108,7 @@ export default function PlayerController() {
     return () => window.clearInterval(interval)
   }, [code, player])
 
-  // Noite do Terror: quem chega pelo QR já entra pronto — com 15 pessoas,
+  // Jogos novos: quem chega pelo QR já entra pronto — com 15 pessoas,
   // alguém sempre esquece de apertar o botão e trava o começo. Uma vez por
   // entrada; quem desmarcar continua desmarcado.
   const autoReadyAsked = useRef(false)
@@ -143,7 +153,7 @@ export default function PlayerController() {
       <AppShell title="SALA NÃO ENCONTRADA" accent="var(--accent-red)" backdropTint={MIST.blood} maxWidth={560} center>
         <Panel accent="var(--accent-red)" highlight>
           <Box sx={{ textAlign: 'center', py: 1 }}>
-            <Box sx={{ fontSize: '3.4rem', lineHeight: 1, mb: 1 }}>🪦</Box>
+            <Box sx={{ fontSize: '3.4rem', lineHeight: 1, mb: 1 }}>🎁</Box>
             <Typography sx={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '1.05rem' }}>
               {joinError}
             </Typography>
@@ -194,8 +204,8 @@ export default function PlayerController() {
             }}
           >
             {isReady ? (
-              <Box aria-hidden className="animate-wobble" sx={{ fontSize: '3.4rem', lineHeight: 1 }}>
-                🎃
+              <Box aria-hidden className="animate-hop" sx={{ lineHeight: 0 }}>
+                <GiftSvg box="#e8394a" ribbon="#f5c242" size={60} />
               </Box>
             ) : (
               <Snowman size={58} glow="var(--status-waiting)" />
@@ -221,6 +231,11 @@ export default function PlayerController() {
                 ? `Agora é com o host. ${readyCount} de ${players.length} na mesa estão prontos.`
                 : `${readyCount} de ${players.length} na mesa já confirmaram.`}
           </Typography>
+          {!isLive && player && (
+            <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic', mt: -1.5, mb: 2.5 }}>
+              {WAITING_TIPS[player.id % WAITING_TIPS.length]}
+            </Typography>
+          )}
 
           <Button
             fullWidth
@@ -293,12 +308,12 @@ export default function PlayerController() {
           players={players}
           currentUserId={user?.id}
           accent={accent}
-          emptyLabel="Você é o primeiro a chegar. Que silêncio assustador..."
+          emptyLabel="Você chegou primeiro! Pode pegar o lugar mais perto do panetone."
           describe={(item) => ({
             ready: item.ready,
             highlight: item.ready,
             status:
-              item.online === false ? 'Sumiu 👻 (offline)' : item.ready ? 'Pronto' : 'Ainda não confirmou',
+              item.online === false ? 'Sumiu ❄️ (offline)' : item.ready ? 'Pronto' : 'Ainda não confirmou',
           })}
         />
       </Panel>

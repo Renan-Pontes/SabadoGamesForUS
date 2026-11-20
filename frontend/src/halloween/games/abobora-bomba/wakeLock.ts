@@ -3,9 +3,9 @@ import { useEffect } from 'react'
 /**
  * Mantém a tela do celular acesa enquanto `active` (Screen Wake Lock API).
  *
- * Com 15 pessoas a abóbora leva quase um minuto para dar a volta na mesa, e
+ * Com 15 pessoas o presente leva quase um minuto para dar a volta na mesa, e
  * o celular bloqueia sozinho em ~30 s. Bloqueado, ele para de fazer poll: a
- * pessoa nem vê a abóbora chegar e o pavio dela queima. Onde não há suporte
+ * pessoa nem vê o presente chegar e o pavio dela queima. Onde não há suporte
  * (iPhone antigo, página sem https, bateria fraca), não faz nada — o jogo
  * segue igual.
  *
