@@ -14,6 +14,7 @@ import {
   kick,
   lead,
   musicBox,
+  noiseHit,
   organ,
   pluck,
   ride,
@@ -28,7 +29,8 @@ import type { StopLayer, Voice } from './synth'
 import type { MusicTrack } from './types'
 
 /**
- * As nove trilhas da Noite do Terror, escritas como partitura.
+ * As trilhas, escritas como partitura: as nove da Noite do Terror e as três
+ * do Natal (Noite Feliz, Jingle Bells e We Wish You a Merry Christmas).
  *
  * Cada trilha é um laço curto (15–60 s) tocado pelo agendador com
  * antecedência. Melodias de domínio público: Dies Irae (canto gregoriano),
@@ -606,6 +608,206 @@ const victory: TrackDef = {
   },
 }
 
+// ---------------------------------------------------------------------------
+// natal — "Noite Feliz" (Franz Gruber, 1818; domínio público) em caixinha de
+// música, Dó maior, 3/4. É o que a TV toca sozinha no lobby.
+// ---------------------------------------------------------------------------
+
+const NATAL_MELODY: Row[] = [
+  [1, 1, 'G4', 1.5], [1, 2.5, 'A4', 0.5], [1, 3, 'G4', 1],
+  [2, 1, 'E4', 3],
+  [3, 1, 'G4', 1.5], [3, 2.5, 'A4', 0.5], [3, 3, 'G4', 1],
+  [4, 1, 'E4', 3],
+  [5, 1, 'D5', 2], [5, 3, 'D5', 1],
+  [6, 1, 'B4', 3],
+  [7, 1, 'C5', 2], [7, 3, 'C5', 1],
+  [8, 1, 'G4', 3],
+  [9, 1, 'A4', 2], [9, 3, 'A4', 1],
+  [10, 1, 'C5', 1.5], [10, 2.5, 'B4', 0.5], [10, 3, 'A4', 1],
+  [11, 1, 'G4', 1.5], [11, 2.5, 'A4', 0.5], [11, 3, 'G4', 1],
+  [12, 1, 'E4', 3],
+  [13, 1, 'A4', 2], [13, 3, 'A4', 1],
+  [14, 1, 'C5', 1.5], [14, 2.5, 'B4', 0.5], [14, 3, 'A4', 1],
+  [15, 1, 'G4', 1.5], [15, 2.5, 'A4', 0.5], [15, 3, 'G4', 1],
+  [16, 1, 'E4', 3],
+  [17, 1, 'D5', 2], [17, 3, 'D5', 1],
+  [18, 1, 'F5', 1.5], [18, 2.5, 'D5', 0.5], [18, 3, 'B4', 1],
+  [19, 1, 'C5', 3],
+  [20, 1, 'E5', 3],
+  [21, 1, 'C5', 1.5], [21, 2.5, 'G4', 0.5], [21, 3, 'E4', 1],
+  [22, 1, 'G4', 1.5], [22, 2.5, 'F4', 0.5], [22, 3, 'D4', 1],
+  [23, 1, 'C4', 3],
+]
+
+/** Um acorde por compasso: [baixo, notas do "pá-pá"]. O 24 é o respiro antes de voltar. */
+const NATAL_CHORDS: [string, string[]][] = [
+  ['C3', ['E3', 'G3']], ['C3', ['E3', 'G3']], ['C3', ['E3', 'G3']], ['C3', ['E3', 'G3']],
+  ['G2', ['B3', 'D4']], ['G2', ['B3', 'D4']], ['C3', ['E3', 'G3']], ['C3', ['E3', 'G3']],
+  ['F2', ['A3', 'C4']], ['F2', ['A3', 'C4']], ['C3', ['E3', 'G3']], ['C3', ['E3', 'G3']],
+  ['F2', ['A3', 'C4']], ['F2', ['A3', 'C4']], ['C3', ['E3', 'G3']], ['C3', ['E3', 'G3']],
+  ['G2', ['B3', 'D4']], ['G2', ['B3', 'F4']], ['C3', ['E3', 'G3']], ['C3', ['E3', 'G3']],
+  ['C3', ['E3', 'G3']], ['G2', ['B3', 'F4']], ['C3', ['E3', 'G3']], ['C3', ['E3', 'G3']],
+]
+
+const natal: TrackDef = {
+  bpm: 92,
+  stepsPerBeat: 2,
+  loopSteps: 24 * 3 * 2,
+  level: 1.05,
+  create(v) {
+    const accompaniment: Row[] = NATAL_CHORDS.flatMap(([root, upper], index): Row[] => [
+      [index + 1, 1, root, 1, 0.5],
+      ...upper.flatMap((note): Row[] => [
+        [index + 1, 2, note, 1, 0.22],
+        [index + 1, 3, note, 1, 0.22],
+      ]),
+    ])
+    const map = compile(
+      [
+        { events: rows(3, NATAL_MELODY), play: (voice, t, ev) => musicBox(voice, t, ev.f, 0.9 * ev.vel, 0.45) },
+        // Na segunda volta um sino dobra a melodia uma oitava acima: brilha mais.
+        {
+          events: rows(3, NATAL_MELODY, { semitones: 12, vel: 0.22 }),
+          play: (voice, t, ev, c) => {
+            if (c.cycle % 2 === 1) bell(voice, t, ev.f, ev.vel, 2.5, 0.55)
+          },
+        },
+        { events: rows(3, accompaniment), play: (voice, t, ev) => musicBox(voice, t, ev.f, ev.vel, 0.3) },
+      ],
+      2,
+    )
+    return { step: (e) => playCompiled(map, v, e) }
+  },
+}
+
+// ---------------------------------------------------------------------------
+// jingle — refrão de "Jingle Bells" (James Lord Pierpont, 1857; domínio
+// público) com guizo de trenó, Dó maior, 4/4. A trilha animada dos jogos.
+// ---------------------------------------------------------------------------
+
+const JINGLE_MELODY: Row[] = [
+  [1, 1, 'E5', 1], [1, 2, 'E5', 1], [1, 3, 'E5', 2],
+  [2, 1, 'E5', 1], [2, 2, 'E5', 1], [2, 3, 'E5', 2],
+  [3, 1, 'E5', 1], [3, 2, 'G5', 1], [3, 3, 'C5', 1.5], [3, 4.5, 'D5', 0.5],
+  [4, 1, 'E5', 4],
+  [5, 1, 'F5', 1], [5, 2, 'F5', 1], [5, 3, 'F5', 1.5], [5, 4.5, 'F5', 0.5],
+  [6, 1, 'F5', 1], [6, 2, 'E5', 1], [6, 3, 'E5', 1], [6, 4, 'E5', 0.5], [6, 4.5, 'E5', 0.5],
+  [7, 1, 'E5', 1], [7, 2, 'D5', 1], [7, 3, 'D5', 1], [7, 4, 'E5', 1],
+  [8, 1, 'D5', 2], [8, 3, 'G5', 2],
+  [9, 1, 'E5', 1], [9, 2, 'E5', 1], [9, 3, 'E5', 2],
+  [10, 1, 'E5', 1], [10, 2, 'E5', 1], [10, 3, 'E5', 2],
+  [11, 1, 'E5', 1], [11, 2, 'G5', 1], [11, 3, 'C5', 1.5], [11, 4.5, 'D5', 0.5],
+  [12, 1, 'E5', 4],
+  [13, 1, 'F5', 1], [13, 2, 'F5', 1], [13, 3, 'F5', 1.5], [13, 4.5, 'F5', 0.5],
+  [14, 1, 'F5', 1], [14, 2, 'E5', 1], [14, 3, 'E5', 1], [14, 4, 'E5', 0.5], [14, 4.5, 'E5', 0.5],
+  [15, 1, 'G5', 1], [15, 2, 'G5', 1], [15, 3, 'F5', 1], [15, 4, 'D5', 1],
+  [16, 1, 'C5', 4],
+]
+
+/** Acorde por compasso: [baixo, terça/quinta]. */
+const JINGLE_CHORDS: [string, string, string][] = [
+  ['C3', 'E3', 'G3'], ['C3', 'E3', 'G3'], ['C3', 'E3', 'G3'], ['C3', 'E3', 'G3'],
+  ['F2', 'A3', 'C4'], ['C3', 'E3', 'G3'], ['D3', 'F#3', 'C4'], ['G2', 'B3', 'D4'],
+  ['C3', 'E3', 'G3'], ['C3', 'E3', 'G3'], ['C3', 'E3', 'G3'], ['C3', 'E3', 'G3'],
+  ['F2', 'A3', 'C4'], ['C3', 'E3', 'G3'], ['G2', 'B3', 'F4'], ['C3', 'E3', 'G3'],
+]
+
+/** Quinta abaixo de cada baixo (o "oom" do tempo 3). */
+const JINGLE_FIFTH: Record<string, string> = { C3: 'G2', F2: 'C3', D3: 'A2', G2: 'D3' }
+
+const jingle: TrackDef = {
+  bpm: 138,
+  stepsPerBeat: 2,
+  loopSteps: 16 * 4 * 2,
+  level: 1.35,
+  create(v) {
+    // Oom-pá: baixo nos tempos 1 e 3 (fundamental e quinta), acorde no 2 e 4.
+    const oom: Row[] = JINGLE_CHORDS.flatMap(([root], index): Row[] => [
+      [index + 1, 1, root, 1, 0.75],
+      [index + 1, 3, JINGLE_FIFTH[root], 1, 0.6],
+    ])
+    const pa: Row[] = JINGLE_CHORDS.flatMap(([, third, fifth], index): Row[] => [
+      [index + 1, 2, third, 0.5, 0.3], [index + 1, 2, fifth, 0.5, 0.3],
+      [index + 1, 4, third, 0.5, 0.3], [index + 1, 4, fifth, 0.5, 0.3],
+    ])
+    const map = compile(
+      [
+        { events: rows(4, JINGLE_MELODY), play: (voice, t, ev) => xylo(voice, t, ev.f, 0.75 * ev.vel, 0.3) },
+        { events: rows(4, JINGLE_MELODY, { semitones: 12, vel: 0.18 }), play: (voice, t, ev) => bell(voice, t, ev.f, ev.vel, 1.2, 0.4) },
+        { events: rows(4, oom), play: (voice, t, ev) => pluck(voice, t, ev.f, ev.vel, 0.25, 0.05) },
+        { events: rows(4, pa), play: (voice, t, ev) => pluck(voice, t, ev.f, ev.vel, 0.12, 0.1) },
+      ],
+      2,
+    )
+    return {
+      step(e) {
+        playCompiled(map, v, e)
+        // Guizo do trenó em toda colcheia, mais forte no tempo; caixinha no 2 e 4.
+        const onBeat = e.loopStep % 2 === 0
+        noiseHit(v, e.time, { type: 'highpass', freq: 6800, q: 0.6, peak: onBeat ? 0.11 : 0.07, decay: 0.07, wet: 0.15 })
+        if (onBeat && (e.loopStep / 2) % 2 === 1) brush(v, e.time, 0.5)
+        if (onBeat && (e.loopStep / 2) % 4 === 0) kick(v, e.time, 0.45)
+      },
+    }
+  },
+}
+
+// ---------------------------------------------------------------------------
+// wish — "We Wish You a Merry Christmas" (tradicional inglesa; domínio
+// público), Dó maior, 3/4, com sinos. A vitória do Natal.
+// ---------------------------------------------------------------------------
+
+const WISH_MELODY: Row[] = [
+  [1, 1, 'C5', 1], [1, 2, 'C5', 0.5], [1, 2.5, 'D5', 0.5], [1, 3, 'C5', 0.5], [1, 3.5, 'B4', 0.5],
+  [2, 1, 'A4', 1], [2, 2, 'A4', 1], [2, 3, 'A4', 1],
+  [3, 1, 'D5', 1], [3, 2, 'D5', 0.5], [3, 2.5, 'E5', 0.5], [3, 3, 'D5', 0.5], [3, 3.5, 'C5', 0.5],
+  [4, 1, 'B4', 1], [4, 2, 'G4', 1], [4, 3, 'G4', 1],
+  [5, 1, 'E5', 1], [5, 2, 'E5', 0.5], [5, 2.5, 'F5', 0.5], [5, 3, 'E5', 0.5], [5, 3.5, 'D5', 0.5],
+  [6, 1, 'C5', 1], [6, 2, 'A4', 1], [6, 3, 'G4', 0.5], [6, 3.5, 'G4', 0.5],
+  [7, 1, 'A4', 1], [7, 2, 'D5', 1], [7, 3, 'B4', 1],
+  [8, 1, 'C5', 2], [8, 3, 'G4', 1],
+]
+
+const WISH_BASS = ['C3', 'F2', 'D3', 'G2', 'E3', 'A2', 'G2', 'C3']
+
+/** O "pá-pá" de cada baixo: a quinta e a oitava acima. */
+const WISH_UPPER: Record<string, [string, string]> = {
+  C3: ['G3', 'C4'],
+  F2: ['C3', 'F3'],
+  D3: ['A3', 'D4'],
+  G2: ['D3', 'G3'],
+  E3: ['B3', 'E4'],
+  A2: ['E3', 'A3'],
+}
+
+const wish: TrackDef = {
+  bpm: 132,
+  stepsPerBeat: 2,
+  loopSteps: 8 * 3 * 2,
+  level: 1.2,
+  create(v) {
+    const bassRows: Row[] = WISH_BASS.flatMap((note, index): Row[] => [
+      [index + 1, 1, note, 1, 0.7],
+      [index + 1, 2, WISH_UPPER[note][0], 0.5, 0.3],
+      [index + 1, 3, WISH_UPPER[note][1], 0.5, 0.3],
+    ])
+    const map = compile(
+      [
+        { events: rows(3, WISH_MELODY), play: (voice, t, ev) => brass(voice, t, ev.f, 0.42, 0.8 * ev.vel, 0.3) },
+        { events: rows(3, WISH_MELODY, { semitones: 12, vel: 0.3 }), play: (voice, t, ev) => bell(voice, t, ev.f, ev.vel, 1.8, 0.5) },
+        { events: rows(3, bassRows), play: (voice, t, ev) => pluck(voice, t, ev.f, ev.vel, 0.3, 0.08) },
+      ],
+      2,
+    )
+    return {
+      step(e) {
+        playCompiled(map, v, e)
+        if (e.loopStep % 2 === 0) noiseHit(v, e.time, { type: 'highpass', freq: 6800, q: 0.6, peak: 0.09, decay: 0.08, wet: 0.2 })
+      },
+    }
+  },
+}
+
 export const TRACKS: Record<MusicTrack, TrackDef> = {
   lobby,
   tension,
@@ -616,6 +818,9 @@ export const TRACKS: Record<MusicTrack, TrackDef> = {
   quiz,
   chase,
   victory,
+  natal,
+  jingle,
+  wish,
 }
 
 // ---------------------------------------------------------------------------

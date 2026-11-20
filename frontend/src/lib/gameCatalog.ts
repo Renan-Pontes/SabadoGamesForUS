@@ -373,6 +373,16 @@ export function getGameMeta(slug: string): GameMeta {
   return CATALOG[slug] ?? FALLBACK
 }
 
+/**
+ * Nome do jogo para mostrar. Os jogos novos trazem o nome no próprio meta, que
+ * vale mais que o do servidor (o seed pode estar com o nome da temporada
+ * passada — "Espião Assombrado" virou "Espião de Natal").
+ */
+export function gameName(game: { slug?: string | null; name?: string | null } | null | undefined): string {
+  if (!game) return ''
+  return getHalloweenMeta(game.slug)?.name ?? game.name ?? ''
+}
+
 /** Cor do jogo — a mesma usada dentro da partida, para dar continuidade visual. */
 export function getGameColor(slug: string) {
   return getAccent(slug).main

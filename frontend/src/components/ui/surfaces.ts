@@ -8,9 +8,9 @@
  */
 
 export const PANEL_BG =
-  'linear-gradient(160deg, rgba(31, 18, 54, 0.86) 0%, rgba(12, 7, 22, 0.9) 100%)'
+  'linear-gradient(160deg, rgba(16, 34, 62, 0.86) 0%, rgba(12, 7, 22, 0.9) 100%)'
 
-export const PANEL_BORDER = 'rgba(72, 48, 108, 0.75)'
+export const PANEL_BORDER = 'rgba(42, 72, 118, 0.75)'
 
 export const PANEL_SHADOW = '0 18px 44px rgba(0,0,0,0.45)'
 
@@ -42,7 +42,7 @@ export function glowShadow(accent: string) {
  * Fundo de página: névoa do acento sobre um véu roxo translúcido. O véu (e
  * não um fundo sólido) é o que deixa o cenário animado aparecer.
  */
-export function pageBackdrop(accent: string, secondary = 'rgba(255, 123, 28, 0.09)') {
+export function pageBackdrop(accent: string, secondary = 'rgba(255, 90, 102, 0.09)') {
   return `
     radial-gradient(ellipse 120% 80% at 50% -10%, ${accent} 0%, transparent 55%),
     radial-gradient(ellipse 90% 60% at 85% 110%, ${secondary} 0%, transparent 60%),
@@ -52,9 +52,9 @@ export function pageBackdrop(accent: string, secondary = 'rgba(255, 123, 28, 0.0
 
 /** Tons prontos de névoa para as telas fora de partida. */
 export const MIST = {
-  witch: 'rgba(139, 63, 217, 0.22)',
-  pumpkin: 'rgba(255, 123, 28, 0.16)',
-  slime: 'rgba(140, 240, 69, 0.12)',
-  blood: 'rgba(224, 33, 58, 0.18)',
-  ecto: 'rgba(79, 230, 208, 0.12)',
+  witch: 'rgba(47, 127, 217, 0.22)',
+  pumpkin: 'rgba(255, 90, 102, 0.16)',
+  slime: 'rgba(79, 214, 126, 0.12)',
+  blood: 'rgba(232, 57, 74, 0.18)',
+  ecto: 'rgba(127, 216, 255, 0.12)',
 } as const

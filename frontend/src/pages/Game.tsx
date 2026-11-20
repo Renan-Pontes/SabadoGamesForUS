@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
+import { gameName } from '../lib/gameCatalog'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { Box, Button, Typography } from '@mui/material'
 import { getRoom } from '../lib/api'
 import type { Room } from '../lib/types'
 import { HALLOWEEN_SLUGS } from '../halloween/slugs'
-import { Ghost } from '../components/ui'
+import { Snowman } from '../components/ui'
 
 /**
  * Slugs que já têm tela própria. Ao adicionar um minigame novo, registre-o
@@ -70,7 +71,7 @@ export default function Game() {
           navigate(`/game/${roomCode}/${route}?view=${view}`, { replace: true })
           return
         }
-        setUnknownGame(room.game?.name ?? slug ?? 'desconhecido')
+        setUnknownGame((room.game ? gameName(room.game) : null) ?? slug ?? 'desconhecido')
       } catch (err) {
         if (!active) return
         setError(err instanceof Error ? err.message : 'Não foi possível carregar a sala.')
@@ -107,7 +108,7 @@ export default function Game() {
         {!message && (
           <>
             <Box sx={{ mb: 3 }}>
-              <Ghost size={96} glow="var(--accent-gold)" />
+              <Snowman size={96} glow="var(--accent-gold)" />
             </Box>
             <Typography
               variant="h3"

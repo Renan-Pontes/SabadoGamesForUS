@@ -5,7 +5,7 @@ type BrandProps = {
   /** Anima cada letra na entrada (só vale a pena na landing). */
   animated?: boolean
   tagline?: string
-  /** Selo "Noite do Terror 🎃". Ligado por padrão: é a edição da noite. */
+  /** Selo "Noite Feliz 🎄". Ligado por padrão: é a edição de Natal. */
   badge?: boolean
 }
 
@@ -25,8 +25,9 @@ const SIZES = {
  * A marca. Estava reescrita à mão em cada tela com pesos e gradientes
  * diferentes; agora é um componente só.
  *
- * Noite do Terror: "SÁBADO" escorre em abóbora e sangue, "GAMES" é
- * branco-fantasma e o selo roxo balança como se tivesse vida própria.
+ * Natal: "SÁBADO" em letra de cartão de Natal listrada de bengala doce
+ * (vermelho e branco correndo), "GAMES" branco-neve com brilho dourado, um
+ * gorrinho de Papai Noel no canto e o selo verde que pula.
  */
 export default function Brand({ size = 'md', animated = false, tagline, badge = true }: BrandProps) {
   const dims = SIZES[size]
@@ -47,12 +48,15 @@ export default function Brand({ size = 'md', animated = false, tagline, badge = 
         component={isHero ? 'h1' : 'div'}
         aria-label="Sábado Games"
         sx={{
-          fontFamily: 'var(--font-display)',
+          position: 'relative',
+          fontFamily: 'var(--font-festive)',
+          fontWeight: 700,
           fontSize: dims.sabado,
           lineHeight: 0.95,
-          letterSpacing: '0.05em',
+          letterSpacing: '0.02em',
+          // Bengala doce: listras diagonais vermelhas e brancas que correm.
           backgroundImage:
-            'linear-gradient(100deg, var(--pumpkin) 0%, var(--pumpkin-light) 30%, var(--blood) 60%, var(--pumpkin) 100%)',
+            'repeating-linear-gradient(115deg, #ff4d5e 0 14px, #ffffff 14px 22px, #e8394a 22px 36px, #ffe3e6 36px 44px)',
           backgroundSize: '200% auto',
           WebkitBackgroundClip: 'text',
           backgroundClip: 'text',
@@ -65,22 +69,43 @@ export default function Brand({ size = 'md', animated = false, tagline, badge = 
           // drop-shadow (e não text-shadow): com o texto recortado no
           // gradiente, text-shadow pintaria por cima das letras.
           filter: isHero
-            ? 'drop-shadow(0 0 28px rgba(255, 123, 28, 0.45)) drop-shadow(0 6px 0 rgba(90, 10, 20, 0.55))'
-            : 'drop-shadow(0 0 12px rgba(255, 123, 28, 0.35))',
+            ? 'drop-shadow(0 0 26px rgba(255, 90, 102, 0.5)) drop-shadow(0 5px 0 rgba(120, 10, 26, 0.75))'
+            : 'drop-shadow(0 0 10px rgba(255, 90, 102, 0.4)) drop-shadow(0 2px 0 rgba(120, 10, 26, 0.7))',
         }}
       >
         SÁBADO
       </Typography>
+      {/* Gorro de Papai Noel pendurado no "S" */}
+      <Box
+        aria-hidden
+        component="span"
+        sx={{
+          position: 'relative',
+          display: 'block',
+          height: 0,
+          '&::before': {
+            content: '"🎅"',
+            position: 'absolute',
+            left: isHero ? '-0.35em' : '-0.3em',
+            top: isHero ? '-1.95em' : '-1.7em',
+            fontSize: isHero ? 'clamp(1.6rem, 6vw, 3.4rem)' : `calc(${dims.sabado} * 0.55)`,
+            transform: 'rotate(-18deg)',
+            animation: 'ornamentSwing 2.6s ease-in-out infinite',
+            filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.4))',
+          },
+        }}
+      />
 
       <Typography
         aria-hidden
         sx={{
           fontFamily: 'var(--font-display)',
+          fontWeight: 700,
           fontSize: dims.games,
           lineHeight: 1.05,
           letterSpacing: dims.gap,
-          color: 'var(--ghost)',
-          textShadow: '0 0 18px rgba(176, 107, 255, 0.55)',
+          color: 'var(--snow)',
+          textShadow: '0 0 18px rgba(245, 194, 66, 0.55), 0 3px 0 rgba(12, 26, 51, 0.8)',
           mt: isHero ? 0.5 : 0.25,
           ...rise(480),
         }}
@@ -106,10 +131,10 @@ export default function Brand({ size = 'md', animated = false, tagline, badge = 
               px: '0.9em',
               py: '0.32em',
               borderRadius: 'var(--radius-full)',
-              border: '1px solid rgba(255, 123, 28, 0.7)',
-              background: 'linear-gradient(120deg, rgba(139, 63, 217, 0.85), rgba(74, 20, 140, 0.9))',
-              boxShadow: '0 0 18px rgba(139, 63, 217, 0.45), inset 0 0 10px rgba(255, 123, 28, 0.2)',
-              color: 'var(--pumpkin-light)',
+              border: '1px solid rgba(245, 194, 66, 0.8)',
+              background: 'linear-gradient(120deg, #2bb466, #1f9d55 50%, #12693a)',
+              boxShadow: '0 0 20px rgba(79, 214, 126, 0.45), inset 0 2px 0 rgba(255, 255, 255, 0.2)',
+              color: '#fff6dc',
               fontFamily: 'var(--font-body)',
               fontWeight: 800,
               fontSize: dims.badge,
@@ -117,12 +142,15 @@ export default function Brand({ size = 'md', animated = false, tagline, badge = 
               lineHeight: 1.2,
               whiteSpace: 'nowrap',
               transformOrigin: 'center',
-              animation: 'wobble 3.2s ease-in-out infinite',
+              animation: 'hop 2.8s ease-in-out infinite',
             }}
           >
-            NOITE DO TERROR
+            <Box component="span" aria-hidden sx={{ letterSpacing: 0, fontSize: '1.2em', lineHeight: 1 }}>
+              ✨
+            </Box>
+            NOITE FELIZ
             <Box component="span" aria-hidden sx={{ letterSpacing: 0, fontSize: '1.3em', lineHeight: 1 }}>
-              🎃
+              🎄
             </Box>
           </Box>
         </Box>

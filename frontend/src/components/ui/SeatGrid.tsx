@@ -82,7 +82,7 @@ export default function SeatGrid({
                 fontFamily: 'var(--font-numeric)',
                 fontSize: 'calc(var(--seat-w) * 0.24)',
                 letterSpacing: '0.04em',
-                color: '#0a0612',
+                color: '#06101f',
                 background: `radial-gradient(circle at 32% 28%, ${color}, ${color}b3 70%)`,
                 border: player.ready ? '3px solid var(--status-ready)' : '3px solid rgba(255,255,255,0.08)',
                 boxShadow: player.ready
@@ -163,7 +163,7 @@ export default function SeatGrid({
               borderRadius: '50%',
               display: 'grid',
               placeItems: 'center',
-              border: '2px dashed rgba(176, 107, 255, 0.35)',
+              border: '2px dashed rgba(127, 196, 255, 0.35)',
               fontSize: 'calc(var(--seat-w) * 0.22)',
               filter: 'grayscale(1)',
               opacity: 0.35,

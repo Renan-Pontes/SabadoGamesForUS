@@ -99,6 +99,8 @@ export type HalloweenGameMeta = {
   options: HalloweenOption[]
   /** Trilha da TV durante a partida. */
   music?: MusicTrack
+  /** Trilha do fim de jogo na TV (padrão: 'victory', o órgão da Noite do Terror). */
+  victoryMusic?: MusicTrack
   /** Intervalo do poll nos celulares (padrão ~1500 ms). */
   phonePollMs?: number
 }

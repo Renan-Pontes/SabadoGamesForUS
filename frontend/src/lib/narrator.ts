@@ -6,12 +6,48 @@
  * sala — e funciona offline.
  */
 
-const PREFERRED_LANGS = ['pt-BR', 'pt_BR', 'pt-PT', 'pt']
-
 let cachedVoice: SpeechSynthesisVoice | null = null
 
 export function canNarrate(): boolean {
   return typeof window !== 'undefined' && 'speechSynthesis' in window
+}
+
+type VoiceLike = Pick<SpeechSynthesisVoice, 'name' | 'lang'> & { localService?: boolean }
+
+/**
+ * Nota de uma voz — maior é melhor; `-1` = não serve (não é português).
+ *
+ * As vozes neurais ("Natural"/"Online", do Edge e do Windows 11) soam como
+ * gente; a "Google português do Brasil" do Chrome vem logo atrás; as antigas
+ * do Windows (Maria, Daniel) e as do sistema são o último recurso. Português
+ * do Brasil sempre ganha de Portugal.
+ */
+export function scoreVoice(voice: VoiceLike): number {
+  const lang = voice.lang.replace('_', '-').toLowerCase()
+  if (!lang.startsWith('pt')) return -1
+  let score = lang === 'pt-br' ? 100 : 10
+  const name = voice.name.toLowerCase()
+  if (/natural|neural/.test(name)) score += 50
+  else if (/online/.test(name)) score += 40
+  else if (/google/.test(name)) score += 30
+  else if (/microsoft/.test(name)) score += 10
+  // Entre as neurais do Edge, a Francisca e a Thalita são as mais claras para a TV.
+  if (/francisca|thalita/.test(name)) score += 5
+  return score
+}
+
+/** A melhor voz em português da lista (ou `null` se não houver nenhuma). */
+export function bestVoice<T extends VoiceLike>(voices: readonly T[]): T | null {
+  let best: T | null = null
+  let bestScore = -1
+  for (const voice of voices) {
+    const score = scoreVoice(voice)
+    if (score > bestScore) {
+      best = voice
+      bestScore = score
+    }
+  }
+  return best
 }
 
 /**
@@ -26,17 +62,8 @@ export function pickVoice(): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices()
   if (!voices.length) return null
 
-  for (const lang of PREFERRED_LANGS) {
-    // Vozes "Google" e "Microsoft" costumam ser as mais naturais.
-    const match =
-      voices.find((v) => v.lang.replace('_', '-').startsWith(lang) && /google|microsoft/i.test(v.name)) ??
-      voices.find((v) => v.lang.replace('_', '-').startsWith(lang))
-    if (match) {
-      cachedVoice = match
-      return match
-    }
-  }
-  return null
+  cachedVoice = bestVoice(voices)
+  return cachedVoice
 }
 
 export type SpeakOptions = {

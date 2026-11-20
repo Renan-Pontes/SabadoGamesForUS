@@ -5,7 +5,7 @@ import SwapHorizRoundedIcon from '@mui/icons-material/SwapHorizRounded'
 import type { GameAccent } from '../theme'
 import { accentTextGradient } from '../theme'
 import type { ViewMode } from '../useGameRoom'
-import { Ghost } from '../../components/ui/LoadingScreen'
+import { Snowman } from '../../components/ui/LoadingScreen'
 
 type GameShellProps = {
   title: string
@@ -33,7 +33,7 @@ type GameShellProps = {
 function shellBackdrop(accent: GameAccent) {
   return `
     radial-gradient(ellipse 120% 80% at 50% -10%, ${accent.glow} 0%, transparent 55%),
-    radial-gradient(ellipse 90% 60% at 90% 110%, rgba(255, 123, 28, 0.1) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 60% at 90% 110%, rgba(255, 90, 102, 0.1) 0%, transparent 60%),
     var(--bg-veil)
   `
 }
@@ -121,7 +121,7 @@ export default function GameShell({
         }}
       >
         <Box sx={{ textAlign: 'center' }}>
-          <Ghost size={isTv ? 120 : 90} glow={accent.main} />
+          <Snowman size={isTv ? 120 : 90} glow={accent.main} />
           <Typography
             sx={{
               mt: 2,
@@ -248,7 +248,7 @@ export default function GameShell({
             )}
             <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'flex-end', mt: 0.75 }}>
               {!isTv && (
-                <Tag color="rgba(243,238,255,0.55)">{viewMode === 'host' ? 'HOST' : 'JOGADOR'}</Tag>
+                <Tag color="rgba(244,248,255,0.55)">{viewMode === 'host' ? 'HOST' : 'JOGADOR'}</Tag>
               )}
               {status === 'ended' && <Tag color="var(--accent-red)">ENCERRADA</Tag>}
               {status === 'live' && <Tag color="var(--status-ready)" pulse>AO VIVO</Tag>}
@@ -266,8 +266,8 @@ export default function GameShell({
               mb: 2,
               p: 1.75,
               borderRadius: 'var(--radius-md)',
-              border: '1px solid rgba(224, 33, 58, 0.5)',
-              background: 'rgba(224, 33, 58, 0.15)',
+              border: '1px solid rgba(232, 57, 74, 0.5)',
+              background: 'rgba(232, 57, 74, 0.15)',
             }}
           >
             <Typography sx={{ color: 'var(--accent-red-light)', fontWeight: 600 }}>
@@ -339,7 +339,7 @@ function Tag({
         borderRadius: 'var(--radius-full)',
         border: `1px solid ${color}`,
         color,
-        background: 'rgba(10, 6, 18, 0.45)',
+        background: 'rgba(6, 16, 31, 0.45)',
         fontSize: '0.58rem',
         fontWeight: 800,
         letterSpacing: '0.16em',

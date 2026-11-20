@@ -72,7 +72,7 @@ export default function PlayingCard({
           ...shared,
           background:
             'repeating-linear-gradient(45deg, #3b1466 0 6px, #4c1d86 6px 12px)',
-          border: '2px solid rgba(255, 162, 74, 0.85)',
+          border: '2px solid rgba(255, 140, 149, 0.85)',
           boxShadow: '0 10px 26px rgba(0,0,0,0.5)',
           display: 'grid',
           placeItems: 'center',

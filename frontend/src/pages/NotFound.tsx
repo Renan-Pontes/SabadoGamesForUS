@@ -55,7 +55,7 @@ export default function NotFound() {
             lineHeight: 1.1,
             letterSpacing: '0.05em',
             color: 'var(--pumpkin)',
-            textShadow: '0 0 26px rgba(255, 123, 28, 0.45)',
+            textShadow: '0 0 26px rgba(255, 90, 102, 0.45)',
             mb: 1.5,
           }}
         >

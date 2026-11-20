@@ -5,15 +5,16 @@ import { isTvLocation, roomCodeFromPath } from './fx/route'
 import TvFxLayer from './fx/TvFxLayer'
 import ScareOverlay from './scare/ScareOverlay'
 import { AudioUnlockPrompt, PhoneSoundButton } from './ui/SoundControls'
-import SpookyBackdrop from './ui/SpookyBackdrop'
+import SnowBackdrop from '../natal/SnowBackdrop'
 import './ui/fonts'
 
 /**
- * Camada global da Noite do Terror, montada uma vez no App (dentro do
- * BrowserRouter):
+ * Camada global do app (som, efeitos da TV e cenário), montada uma vez no App
+ * (dentro do BrowserRouter). Nasceu na Noite do Terror; no Natal o cenário é
+ * a neve:
  *
- * - cenário: atrás do conteúdo (lua, neblina, morcegos) e por cima dele só o
- *   que não atrapalha (vinheta e teias nos cantos) — tudo sem receber clique;
+ * - cenário: atrás do conteúdo (aurora, estrelas, neve, morros, trenó) e por
+ *   cima dele só o que não atrapalha (pisca-pisca e vinheta) — sem clique;
  * - palco dos sustos (acima de tudo);
  * - na TV: efeitos da sala (susto do host, música, sustos aleatórios), o
  *   controle discreto do canto e o aviso "clique para acordar os mortos";
@@ -33,8 +34,8 @@ export default function HalloweenLayer() {
   const intensity = tv ? 'tv' : 'phone'
   return (
     <>
-      <SpookyBackdrop intensity={intensity} layer="back" zIndex={0} />
-      <SpookyBackdrop intensity={intensity} layer="front" zIndex={40} />
+      <SnowBackdrop intensity={intensity} layer="back" zIndex={0} />
+      <SnowBackdrop intensity={intensity} layer="front" zIndex={40} />
       <ScareOverlay />
       {tv && code && <TvFxLayer key={code} code={code} />}
       {tv && <AudioUnlockPrompt />}

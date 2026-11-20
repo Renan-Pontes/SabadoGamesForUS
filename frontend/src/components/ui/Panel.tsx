@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Box, Typography } from '@mui/material'
 import type { SxProps, Theme } from '@mui/material'
-import Cobweb from './Cobweb'
+import SnowCap from './SnowCap'
 import { glowShadow, PANEL_BG, PANEL_BORDER, PANEL_SHADOW } from './surfaces'
 
 type PanelProps = {
@@ -16,8 +16,8 @@ type PanelProps = {
   index?: number
   /** Torna o painel clicável (cards de catálogo). */
   onClick?: () => void
-  /** Teia no canto de cima, à direita — para os painéis de destaque. */
-  web?: boolean
+  /** Neve acumulada na borda de cima — para os painéis de destaque. */
+  snow?: boolean
   children: ReactNode
   sx?: SxProps<Theme>
 }
@@ -31,7 +31,7 @@ export default function Panel({
   highlight = false,
   index = 0,
   onClick,
-  web = false,
+  snow = false,
   children,
   sx,
 }: PanelProps) {
@@ -90,7 +90,7 @@ export default function Panel({
         />
       )}
 
-      {web && <Cobweb corner="top-right" size={{ xs: 56, md: 72 }} opacity={0.16} />}
+      {snow && <SnowCap />}
 
       {(title || hint) && (
         <Box

@@ -303,7 +303,7 @@ export default function HostRoom() {
                 variant="contained"
                 startIcon={<SchoolRoundedIcon />}
                 onClick={() => pushTutorial(0)}
-                sx={{ backgroundImage: 'none', bgcolor: accent, color: '#0a0612', '&:hover': { bgcolor: accent } }}
+                sx={{ backgroundImage: 'none', bgcolor: accent, color: '#06101f', '&:hover': { bgcolor: accent } }}
               >
                 Ver tutorial
               </Button>
@@ -399,7 +399,7 @@ export default function HostRoom() {
           </Panel>
 
           {/* Começar */}
-          <Panel accent="var(--pumpkin)" highlight={canStart} web index={2}>
+          <Panel accent="var(--pumpkin)" highlight={canStart} snow index={2}>
             {selectedGame && (
               <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.9rem', mb: 1.5 }}>
                 Jogo:{' '}
@@ -519,8 +519,8 @@ export default function HostRoom() {
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, mb: 2.5 }}>
               {(
                 [
-                  { key: 'coop', label: 'CO-OP', hint: 'Sobrevivam juntos', color: '#8cf045' },
-                  { key: 'versus', label: 'VERSUS', hint: 'Último de pé vence', color: '#b06bff' },
+                  { key: 'coop', label: 'CO-OP', hint: 'Sobrevivam juntos', color: '#4fd67e' },
+                  { key: 'versus', label: 'VERSUS', hint: 'Último de pé vence', color: '#7fc4ff' },
                 ] as const
               ).map((option) => (
                 <Button
@@ -533,7 +533,7 @@ export default function HostRoom() {
                     border: `2px solid ${option.color}`,
                     background:
                       readMyMindMode === option.key ? option.color : 'transparent',
-                    color: readMyMindMode === option.key ? '#0a0612' : option.color,
+                    color: readMyMindMode === option.key ? '#06101f' : option.color,
                     '&:hover': {
                       background:
                         readMyMindMode === option.key ? option.color : `${option.color}22`,
@@ -653,7 +653,7 @@ export default function HostRoom() {
                 cursor: 'pointer',
                 borderRadius: 'var(--radius-md)',
                 border: `2px solid ${cacadaAdvanced ? 'var(--accent-red)' : 'rgba(255,255,255,0.12)'}`,
-                background: cacadaAdvanced ? 'rgba(224, 33, 58, 0.12)' : 'rgba(255,255,255,0.03)',
+                background: cacadaAdvanced ? 'rgba(232, 57, 74, 0.12)' : 'rgba(255,255,255,0.03)',
                 transition: 'all 220ms ease',
               }}
             >
@@ -737,7 +737,7 @@ export default function HostRoom() {
             sx={{
               bgcolor: accent,
               backgroundImage: 'none',
-              color: '#0a0612',
+              color: '#06101f',
               '&:hover': { bgcolor: accent, backgroundImage: 'none', filter: 'brightness(1.1)' },
             }}
           >
@@ -767,7 +767,7 @@ export default function HostRoom() {
               p: 1.5,
               borderRadius: 'var(--radius-lg)',
               background: '#fff7ed',
-              boxShadow: '0 0 40px rgba(255, 123, 28, 0.35)',
+              boxShadow: '0 0 40px rgba(255, 90, 102, 0.35)',
               width: 'min(260px, 70vw)',
             }}
           >

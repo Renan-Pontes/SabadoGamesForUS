@@ -19,7 +19,7 @@ import VisibilityOffRounded from '@mui/icons-material/VisibilityOffRounded'
 import { useAuth } from '../context/useAuth'
 import { roomCodeFromPath, safeNextPath } from '../context/useRequireAuth'
 import { friendlyError } from '../lib/api'
-import { Brand, Ghost, LoadingScreen, MIST, Panel, pageBackdrop } from '../components/ui'
+import { Brand, Snowman, LoadingScreen, MIST, Panel, pageBackdrop } from '../components/ui'
 
 const NICKNAME_MAX = 20
 /** Último apelido usado neste aparelho: quem voltar à festa só aperta "Entrar". */
@@ -185,11 +185,11 @@ export default function Landing() {
           }}
         >
           {/* Entrada rápida: só o apelido */}
-          <Panel accent="var(--pumpkin)" highlight web index={0}>
+          <Panel accent="var(--pumpkin)" highlight snow index={0}>
             <Box component="form" onSubmit={handleGuestSubmit} noValidate sx={{ position: 'relative' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 0.75 }}>
                 <Box sx={{ width: 44, flexShrink: 0, mt: -0.5 }}>
-                  <Ghost size={40} glow="var(--pumpkin)" />
+                  <Snowman size={40} glow="var(--pumpkin)" />
                 </Box>
                 <Typography
                   component="h2"

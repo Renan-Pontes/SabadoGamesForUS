@@ -9,9 +9,8 @@ import { useAuth } from '../context/useAuth'
 import { useRequireAuth } from '../context/useRequireAuth'
 import { createRoom, friendlyError, getRoom, listGames } from '../lib/api'
 import { clearLastRoom, loadLastRoom } from '../lib/roomHistory'
-import { gameRoute, getGameMeta } from '../lib/gameCatalog'
+import { gameRoute, getGameMeta, gameName } from '../lib/gameCatalog'
 import type { Game } from '../lib/types'
-import { HALLOWEEN_SLUGS } from '../halloween/slugs'
 import { AppShell, Brand, GameShelves, LoadingScreen, MIST, Panel } from '../components/ui'
 import { avatarColor } from '../games/utils'
 
@@ -22,12 +21,8 @@ type ResumeInfo = {
   gameName?: string
 }
 
-/** Jogo que já vem escolhido: o primeiro da Noite do Terror que o servidor tiver. */
+/** Jogo que já vem escolhido: o primeiro da vitrine de Natal (listGames já ordena). */
 function defaultGame(games: Game[]) {
-  for (const slug of HALLOWEEN_SLUGS) {
-    const found = games.find((game) => game.slug === slug)
-    if (found) return found
-  }
   return games[0] ?? null
 }
 
@@ -89,7 +84,7 @@ export default function Lobby() {
           code: saved!.code,
           view: saved!.view,
           status: room.status,
-          gameName: room.game?.name,
+          gameName: room.game ? gameName(room.game) : undefined,
         })
       } catch {
         if (!active) return
@@ -176,7 +171,7 @@ export default function Lobby() {
               py: 0.8,
               borderRadius: 'var(--radius-lg)',
               border: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(16, 9, 28, 0.6)',
+              background: 'rgba(9, 22, 42, 0.6)',
               textTransform: 'none',
               maxWidth: 220,
               '&:hover': { borderColor: 'var(--pumpkin)', background: 'rgba(255,255,255,0.06)' },
@@ -192,7 +187,7 @@ export default function Lobby() {
                 placeItems: 'center',
                 fontFamily: 'var(--font-numeric)',
                 fontSize: '1.05rem',
-                color: '#0a0612',
+                color: '#06101f',
                 background: `radial-gradient(circle at 32% 28%, ${color}, ${color}b3 70%)`,
               }}
             >
@@ -306,7 +301,7 @@ export default function Lobby() {
 
         {/* Ações */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, order: { xs: 1, lg: 2 } }}>
-          <Panel accent="var(--pumpkin)" highlight web index={1}>
+          <Panel accent="var(--pumpkin)" highlight snow index={1}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
               <AddRoundedIcon sx={{ fontSize: 26, color: 'var(--pumpkin)' }} />
               <Typography

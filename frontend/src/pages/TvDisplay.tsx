@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Box, Typography } from '@mui/material'
 import { QRCodeSVG } from 'qrcode.react'
 import { friendlyError, getRoom, tvPing } from '../lib/api'
-import { gameRoute, getGameColor, getGameMeta } from '../lib/gameCatalog'
+import { gameRoute, getGameColor, getGameMeta, gameName } from '../lib/gameCatalog'
 import type { Room } from '../lib/types'
 import { useMusic } from '../halloween/audio'
 import { useWakeLock } from '../halloween/framework/wakeLock'
@@ -52,7 +52,7 @@ export default function TvDisplay() {
 
   // Trilha do lobby: a camada de som decide quando pode tocar (a TV precisa
   // de um clique para destravar o áudio — o aviso é dela).
-  useMusic('lobby')
+  useMusic('natal')
   // A TV fica no lobby entre um jogo e outro: notebook ligado nela não pode
   // entrar no descanso de tela.
   useWakeLock(true)
@@ -163,7 +163,7 @@ export default function TvDisplay() {
                 filter: `drop-shadow(0 0 18px ${withAlpha(accent, 0.45)})`,
               }}
             >
-              {meta?.icon} {game.name}
+              {meta?.icon} {gameName(game)}
             </Typography>
           </Box>
         )}
@@ -206,7 +206,7 @@ export default function TvDisplay() {
                 borderRadius: 'var(--radius-xl)',
                 background: '#fff7ed',
                 border: '4px solid var(--pumpkin)',
-                boxShadow: '0 0 0 6px rgba(20, 11, 34, 0.9), 0 0 60px rgba(255, 123, 28, 0.45)',
+                boxShadow: '0 0 0 6px rgba(20, 11, 34, 0.9), 0 0 60px rgba(255, 90, 102, 0.45)',
                 mx: 'auto',
               }}
             >
@@ -231,7 +231,7 @@ export default function TvDisplay() {
                 letterSpacing: '0.04em',
                 whiteSpace: 'nowrap',
                 color: 'var(--pumpkin)',
-                textShadow: '0 0 20px rgba(255, 123, 28, 0.5)',
+                textShadow: '0 0 20px rgba(255, 90, 102, 0.5)',
               }}
             >
               📱 ESCANEIE PARA ENTRAR
@@ -339,7 +339,7 @@ export default function TvDisplay() {
                       placeItems: 'center',
                       fontFamily: 'var(--font-numeric)',
                       fontSize: 'clamp(1rem, 2.6vh, 1.7rem)',
-                      color: '#0a0612',
+                      color: '#06101f',
                       background: accent,
                       boxShadow: `0 0 16px ${withAlpha(accent, 0.45)}`,
                     }}
@@ -370,7 +370,7 @@ export default function TvDisplay() {
       {meta && game && (
         <TutorialOverlay
           open={Boolean(tutorial?.active)}
-          title={game.name}
+          title={gameName(game)}
           icon={meta.icon}
           pitch={meta.pitch}
           steps={meta.howTo}

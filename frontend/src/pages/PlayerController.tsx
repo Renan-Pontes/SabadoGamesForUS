@@ -5,10 +5,10 @@ import { useAuth } from '../context/useAuth'
 import { useRequireAuth } from '../context/useRequireAuth'
 import { friendlyError, getRoom, joinRoom, sendHeartbeat, setReady } from '../lib/api'
 import { clearStayInLobby, getStayInLobby, saveLastRoom } from '../lib/roomHistory'
-import { gameRoute, getGameColor, getGameMeta } from '../lib/gameCatalog'
+import { gameRoute, getGameColor, getGameMeta, gameName } from '../lib/gameCatalog'
 import type { Player, Room } from '../lib/types'
 import { isHalloweenSlug } from '../halloween/slugs'
-import { AppShell, Ghost, LoadingScreen, MIST, Panel, RoomCode, TutorialOverlay, withAlpha } from '../components/ui'
+import { AppShell, Snowman, LoadingScreen, MIST, Panel, RoomCode, TutorialOverlay, withAlpha } from '../components/ui'
 import { PlayerRoster } from '../games/ui'
 import { haptic } from '../games/utils'
 
@@ -169,7 +169,7 @@ export default function PlayerController() {
   return (
     <AppShell
       title={user?.nickname || 'Jogador'}
-      subtitle={game ? `Mesa de ${meta?.icon ?? ''} ${game.name}` : 'Esperando o host escolher o jogo'}
+      subtitle={game ? `Mesa de ${meta?.icon ?? ''} ${gameName(game)}` : 'Esperando o host escolher o jogo'}
       accent={accent}
       backdropTint={withAlpha(accent, 0.14)}
       maxWidth={640}
@@ -177,7 +177,7 @@ export default function PlayerController() {
       headerRight={<RoomCode code={roomCode} size="sm" accent={accent} label="SALA" />}
     >
       {/* Status grande — é o que a pessoa checa de relance */}
-      <Panel accent={statusColor} highlight web>
+      <Panel accent={statusColor} highlight snow>
         <Box sx={{ textAlign: 'center', py: 1, position: 'relative' }}>
           <Box
             sx={{
@@ -188,8 +188,8 @@ export default function PlayerController() {
               borderRadius: '50%',
               mb: 1.5,
               border: `2px solid ${statusColor}`,
-              background: isReady ? 'rgba(140, 240, 69, 0.1)' : 'rgba(255, 201, 74, 0.08)',
-              '--pulse-color': isReady ? 'rgba(140, 240, 69, 0.4)' : 'rgba(255, 201, 74, 0.35)',
+              background: isReady ? 'rgba(79, 214, 126, 0.1)' : 'rgba(245, 194, 66, 0.08)',
+              '--pulse-color': isReady ? 'rgba(79, 214, 126, 0.4)' : 'rgba(245, 194, 66, 0.35)',
               animation: 'pulseGlow 2.6s ease-in-out infinite',
             }}
           >
@@ -198,7 +198,7 @@ export default function PlayerController() {
                 🎃
               </Box>
             ) : (
-              <Ghost size={58} glow="var(--status-waiting)" />
+              <Snowman size={58} glow="var(--status-waiting)" />
             )}
           </Box>
 
@@ -312,7 +312,7 @@ export default function PlayerController() {
       {meta && game && (
         <TutorialOverlay
           open={Boolean(tutorial?.active)}
-          title={game.name}
+          title={gameName(game)}
           icon={meta.icon}
           pitch={meta.pitch}
           steps={meta.howTo}

@@ -60,8 +60,9 @@ function GameRunner({ code, view, game }: { code: string; view: HalloweenView; g
   const over = Boolean(state?.over)
   const hostish = room.isHost || view === 'host'
 
-  // Música só na TV (jogo sem trilha própria fica no 'lobby'); no fim, vitória.
-  useMusic(isTv ? (over ? 'victory' : (meta.music ?? 'lobby')) : null)
+  // Música só na TV (jogo sem trilha própria fica no 'lobby'); no fim, a
+  // vitória do jogo (os de Natal tocam 'wish').
+  useMusic(isTv ? (over ? (meta.victoryMusic ?? 'victory') : (meta.music ?? 'lobby')) : null)
   // Os sustos com nome (zoom suspeito, olhos no escuro) usam a mesa do jogo,
   // sem a TV precisar buscar a sala de novo.
   useScareNames(isTv ? room.players.map((player) => player.name) : [])

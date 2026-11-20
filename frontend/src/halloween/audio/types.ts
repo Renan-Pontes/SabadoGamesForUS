@@ -13,6 +13,10 @@ export const MUSIC_TRACKS = [
   'quiz',
   'chase',
   'victory',
+  // Natal (domínio público): Noite Feliz, Jingle Bells e We Wish You a Merry Christmas.
+  'natal',
+  'jingle',
+  'wish',
 ] as const
 
 export type MusicTrack = (typeof MUSIC_TRACKS)[number]
@@ -53,6 +57,10 @@ export const SFX_NAMES = [
   'screech',
   'shriek',
   'flicker',
+  // Natal: guizo de trenó, brilho mágico e o "boing" cômico (festiveSfx.ts).
+  'sleigh',
+  'chime',
+  'boing',
 ] as const
 
 export type SfxName = (typeof SFX_NAMES)[number]

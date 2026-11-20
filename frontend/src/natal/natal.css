@@ -1,0 +1,204 @@
+/* ============================================
+   Cenário de Natal (SnowBackdrop)
+   Céu com aurora, estrelas piscando, neve caindo em três profundidades,
+   morros nevados com pinheiros enfeitados, o trenó que cruza o céu de vez
+   em quando e o varal de pisca-pisca no topo. Só CSS/SVG, sem clique.
+   ============================================ */
+
+.xm-backdrop {
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  contain: layout paint;
+}
+
+.xm-sky {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 118%, rgba(127, 196, 255, 0.16), transparent 70%),
+    radial-gradient(ellipse 60% 45% at 12% -8%, rgba(232, 57, 74, 0.12), transparent 65%);
+}
+
+/* Aurora: duas faixas que ondulam devagar (verde e azul) */
+.xm-aurora {
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  top: var(--xm-aurora-top, 4vh);
+  height: var(--xm-aurora-h, 34vh);
+  background: linear-gradient(
+    100deg,
+    transparent 8%,
+    rgba(79, 214, 126, 0.0) 14%,
+    rgba(79, 214, 126, 0.22) 30%,
+    rgba(127, 216, 255, 0.2) 48%,
+    rgba(169, 184, 255, 0.16) 62%,
+    transparent 82%
+  );
+  filter: blur(28px);
+  opacity: var(--xm-aurora-a, 0.9);
+  transform-origin: center;
+  animation: xmAurora 18s ease-in-out infinite alternate;
+  mix-blend-mode: screen;
+}
+
+.xm-aurora--2 {
+  top: calc(var(--xm-aurora-top, 4vh) + 8vh);
+  height: calc(var(--xm-aurora-h, 34vh) * 0.7);
+  animation-duration: 26s;
+  animation-direction: alternate-reverse;
+  background: linear-gradient(
+    80deg,
+    transparent 14%,
+    rgba(127, 216, 255, 0.16) 34%,
+    rgba(79, 214, 126, 0.2) 52%,
+    rgba(232, 57, 74, 0.08) 70%,
+    transparent 86%
+  );
+}
+
+@keyframes xmAurora {
+  0% { transform: translateX(-6%) skewY(-4deg) scaleY(0.9); }
+  50% { transform: translateX(4%) skewY(3deg) scaleY(1.15); }
+  100% { transform: translateX(8%) skewY(-2deg) scaleY(0.95); }
+}
+
+/* Estrelas */
+.xm-star {
+  position: absolute;
+  width: var(--xm-star-size, 3px);
+  height: var(--xm-star-size, 3px);
+  border-radius: 50%;
+  background: #fffbe8;
+  box-shadow: 0 0 6px 1px rgba(255, 248, 210, 0.8);
+  animation: twinkle var(--xm-star-dur, 3s) ease-in-out infinite;
+  animation-delay: var(--xm-star-delay, 0s);
+}
+
+/* A estrela-guia: grande, dourada, com raios */
+.xm-guide {
+  position: absolute;
+  top: 7vh;
+  right: 12vw;
+  width: var(--xm-guide-size, 9vmin);
+  height: var(--xm-guide-size, 9vmin);
+  filter: drop-shadow(0 0 18px rgba(245, 194, 66, 0.85));
+  animation: xmGuide 4s ease-in-out infinite;
+}
+
+@keyframes xmGuide {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  50% { transform: scale(1.12) rotate(8deg); opacity: 0.85; }
+}
+
+/* Neve: a camada de fora cai (transform), a de dentro balança */
+.xm-flake {
+  position: absolute;
+  top: 0;
+  left: var(--xm-x, 50%);
+  opacity: var(--xm-alpha, 0.9);
+  animation: xmFall var(--xm-dur, 12s) linear infinite;
+  animation-delay: var(--xm-delay, 0s);
+  will-change: transform;
+}
+
+.xm-flake > i {
+  display: block;
+  width: var(--xm-size, 6px);
+  height: var(--xm-size, 6px);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffffff, rgba(230, 241, 255, 0.85) 60%, rgba(230, 241, 255, 0) 72%);
+  animation: xmSway var(--xm-sway-dur, 4s) ease-in-out infinite alternate;
+}
+
+/* Flocos "de verdade" (o desenho ❄), maiores e girando */
+.xm-flake--crystal > i {
+  width: auto;
+  height: auto;
+  background: none;
+  color: #ffffff;
+  font-style: normal;
+  font-size: var(--xm-size, 18px);
+  line-height: 1;
+  text-shadow: 0 0 8px rgba(200, 230, 255, 0.9);
+}
+
+.xm-flake--crystal > i > span {
+  display: block;
+  animation: spinSlow var(--xm-spin, 9s) linear infinite;
+}
+
+@keyframes xmFall {
+  from { transform: translateY(-8vh); }
+  to { transform: translateY(108vh); }
+}
+
+@keyframes xmSway {
+  from { transform: translateX(calc(var(--xm-sway, 24px) * -1)); }
+  to { transform: translateX(var(--xm-sway, 24px)); }
+}
+
+/* Morros nevados com pinheiros (desenho SVG ocupa a largura toda) */
+.xm-hills {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--xm-hills-h, 22vh);
+  display: block;
+}
+
+.xm-bulb-tree {
+  animation: twinkle 1.6s ease-in-out infinite;
+}
+
+/* Trenó voando pelo céu: cruza a tela de vez em quando */
+.xm-sleigh {
+  position: absolute;
+  top: var(--xm-sleigh-y, 14vh);
+  left: 0;
+  width: var(--xm-sleigh-w, 26vmin);
+  opacity: 0.85;
+  animation: xmSleigh var(--xm-sleigh-dur, 46s) linear infinite;
+  animation-delay: var(--xm-sleigh-delay, -8s);
+  filter: drop-shadow(0 0 10px rgba(245, 194, 66, 0.35));
+}
+
+@keyframes xmSleigh {
+  0% { transform: translate(-40vw, 6vh) rotate(-4deg); }
+  30% { transform: translate(120vw, -4vh) rotate(-6deg); }
+  100% { transform: translate(120vw, -4vh) rotate(-6deg); }
+}
+
+.xm-sleigh-dust {
+  animation: twinkle 0.6s ease-in-out infinite;
+}
+
+/* Varal de pisca-pisca: o fio cai em curvas e as lâmpadas acendem em ondas */
+.xm-garland {
+  position: absolute;
+  top: -2px;
+  left: 0;
+  right: 0;
+  height: var(--xm-garland-h, 64px);
+}
+
+.xm-bulb {
+  transform-box: fill-box;
+  transform-origin: top center;
+  animation: xmBulb var(--xm-bulb-dur, 1.8s) ease-in-out infinite;
+  animation-delay: var(--xm-bulb-delay, 0s);
+}
+
+@keyframes xmBulb {
+  0%, 100% { opacity: 1; filter: brightness(1.15) drop-shadow(0 0 6px currentColor); }
+  50% { opacity: 0.45; filter: brightness(0.7) drop-shadow(0 0 0 currentColor); }
+}
+
+/* Vinheta leve nas bordas (o céu continua visível no meio) */
+.xm-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent var(--xm-vig-clear, 60%), rgba(2, 6, 14, var(--xm-vig-a, 0.45)) 100%);
+}

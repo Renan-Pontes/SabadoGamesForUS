@@ -78,7 +78,7 @@ export default function PlayerRoster({
               borderRadius: 'var(--radius-md)',
               background: info.highlight
                 ? `linear-gradient(100deg, ${withAlpha(accent, 0.14)}, rgba(255,255,255,0.02))`
-                : 'rgba(243, 238, 255, 0.04)',
+                : 'rgba(244, 248, 255, 0.04)',
               border: `1px solid ${
                 info.highlight ? accent : isSelf ? 'rgba(255,255,255,0.18)' : 'transparent'
               }`,
@@ -100,7 +100,7 @@ export default function PlayerRoster({
                 fontFamily: 'var(--font-numeric)',
                 fontSize: dense ? '0.98rem' : '1.1rem',
                 letterSpacing: '0.04em',
-                color: '#0a0612',
+                color: '#06101f',
                 background: `radial-gradient(circle at 32% 28%, ${color}, ${color}b3 70%)`,
                 boxShadow: info.highlight ? `0 0 16px ${color}` : 'none',
               }}
@@ -118,7 +118,7 @@ export default function PlayerRoster({
                     borderRadius: '50%',
                     background: 'var(--status-ready)',
                     border: '2px solid var(--bg-void)',
-                    '--pulse-color': 'rgba(140, 240, 69, 0.6)',
+                    '--pulse-color': 'rgba(79, 214, 126, 0.6)',
                     animation: 'pulseGlow 1.8s ease-in-out infinite',
                   }}
                 />

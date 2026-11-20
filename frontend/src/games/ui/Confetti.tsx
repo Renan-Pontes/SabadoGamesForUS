@@ -3,7 +3,7 @@ import { Box } from '@mui/material'
 import { prefersReducedMotion } from '../utils'
 
 const PIECES = 46
-const COLORS = ['#ff7b1c', '#8cf045', '#b06bff', '#e0213a', '#ffc94a', '#f3eeff']
+const COLORS = ['#ff5a66', '#4fd67e', '#7fc4ff', '#e8394a', '#f5c242', '#f4f8ff']
 // Emoji ignora a cor; os símbolos (★ ●) pegam a cor da paleta.
 const SHAPES = ['🎃', '★', '🦇', '●', '👻', '🍬']
 

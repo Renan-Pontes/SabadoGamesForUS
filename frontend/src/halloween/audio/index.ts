@@ -23,7 +23,7 @@ import type { MusicTrack } from './types'
 
 export type { MusicTrack, SfxName } from './types'
 export { MUSIC_TRACKS, SFX_NAMES, isMusicTrack, isSfxName } from './types'
-export { playSfx, speakSpooky, unlockAudio, initAudio, currentTrack, hushMusic } from './engine'
+export { playSfx, speakSpooky, speakFestive, unlockAudio, initAudio, currentTrack, hushMusic } from './engine'
 export { LOUD_SFX, isLoudSfx } from './loud'
 export type { SfxOptions, SpookyVoiceOptions } from './engine'
 export {

@@ -1,4 +1,5 @@
 import { isHalloweenWip } from '../halloween/slugs'
+import { splitSeason } from '../season'
 import type { AuthUser, Game, Player, Room } from './types'
 
 const DEFAULT_API = 'https://sabadogames.pythonanywhere.com'
@@ -194,8 +195,10 @@ export async function updatePassword(payload: {
 
 export async function listGames(): Promise<Game[]> {
   const games = await request<Game[]>('/games/')
-  // Jogo de Halloween ainda em construção não aparece para escolher.
-  return games.filter((game) => !isHalloweenWip(game.slug))
+  // Vitrine da temporada primeiro (season.ts), depois os "Old"; jogo ainda em
+  // construção não aparece para escolher.
+  const { season, old } = splitSeason(games.filter((game) => !isHalloweenWip(game.slug)))
+  return [...season, ...old]
 }
 
 export async function createRoom(params: {
