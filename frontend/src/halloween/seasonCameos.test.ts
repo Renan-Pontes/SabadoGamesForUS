@@ -18,6 +18,8 @@ const SEASON_FOLDERS = [
   './games/espiao-assombrado/',
   './games/pergunta-trocada/',
   './games/duas-verdades/',
+  './games/cozinha-da-ceia/',
+  './games/fabrica-de-presentes/',
   './games/abobora-bomba/',
   './games/retrato-assombrado/',
   './games/cidade-dorme/',

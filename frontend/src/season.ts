@@ -11,6 +11,8 @@ export const SEASON_SLUGS = [
   'espiao-assombrado', // Espião de Natal
   'pergunta-trocada',
   'duas-verdades', // Duas Verdades, Uma Mentira
+  'cozinha-da-ceia', // time contra time
+  'fabrica-de-presentes', // time contra time
   'abobora-bomba', // Presente-Bomba (batata quente)
   'retrato-assombrado', // Retrato de Natal (espião desenhado)
   'cidade-dorme', // Vila Dorme

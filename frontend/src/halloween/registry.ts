@@ -12,6 +12,8 @@ import { game as quizDoTerror } from './games/quiz-do-terror'
 import { game as corridaDeVassouras } from './games/corrida-de-vassouras'
 import { game as perguntaTrocada } from './games/pergunta-trocada'
 import { game as duasVerdades } from './games/duas-verdades'
+import { game as cozinhaDaCeia } from './games/cozinha-da-ceia'
+import { game as fabricaDePresentes } from './games/fabrica-de-presentes'
 
 /**
  * Os jogos completos (os dez da Noite do Terror e os de Natal): { meta, engine, Tv, Phone }. As telas vêm por
@@ -32,6 +34,8 @@ export const HALLOWEEN_REGISTRY: Record<HalloweenSlug, HalloweenGameModule> = {
   'corrida-de-vassouras': corridaDeVassouras,
   'pergunta-trocada': perguntaTrocada,
   'duas-verdades': duasVerdades,
+  'cozinha-da-ceia': cozinhaDaCeia,
+  'fabrica-de-presentes': fabricaDePresentes,
 }
 
 export const HALLOWEEN_MODULES: HalloweenGameModule[] = HALLOWEEN_SLUGS.map((slug) => HALLOWEEN_REGISTRY[slug])

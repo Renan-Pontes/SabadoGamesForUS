@@ -12,6 +12,8 @@ import { meta as quizDoTerror } from './games/quiz-do-terror/meta'
 import { meta as corridaDeVassouras } from './games/corrida-de-vassouras/meta'
 import { meta as perguntaTrocada } from './games/pergunta-trocada/meta'
 import { meta as duasVerdades } from './games/duas-verdades/meta'
+import { meta as cozinhaDaCeia } from './games/cozinha-da-ceia/meta'
+import { meta as fabricaDePresentes } from './games/fabrica-de-presentes/meta'
 
 /**
  * Os metas dos jogos de Halloween (nome, regras, cores, opções), sem as
@@ -31,6 +33,8 @@ export const HALLOWEEN_METAS: Record<HalloweenSlug, HalloweenGameMeta> = {
   'corrida-de-vassouras': corridaDeVassouras,
   'pergunta-trocada': perguntaTrocada,
   'duas-verdades': duasVerdades,
+  'cozinha-da-ceia': cozinhaDaCeia,
+  'fabrica-de-presentes': fabricaDePresentes,
 }
 
 /** Na ordem da prateleira (a mesma de `slugs.ts`). */

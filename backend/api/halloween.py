@@ -23,6 +23,8 @@ HALLOWEEN_SLUGS = (
     # Natal 2026
     "pergunta-trocada",
     "duas-verdades",
+    "cozinha-da-ceia",
+    "fabrica-de-presentes",
 )
 
 _HALLOWEEN_SET = frozenset(HALLOWEEN_SLUGS)
