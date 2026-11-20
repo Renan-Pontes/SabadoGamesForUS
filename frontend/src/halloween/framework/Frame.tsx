@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Box, CircularProgress, Typography } from '@mui/material'
 import type { HPlayer, HalloweenGameMeta, HalloweenView } from '../engine/types'
 import { fitScale } from './fit'
+import { ChristmasAvatar, useAvatar } from '../../natal/avatars'
 
 /**
  * Moldura das telas dos jogos: cabeçalho fino (o jogo precisa do espaço,
@@ -88,12 +89,7 @@ export function HalloweenFrame({
           >
             SALA {code}
           </Typography>
-          {!isTv && me && (
-            <Typography noWrap sx={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: 140 }}>
-              {me.isHost ? '👑 ' : ''}
-              {me.name}
-            </Typography>
-          )}
+          {!isTv && me && <MeTag me={me} />}
         </Box>
       </Box>
 
@@ -104,6 +100,20 @@ export function HalloweenFrame({
       </Box>
 
       {footer}
+    </Box>
+  )
+}
+
+/** "Você" no cabeçalho do celular: o seu avatar (o mesmo da TV) e o nome. */
+function MeTag({ me }: { me: HPlayer }) {
+  const avatar = useAvatar({ id: me.id, name: me.name })
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.6, mt: 0.4 }}>
+      <ChristmasAvatar avatar={avatar} size={22} title={`Você é ${avatar.label}`} />
+      <Typography noWrap sx={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: 120 }}>
+        {me.isHost ? '👑 ' : ''}
+        {me.name}
+      </Typography>
     </Box>
   )
 }

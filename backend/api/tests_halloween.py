@@ -675,21 +675,23 @@ class VersionBumpTests(DepositoTestBase):
 
 class CatalogTests(TestCase):
     EXPECTED = {
-        "espiao-assombrado": ("Espião Assombrado", 3, 15),
-        "cidade-dorme": ("Cidade Dorme", 5, 15),
-        "retrato-assombrado": ("Retrato Assombrado", 3, 15),
+        "espiao-assombrado": ("Espião de Natal", 3, 15),
+        "cidade-dorme": ("Vila Dorme", 5, 15),
+        "retrato-assombrado": ("Retrato de Natal", 3, 15),
         "mentira-macabra": ("Mentira Macabra", 3, 15),
         "resposta-do-alem": ("Resposta do Além", 3, 15),
         "quem-morre-primeiro": ("Quem Morre Primeiro?", 3, 15),
-        "abobora-bomba": ("Abóbora-Bomba", 2, 15),
+        "abobora-bomba": ("Presente-Bomba", 2, 15),
         "portas-do-alem": ("Portas do Além", 2, 15),
         "quiz-do-terror": ("Quiz do Terror", 1, 15),
         "corrida-de-vassouras": ("Corrida de Vassouras", 2, 15),
+        "pergunta-trocada": ("Pergunta Trocada", 3, 15),
+        "duas-verdades": ("Duas Verdades, Uma Mentira", 3, 15),
     }
 
     def test_seed_creates_the_ten_halloween_games(self):
         call_command("seed_games", stdout=io.StringIO())
-        self.assertEqual(Game.objects.count(), 35, "10 de Halloween + os 25 de sempre")
+        self.assertEqual(Game.objects.count(), 37, "10 de Halloween + 2 de Natal + os 25 de sempre")
         for slug, (name, low, high) in self.EXPECTED.items():
             game = Game.objects.get(slug=slug)
             self.assertEqual((game.name, game.min_players, game.max_players), (name, low, high))
@@ -698,7 +700,7 @@ class CatalogTests(TestCase):
             self.assertTrue(all(ord(char) < 0x2000 for char in game.name), f"{name}: sem emoji")
         # Rodar de novo não duplica nada.
         call_command("seed_games", stdout=io.StringIO())
-        self.assertEqual(Game.objects.count(), 35)
+        self.assertEqual(Game.objects.count(), 37)
 
     def test_slug_list_matches_the_table(self):
         self.assertEqual(list(HALLOWEEN_SLUGS), list(self.EXPECTED))

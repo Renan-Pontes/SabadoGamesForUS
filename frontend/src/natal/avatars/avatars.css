@@ -1,0 +1,47 @@
+/* Avatares de Natal: respiração (sobe e desce) e piscadinha. */
+
+.xa-bob {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: xaBob 2.8s ease-in-out infinite;
+}
+
+.xa-blink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: xaBlink 5.2s ease-in-out infinite;
+  animation-delay: var(--xa-blink-delay, 0s);
+}
+
+/* Parado (sem `animated`, ou congelado): nem pisca. */
+.xa-off .xa-blink {
+  animation: none;
+}
+
+@keyframes xaBob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.6px);
+  }
+}
+
+@keyframes xaBlink {
+  0%,
+  91%,
+  100% {
+    transform: scaleY(1);
+  }
+  94% {
+    transform: scaleY(0.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xa-bob,
+  .xa-blink {
+    animation: none !important;
+  }
+}

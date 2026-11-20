@@ -31,6 +31,8 @@ export interface GameState {
   round: number
   maxRounds: number
   nextRoundTs?: number
+  /** Até quando alguém precisa jogar (ms); passou disso, o servidor tira uma vida. */
+  deadlineTs?: number
 
   // Cartas
   playedCards: Card[]      // Cartas já jogadas na mesa

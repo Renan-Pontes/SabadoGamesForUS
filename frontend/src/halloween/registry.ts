@@ -10,9 +10,11 @@ import { game as aboboraBomba } from './games/abobora-bomba'
 import { game as portasDoAlem } from './games/portas-do-alem'
 import { game as quizDoTerror } from './games/quiz-do-terror'
 import { game as corridaDeVassouras } from './games/corrida-de-vassouras'
+import { game as perguntaTrocada } from './games/pergunta-trocada'
+import { game as duasVerdades } from './games/duas-verdades'
 
 /**
- * Os dez jogos completos: { meta, engine, Tv, Phone }. As telas vêm por
+ * Os jogos completos (os dez da Noite do Terror e os de Natal): { meta, engine, Tv, Phone }. As telas vêm por
  * React.lazy (cada jogo é um pedaço separado do pacote); os motores ficam
  * no pacote principal, porque a TV-juiz roda o motor assim que a partida
  * começa. Para só listar os jogos, use `catalog.ts`.
@@ -28,6 +30,8 @@ export const HALLOWEEN_REGISTRY: Record<HalloweenSlug, HalloweenGameModule> = {
   'portas-do-alem': portasDoAlem,
   'quiz-do-terror': quizDoTerror,
   'corrida-de-vassouras': corridaDeVassouras,
+  'pergunta-trocada': perguntaTrocada,
+  'duas-verdades': duasVerdades,
 }
 
 export const HALLOWEEN_MODULES: HalloweenGameModule[] = HALLOWEEN_SLUGS.map((slug) => HALLOWEEN_REGISTRY[slug])

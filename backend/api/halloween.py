@@ -20,6 +20,9 @@ HALLOWEEN_SLUGS = (
     "portas-do-alem",
     "quiz-do-terror",
     "corrida-de-vassouras",
+    # Natal 2026
+    "pergunta-trocada",
+    "duas-verdades",
 )
 
 _HALLOWEEN_SET = frozenset(HALLOWEEN_SLUGS)

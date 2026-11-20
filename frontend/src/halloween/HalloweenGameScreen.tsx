@@ -2,6 +2,7 @@ import { Suspense, useEffect, type ReactNode } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Box, Button, Typography } from '@mui/material'
 import { restartRoom } from '../lib/api'
+import { RoomAvatarsProvider } from '../natal/avatars'
 import { useMusic } from './audio'
 import type { BaseState, HalloweenGameModule, HalloweenView, HalloweenViewProps } from './engine/types'
 import { CenterMessage, HalloweenFrame } from './framework/Frame'
@@ -95,10 +96,14 @@ function GameRunner({ code, view, game }: { code: string; view: HalloweenView; g
     navigate(`/host/${code}`)
   }
 
+  // Os avatares de Natal saem da mesa inteira: o crachá de cada jogo (que
+  // só sabe o nome) mostra o mesmo bichinho do lobby e do celular.
   const frame = (children: ReactNode, footer?: ReactNode) => (
-    <HalloweenFrame meta={meta} view={view} code={code} me={room.me} footer={footer}>
-      {children}
-    </HalloweenFrame>
+    <RoomAvatarsProvider players={room.players}>
+      <HalloweenFrame meta={meta} view={view} code={code} me={room.me} footer={footer}>
+        {children}
+      </HalloweenFrame>
+    </RoomAvatarsProvider>
   )
 
   if (room.loading) {

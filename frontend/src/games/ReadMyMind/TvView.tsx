@@ -1,329 +1,529 @@
 import { Box, Typography } from '@mui/material'
-import FavoriteIcon from '@mui/icons-material/Favorite'
-import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
-import type { GameState } from './types'
+import { useMusic } from '../../halloween/audio'
 import { useNow } from '../utils'
-import { getAccent } from '../theme'
-import { GameCard, GameShell, PlayingCard, ResultOverlay, StatPill } from '../ui'
+import { Confetti } from '../ui'
+import { AdventCalendar, FeltTable, OrnamentLives, PlayerSeat, SnowBurst, type SeatTone } from './decor'
+import { useFreshFor, useTableSounds } from './hooks'
+import { ADVENT_TREATS, GAME_TITLE, NUMBER_FONT, TITLE_FONT, XMAS } from './look'
+import type { GameState } from './types'
+import {
+  cardWord,
+  cardsLeft,
+  doorsOpen,
+  finalBreak,
+  mistakeIndexes,
+  mistakeLine,
+  mistakeOf,
+  nameOf,
+  pileTilt,
+  type Mistake,
+} from './view'
+import XmasCard from './XmasCard'
 
 interface TvViewProps {
   roomCode: string
   gameState: GameState
 }
 
-const ACCENT = getAccent('read-my-mind')
+/** Tamanho-base das cartas da mesa: a carta do topo fica com ~1/4 da altura da TV. */
+const PILE_SIZE = 'clamp(15px, 3.1vh, 40px)'
+const REVEAL_SIZE = 'clamp(11px, 2vh, 26px)'
+const MISTAKE_SHOW_MS = 7500
+/** O relógio de inatividade só aparece no fim (o servidor tira vida aos 60 s). */
+const TIMER_FROM_S = 20
 
+/**
+ * TV da Mente Natalina: a mesa de feltro da ceia. No centro, a pilha onde
+ * as cartas caem; em cima, o calendário do Advento (níveis) e as bolas da
+ * árvore (vidas); embaixo, cada jogador com as cartas viradas que ainda tem.
+ * Letras para 3 metros: números das cartas enormes, frases de 28 px para cima.
+ */
 export default function TvView({ roomCode, gameState }: TvViewProps) {
   const now = useNow(250)
-  const isCoop = gameState.mode === 'coop'
-  const activePlayers = gameState.players.filter((p) => !p.isEliminated && p.connected)
+  const state = gameState
+  const over = state.phase === 'gameOver'
 
-  const played = gameState.playedCards
-  const lastCard = played[played.length - 1]
-  const lastPlayer = lastCard ? gameState.players.find((p) => p.id === lastCard.playerId) : null
-  const cutPlayer = gameState.players.find((p) => p.id === gameState.lastCutPlayer)
+  useMusic(over ? (state.winner ? 'wish' : null) : state.phase === 'waiting' ? 'jingle' : 'natal')
+  useTableSounds(state)
 
-  const secondsToNextRound = gameState.nextRoundTs
-    ? Math.max(0, Math.ceil((gameState.nextRoundTs - now) / 1000))
-    : null
+  const mistake = mistakeOf(state)
+  const mistakeFresh = useFreshFor(mistake?.key ?? null, MISTAKE_SHOW_MS, now)
+  const played = state.playedCards
+  const last = played[played.length - 1]
+  const hiddenBy = new Map<string, number[]>()
+  for (const card of mistake?.hidden ?? []) hiddenBy.set(card.playerId, [...(hiddenBy.get(card.playerId) ?? []), card.value])
+
+  const compact = state.players.length > 8
 
   return (
-    <GameShell
-      title="READ MY MIND"
-      tagline={
-        isCoop
-          ? 'Joguem as cartas em ordem crescente. Sem falar, sem sinais.'
-          : 'Quem cortar a sequência está fora. Último de pé vence.'
-      }
-      accent={ACCENT}
-      roomCode={roomCode}
-      viewMode="tv"
-      headerExtra={
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <StatPill
-            label="Modo"
-            value={isCoop ? 'CO-OP' : 'VERSUS'}
-            accent={isCoop ? 'var(--status-ready)' : 'var(--neon-purple)'}
-            filled
-            size="lg"
-          />
-          <StatPill label="Rodada" value={`${gameState.round}/${gameState.maxRounds}`} accent={ACCENT.main} size="lg" />
-
-          {isCoop ? (
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 0.5,
-                px: 3,
-                borderRadius: 'var(--radius-lg)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                background: 'rgba(255,255,255,0.035)',
-              }}
-            >
-              <Typography
-                sx={{
-                  fontSize: '0.85rem',
-                  letterSpacing: '0.18em',
-                  fontWeight: 700,
-                  color: 'var(--text-muted)',
-                }}
-              >
-                VIDAS
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 0.5 }}>
-                {Array.from({ length: gameState.maxLives }).map((_, index) =>
-                  index < gameState.lives ? (
-                    <FavoriteIcon
-                      key={index}
-                      sx={{
-                        color: 'var(--accent-red)',
-                        fontSize: '2rem',
-                        filter: 'drop-shadow(0 0 10px var(--accent-red-glow))',
-                      }}
-                    />
-                  ) : (
-                    <FavoriteBorderIcon
-                      key={index}
-                      sx={{ color: 'var(--text-muted)', fontSize: '2rem', opacity: 0.4 }}
-                    />
-                  ),
-                )}
-              </Box>
-            </Box>
-          ) : (
-            <StatPill label="De pé" value={activePlayers.length} accent="var(--neon-purple)" size="lg" />
-          )}
-        </Box>
-      }
+    <Box
+      sx={{
+        height: '100vh',
+        minHeight: 560,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: { xs: 1.5, lg: 2 },
+        px: { xs: 2, lg: 4 },
+        py: { xs: 1.5, lg: 2.5 },
+        position: 'relative',
+        overflow: 'hidden',
+        background:
+          'radial-gradient(ellipse 90% 60% at 50% 0%, rgba(245, 194, 66, 0.14), transparent 60%), var(--bg-veil)',
+      }}
     >
-      {/* A mesa */}
-      <GameCard
-        title="A MESA"
-        hint={played.length ? `${played.length} carta(s) jogada(s)` : 'nenhuma carta ainda'}
-        accent={ACCENT.main}
-        highlight
+      <TopBar state={state} roomCode={roomCode} />
+
+      <FeltTable sx={{ flex: 1, minHeight: 0 }}>
+        {state.phase === 'waiting' && <WaitingCenter />}
+        {state.phase === 'playing' && (
+          <PlayCenter state={state} now={now} mistakeFresh={mistakeFresh} />
+        )}
+        {state.phase === 'roundBreak' && <LevelDoneCenter state={state} now={now} />}
+        {over && <FinalCenter state={state} />}
+        {state.phase === 'playing' && mistake && mistakeFresh && <MistakeMoment mistake={mistake} state={state} />}
+      </FeltTable>
+
+      {/* Os jogadores em volta da mesa */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          columnGap: compact ? 1.5 : 3,
+          rowGap: 0.5,
+          flexShrink: 0,
+        }}
       >
-        {gameState.phase === 'waiting' ? (
-          <Typography sx={{ textAlign: 'center', color: 'var(--text-muted)', py: 6, fontSize: '1.4rem' }}>
-            Aguardando o host começar...
-          </Typography>
-        ) : played.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 6 }}>
-            <Typography
-              sx={{
-                fontFamily: 'var(--font-display)',
-                fontSize: { xs: '2rem', md: '3rem' },
-                color: 'var(--text-secondary)',
-                letterSpacing: '0.06em',
-              }}
-            >
-              QUEM TEM A CARTA MAIS BAIXA?
-            </Typography>
-            <Typography sx={{ color: 'var(--text-muted)', mt: 1, fontSize: '1.1rem' }}>
-              A primeira carta ainda não caiu.
+        {state.players.map((player) => {
+          const revealed = state.phase === 'playing' ? (hiddenBy.get(player.id) ?? []) : []
+          const tone: SeatTone =
+            state.phase !== 'playing'
+              ? 'normal'
+              : mistake && mistake.cutterId === player.id
+                ? 'oops'
+                : revealed.length
+                  ? 'hadLower'
+                  : !mistake && last?.playerId === player.id
+                    ? 'justPlayed'
+                    : 'normal'
+          return <PlayerSeat key={player.id} player={player} tone={tone} compact={compact} revealed={revealed} />
+        })}
+      </Box>
+    </Box>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Barra de cima: título, calendário do Advento, vidas
+// ---------------------------------------------------------------------------
+
+function TopBar({ state, roomCode }: { state: GameState; roomCode: string }) {
+  const coop = state.mode === 'coop'
+  const standing = state.players.filter((p) => !p.isEliminated).length
+  const current = state.phase === 'playing' ? state.round : null
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 3, flexShrink: 0 }}>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography
+          component="h1"
+          sx={{
+            fontFamily: TITLE_FONT,
+            fontWeight: 700,
+            fontSize: 'clamp(2.4rem, 4.4vw, 4.6rem)',
+            lineHeight: 0.95,
+            backgroundImage: `linear-gradient(100deg, ${XMAS.goldLight}, #fff6dc 40%, ${XMAS.candy} 75%, ${XMAS.goldLight})`,
+            backgroundSize: '200% auto',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            animation: 'shimmer 7s linear infinite',
+            filter: 'drop-shadow(0 3px 0 rgba(0,0,0,0.45)) drop-shadow(0 0 18px rgba(245, 194, 66, 0.35))',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {/* O emoji fica fora do recorte em gradiente (senão vira um borrão dourado). */}
+          <Box component="span" sx={{ WebkitTextFillColor: 'initial', mr: 1.5, fontSize: '0.8em' }} aria-hidden>
+            🎄
+          </Box>
+          {GAME_TITLE}
+        </Typography>
+        <Typography sx={{ mt: 0.75, fontSize: 'clamp(1.2rem, 1.6vw, 1.75rem)', color: 'var(--text-secondary)', fontWeight: 600 }}>
+          {coop ? '🤝 Co-op · cartas em ordem crescente, sem falar nada' : '⚔️ Versus · quem se adiantar vira boneco de neve'}
+        </Typography>
+      </Box>
+
+      <Box sx={{ display: { xs: 'none', md: 'flex' }, flexDirection: 'column', alignItems: 'center', gap: 0.75 }}>
+        <Typography sx={{ fontSize: 'clamp(1rem, 1.2vw, 1.35rem)', letterSpacing: '0.24em', fontWeight: 800, color: XMAS.goldLight, lineHeight: 1 }}>
+          {state.phase === 'waiting' ? 'CALENDÁRIO DO ADVENTO' : `NÍVEL ${Math.min(state.round, state.maxRounds)} DE ${state.maxRounds}`}
+        </Typography>
+        <AdventCalendar opened={doorsOpen(state)} current={current} max={state.maxRounds} size={44} />
+      </Box>
+
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+        {coop ? (
+          <OrnamentLives lives={state.lives} max={state.maxLives} size={48} />
+        ) : (
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography sx={{ fontSize: '1rem', letterSpacing: '0.2em', fontWeight: 800, color: 'var(--text-secondary)' }}>DE PÉ</Typography>
+            <Typography sx={{ fontFamily: NUMBER_FONT, fontWeight: 700, fontSize: '3.4rem', lineHeight: 1, color: XMAS.goldLight }}>
+              {standing}
             </Typography>
           </Box>
-        ) : (
-          <>
-            {/* Última carta em destaque */}
-            <Box sx={{ textAlign: 'center', mb: 4 }}>
-              <Typography
-                sx={{
-                  fontSize: '0.7rem',
-                  letterSpacing: '0.24em',
-                  fontWeight: 800,
-                  color: 'var(--text-muted)',
-                  mb: 1.5,
-                }}
-              >
-                {lastPlayer?.name?.toUpperCase() ?? 'ALGUÉM'} JOGOU
-              </Typography>
-              <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                <PlayingCard
-                  key={`${lastCard.value}-${played.length}`}
-                  faceValue={lastCard.value}
-                  size="xl"
-                  highlight
-                />
-              </Box>
-            </Box>
-
-            {/* Sequência anterior */}
-            {played.length > 1 && (
-              <Box>
-                <Typography
-                  sx={{
-                    textAlign: 'center',
-                    fontSize: '0.65rem',
-                    letterSpacing: '0.24em',
-                    fontWeight: 800,
-                    color: 'var(--text-muted)',
-                    mb: 1.5,
-                  }}
-                >
-                  A SEQUÊNCIA ATÉ AQUI
-                </Typography>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    justifyContent: 'center',
-                    gap: 1,
-                  }}
-                >
-                  {played.slice(0, -1).map((card, index) => (
-                    <PlayingCard
-                      key={`${card.value}-${index}`}
-                      faceValue={card.value}
-                      size="sm"
-                      dimmed
-                      dealDelay={index * 40}
-                    />
-                  ))}
-                </Box>
-              </Box>
-            )}
-          </>
         )}
-      </GameCard>
+        <Box sx={{ textAlign: 'right' }}>
+          <Typography sx={{ fontSize: '0.9rem', letterSpacing: '0.24em', color: 'var(--text-muted)', fontWeight: 700 }}>SALA</Typography>
+          <Typography sx={{ fontFamily: 'var(--font-numeric)', fontSize: '2.2rem', letterSpacing: '0.14em', color: 'var(--text-secondary)', lineHeight: 1 }}>
+            {roomCode}
+          </Typography>
+        </Box>
+      </Box>
+    </Box>
+  )
+}
 
-      {/* Jogadores e cartas restantes */}
-      <GameCard title="JOGADORES" hint="cartas restantes na mão" accent={ACCENT.main} sx={{ mt: 2 }} index={1}>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: { xs: 2, md: 4 } }}>
-          {gameState.players.map((player, index) => {
-            const wasCut = gameState.lastCutPlayer === player.id
-            const didCut = gameState.lastCutterPlayer === player.id
-            const justPlayed = lastCard?.playerId === player.id
+// ---------------------------------------------------------------------------
+// Centro da mesa, por fase
+// ---------------------------------------------------------------------------
 
+const centerSx = {
+  position: 'absolute',
+  inset: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  textAlign: 'center',
+  gap: 2,
+  p: 3,
+} as const
+
+const bigLine = { fontSize: 'clamp(1.75rem, 2.4vw, 2.8rem)', fontWeight: 700, color: '#fff6dc', textShadow: '0 2px 0 rgba(0,0,0,0.4)' } as const
+
+function WaitingCenter() {
+  return (
+    <Box sx={centerSx}>
+      <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 2 }}>
+        {[-14, 0, 14].map((tilt, index) => (
+          <Box key={tilt} sx={{ animation: 'hop 2.4s ease-in-out infinite', animationDelay: `${index * 0.3}s` }}>
+            <XmasCard faceDown size="clamp(12px, 2.2vh, 28px)" tilt={tilt} />
+          </Box>
+        ))}
+      </Box>
+      <Typography sx={{ fontFamily: TITLE_FONT, fontWeight: 700, fontSize: 'clamp(2.6rem, 4vw, 4.4rem)', color: XMAS.goldLight, lineHeight: 1 }}>
+        A mesa da ceia está posta
+      </Typography>
+      <Typography sx={bigLine}>Aguardando o host distribuir as cartas…</Typography>
+      <Typography sx={{ ...bigLine, fontSize: 'clamp(1.5rem, 1.9vw, 2.2rem)', color: 'var(--text-secondary)' }}>
+        🤫 Regra de ouro: ninguém fala o número. Só sintonia!
+      </Typography>
+    </Box>
+  )
+}
+
+function PlayCenter({ state, now, mistakeFresh }: { state: GameState; now: number; mistakeFresh: boolean }) {
+  const played = state.playedCards
+  const last = played[played.length - 1]
+  const left = cardsLeft(state)
+  const mistakes = mistakeIndexes(played)
+  const pile = played.slice(-7)
+  const offset = played.length - pile.length
+  const secondsLeft =
+    state.deadlineTs !== undefined ? Math.max(0, Math.ceil((state.deadlineTs - now) / 1000)) : null
+  const showTimer = secondsLeft !== null && secondsLeft <= TIMER_FROM_S && left > 0
+
+  return (
+    <Box sx={{ ...centerSx, flexDirection: 'row', gap: { xs: 3, lg: 6 }, opacity: mistakeFresh ? 0.25 : 1, transition: 'opacity 400ms ease' }}>
+      {/* Esquerda: quem jogou, quanto falta */}
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1.5, minWidth: 0 }}>
+        {last ? (
+          <>
+            <Typography sx={{ fontSize: 'clamp(1.3rem, 1.6vw, 1.9rem)', letterSpacing: '0.18em', fontWeight: 800, color: 'var(--text-secondary)' }}>
+              ÚLTIMA CARTA DE
+            </Typography>
+            <Typography
+              key={`${state.round}-${played.length}`}
+              className="animate-pop-in"
+              noWrap
+              sx={{ fontFamily: TITLE_FONT, fontWeight: 700, fontSize: 'clamp(2.6rem, 4vw, 4.6rem)', lineHeight: 1, color: XMAS.goldLight, maxWidth: '100%' }}
+            >
+              {nameOf(state, last.playerId)}
+            </Typography>
+          </>
+        ) : (
+          <Typography sx={{ fontFamily: TITLE_FONT, fontWeight: 700, fontSize: 'clamp(2.4rem, 3.6vw, 4.2rem)', lineHeight: 1.05, color: XMAS.goldLight, textAlign: 'right' }}>
+            Quem tem a menor carta? 🤫
+          </Typography>
+        )}
+        <Typography sx={{ ...bigLine, textAlign: 'right' }}>
+          🃏 {left} {cardWord(left)} {left === 1 ? 'ainda escondida' : 'ainda escondidas'}
+        </Typography>
+        {showTimer && secondsLeft !== null && (
+          <Typography
+            className="animate-urgent"
+            sx={{ ...bigLine, color: secondsLeft <= 10 ? XMAS.candy : XMAS.goldLight, textAlign: 'right' }}
+          >
+            ⏳ Alguém joga! {secondsLeft}s
+          </Typography>
+        )}
+      </Box>
+
+      {/* Centro: a pilha */}
+      <Box sx={{ position: 'relative', fontSize: PILE_SIZE, width: '9em', height: '11em', flexShrink: 0, display: 'grid', placeItems: 'center' }}>
+        {pile.length === 0 ? (
+          <Box
+            sx={{
+              width: '6em',
+              height: '8.4em',
+              borderRadius: '0.55em',
+              border: '0.12em dashed rgba(255, 246, 220, 0.5)',
+              display: 'grid',
+              placeItems: 'center',
+              color: 'rgba(255, 246, 220, 0.75)',
+              fontSize: '1em',
+              fontWeight: 700,
+              textAlign: 'center',
+              p: '0.5em',
+            }}
+          >
+            <span>
+              a 1ª carta
+              <br />
+              cai aqui
+            </span>
+          </Box>
+        ) : (
+          pile.map((card, index) => {
+            const absolute = offset + index
+            const top = index === pile.length - 1
+            const at = pileTilt(card.value, absolute)
             return (
               <Box
-                key={player.id}
-                className="stagger-in"
-                style={{ '--stagger-index': index } as React.CSSProperties}
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 0.75,
-                  opacity: player.isEliminated ? 0.3 : 1,
-                  filter: player.isEliminated ? 'grayscale(1)' : 'none',
-                  transition: 'all 320ms ease',
-                }}
+                key={`${state.round}-${absolute}`}
+                sx={{ position: 'absolute', left: '50%', top: '50%', transform: `translate(calc(-50% + ${at.x}em), calc(-50% + ${at.y}em))` }}
               >
-                <Box
-                  sx={{
-                    position: 'relative',
-                    width: { xs: 56, md: 68 },
-                    height: { xs: 56, md: 68 },
-                    borderRadius: '50%',
-                    display: 'grid',
-                    placeItems: 'center',
-                    fontFamily: 'var(--font-display)',
-                    fontSize: { xs: '1.3rem', md: '1.6rem' },
-                    color: '#0a0a0f',
-                    background: player.isHost
-                      ? 'linear-gradient(140deg, var(--accent-red), var(--accent-red-dark))'
-                      : `linear-gradient(140deg, ${ACCENT.main}, ${ACCENT.light})`,
-                    border: justPlayed ? `3px solid ${ACCENT.main}` : '3px solid transparent',
-                    boxShadow: justPlayed ? `0 0 26px ${ACCENT.main}` : '0 8px 20px rgba(0,0,0,0.45)',
-                    transition: 'all 320ms ease',
-                  }}
-                >
-                  {player.name.charAt(0).toUpperCase()}
-                  {(wasCut || didCut) && (
-                    <Box
-                      className="animate-pop-in"
-                      sx={{
-                        position: 'absolute',
-                        top: -6,
-                        right: -6,
-                        width: 26,
-                        height: 26,
-                        borderRadius: '50%',
-                        display: 'grid',
-                        placeItems: 'center',
-                        fontSize: '0.85rem',
-                        background: 'var(--bg-void)',
-                        border: '1px solid rgba(255,255,255,0.18)',
-                      }}
-                    >
-                      {wasCut ? '💀' : '⚔️'}
-                    </Box>
-                  )}
-                </Box>
-
-                <Typography sx={{ fontWeight: 700, fontSize: { xs: '0.85rem', md: '0.95rem' } }}>
-                  {player.name}
-                </Typography>
-
-                {player.isEliminated ? (
-                  <Typography
-                    sx={{ fontSize: '0.6rem', letterSpacing: '0.16em', fontWeight: 800, color: 'var(--accent-red)' }}
-                  >
-                    ELIMINADO
-                  </Typography>
-                ) : player.cards.length === 0 ? (
-                  <Typography
-                    sx={{ fontSize: '0.6rem', letterSpacing: '0.16em', fontWeight: 800, color: 'var(--status-ready)' }}
-                  >
-                    ✓ MÃO VAZIA
-                  </Typography>
-                ) : (
-                  <Box sx={{ display: 'flex', gap: 0.35 }} aria-label={`${player.cards.length} cartas`}>
-                    {player.cards.map((_, cardIndex) => (
-                      <Box
-                        key={cardIndex}
-                        sx={{
-                          width: 13,
-                          height: 18,
-                          borderRadius: '3px',
-                          background: 'repeating-linear-gradient(45deg, #7f1d1d 0 3px, #991b1b 3px 6px)',
-                          border: '1px solid rgba(255,255,255,0.5)',
-                        }}
-                      />
-                    ))}
-                  </Box>
-                )}
+                <XmasCard
+                  value={card.value}
+                  size={PILE_SIZE}
+                  tilt={top ? 0 : at.rotate}
+                  anim={top ? 'land' : 'none'}
+                  highlight={top && !mistakes.has(absolute)}
+                  mistake={mistakes.has(absolute)}
+                  dim={!top}
+                />
               </Box>
             )
-          })}
+          })
+        )}
+      </Box>
+
+      {/* Direita: a sequência até aqui */}
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1.25, minWidth: 0 }}>
+        <Typography sx={{ fontSize: 'clamp(1.3rem, 1.6vw, 1.9rem)', letterSpacing: '0.18em', fontWeight: 800, color: 'var(--text-secondary)' }}>
+          {played.length ? `NA MESA · ${played.length}` : `NÍVEL ${state.round}`}
+        </Typography>
+        {played.length ? (
+          <Sequence state={state} mistakes={mistakes} />
+        ) : (
+          <Typography sx={{ ...bigLine, textAlign: 'left' }}>
+            {state.round} {cardWord(state.round)} para cada um.
+            <br />
+            Respirem fundo… 🎶
+          </Typography>
+        )}
+      </Box>
+    </Box>
+  )
+}
+
+function Sequence({ state, mistakes }: { state: GameState; mistakes: Set<number> }) {
+  const played = state.playedCards
+  const shown = played.slice(-24)
+  const offset = played.length - shown.length
+  return (
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, maxWidth: 520 }}>
+      {offset > 0 && <Typography sx={{ ...bigLine, fontSize: '1.6rem', color: 'var(--text-muted)' }}>…</Typography>}
+      {shown.map((card, index) => {
+        const wrong = mistakes.has(offset + index)
+        const newest = offset + index === played.length - 1
+        return (
+          <Box
+            key={`${state.round}-${offset + index}`}
+            className={newest ? 'animate-pop-in' : undefined}
+            sx={{
+              minWidth: '2.4em',
+              px: 0.75,
+              borderRadius: '10px',
+              textAlign: 'center',
+              fontFamily: NUMBER_FONT,
+              fontWeight: 700,
+              fontSize: 'clamp(1.4rem, 1.7vw, 2rem)',
+              lineHeight: 1.35,
+              background: wrong ? 'rgba(232, 57, 74, 0.25)' : newest ? XMAS.goldLight : XMAS.cream,
+              color: wrong ? '#ffd0d4' : XMAS.ink,
+              border: `2px solid ${wrong ? XMAS.red : 'transparent'}`,
+              textDecoration: wrong ? 'line-through' : 'none',
+              boxShadow: '0 3px 8px rgba(0,0,0,0.35)',
+            }}
+          >
+            {card.value}
+          </Box>
+        )
+      })}
+    </Box>
+  )
+}
+
+/** O erro: a carta adiantada contra as menores que estavam escondidas. */
+function MistakeMoment({ mistake, state }: { mistake: Mistake; state: GameState }) {
+  const hidden = mistake.hidden.slice(0, 6)
+  const cutterOut = state.players.find((p) => p.id === mistake.cutterId)?.isEliminated ?? false
+  const victimOut = mistake.victimId ? (state.players.find((p) => p.id === mistake.victimId)?.isEliminated ?? false) : false
+  const footer = mistake.coop
+    ? '💔 Caiu um enfeite da árvore'
+    : cutterOut && victimOut && mistake.victimName && mistake.victimId !== mistake.cutterId
+      ? `☃️ ${mistake.cutterName} e ${mistake.victimName} viraram boneco de neve`
+      : cutterOut
+        ? `☃️ ${mistake.cutterName} virou boneco de neve`
+        : '☃️ Alguém virou boneco de neve'
+  return (
+    <Box
+      sx={{
+        ...centerSx,
+        zIndex: 6,
+        gap: 2.5,
+        background: 'radial-gradient(ellipse at center, rgba(6, 16, 31, 0.78), rgba(6, 16, 31, 0.92))',
+        animation: 'fadeIn 300ms ease both',
+      }}
+    >
+      <Typography
+        className="animate-shake"
+        sx={{
+          fontFamily: NUMBER_FONT,
+          fontWeight: 700,
+          fontSize: 'clamp(4rem, 8vw, 8rem)',
+          lineHeight: 0.9,
+          color: XMAS.candy,
+          textShadow: `0 6px 0 ${XMAS.ink}, 0 0 40px rgba(232, 57, 74, 0.7)`,
+        }}
+      >
+        OPS!{' '}
+        <Box component="span" aria-hidden sx={{ textShadow: 'none' }}>
+          🙈
         </Box>
-      </GameCard>
+      </Typography>
 
-      {/* Cortinas */}
-      <ResultOverlay
-        open={Boolean(gameState.lastCutPlayer) && gameState.phase !== 'gameOver'}
-        tone="danger"
-        sigil="⚠️"
-        title="CORTE!"
-        subtitle={
-          cutPlayer
-            ? `${cutPlayer.name} tinha uma carta menor.`
-            : 'Alguém tinha uma carta menor.'
-        }
-      />
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: { xs: 2, lg: 4 }, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+          <XmasCard value={mistake.card} size={REVEAL_SIZE} mistake anim="land" tilt={-6} />
+          <Typography noWrap sx={{ ...bigLine, fontSize: 'clamp(1.4rem, 1.8vw, 2.1rem)', maxWidth: 260 }}>
+            {mistake.cutterName}
+          </Typography>
+        </Box>
+        {hidden.length > 0 && (
+          <Typography sx={{ fontFamily: NUMBER_FONT, fontWeight: 700, fontSize: 'clamp(3rem, 5vw, 5.4rem)', color: XMAS.goldLight, lineHeight: 1 }}>
+            {'>'}
+          </Typography>
+        )}
+        {hidden.map((card, index) => (
+          <Box key={`${card.playerId}-${card.value}`} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+            <XmasCard value={card.value} size={REVEAL_SIZE} anim="flip" delay={700 + index * 260} highlight tilt={index % 2 ? 4 : -3} />
+            <Typography noWrap sx={{ ...bigLine, fontSize: 'clamp(1.4rem, 1.8vw, 2.1rem)', maxWidth: 220, color: XMAS.ice }}>
+              {card.name}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
 
-      <ResultOverlay
-        open={gameState.phase === 'roundBreak'}
-        tone="neutral"
-        sigil="🃏"
-        title={`RODADA ${gameState.round + 1}`}
-        subtitle={
-          secondsToNextRound !== null
-            ? `Novas cartas em ${secondsToNextRound}s...`
-            : 'Distribuindo novas cartas...'
-        }
-      />
+      <Typography sx={{ ...bigLine, maxWidth: '80%' }}>{mistakeLine(mistake)}</Typography>
+      <Typography sx={{ ...bigLine, color: XMAS.candy }}>{footer}</Typography>
+    </Box>
+  )
+}
 
-      <ResultOverlay
-        open={gameState.phase === 'gameOver'}
-        tone={gameState.winner ? 'win' : 'lose'}
-        title={gameState.winner ? 'VITÓRIA' : 'GAME OVER'}
-        subtitle={gameState.gameOverReason ?? undefined}
-      />
-    </GameShell>
+function LevelDoneCenter({ state, now }: { state: GameState; now: number }) {
+  const last = finalBreak(state)
+  const next = state.round + 1
+  const seconds = state.nextRoundTs ? Math.max(0, Math.ceil((state.nextRoundTs - now) / 1000)) : null
+  return (
+    <Box sx={centerSx}>
+      <SnowBurst key={state.round} seed={state.round} count={32} spread={520} />
+      <Typography sx={{ fontSize: 'clamp(4rem, 7vw, 7rem)', lineHeight: 1 }} className="animate-pop-in">
+        {last ? '🏆' : '🎉'}
+      </Typography>
+      <Typography
+        className="animate-pop-in"
+        sx={{
+          fontFamily: TITLE_FONT,
+          fontWeight: 700,
+          fontSize: 'clamp(3.2rem, 6vw, 6.4rem)',
+          lineHeight: 1,
+          color: XMAS.goldLight,
+          textShadow: '0 4px 0 rgba(0,0,0,0.45), 0 0 30px rgba(245, 194, 66, 0.55)',
+        }}
+      >
+        {last ? 'Os 10 níveis!' : `Nível ${state.round} completo!`}
+      </Typography>
+      <Typography sx={bigLine}>
+        {last
+          ? 'Vocês leram a mente do Papai Noel. Preparando a festa…'
+          : `Portinha ${state.round} do calendário aberta: ${ADVENT_TREATS[(state.round - 1) % ADVENT_TREATS.length]}`}
+      </Typography>
+      {!last && (
+        <>
+          <Box sx={{ display: 'flex', mt: 1 }}>
+            {Array.from({ length: Math.min(next, 10) }, (_, index) => (
+              <Box key={index} sx={{ ml: index ? '-1.4em' : 0, fontSize: 'clamp(8px, 1.3vh, 16px)' }}>
+                <XmasCard faceDown size="1em" anim="deal" delay={index * 120} tilt={(index - (Math.min(next, 10) - 1) / 2) * 6} />
+              </Box>
+            ))}
+          </Box>
+          <Typography sx={{ ...bigLine, color: XMAS.ice }}>
+            Nível {next}: {next} {cardWord(next)} para cada um{seconds !== null ? ` · em ${seconds}s` : '…'}
+          </Typography>
+        </>
+      )}
+    </Box>
+  )
+}
+
+function FinalCenter({ state }: { state: GameState }) {
+  const coop = state.mode === 'coop'
+  const won = Boolean(state.winner)
+  const winnerName = state.winner && state.winner !== 'team' ? nameOf(state, state.winner) : null
+  const reached = Math.min(state.round, state.maxRounds)
+  return (
+    <Box sx={centerSx}>
+      {won && <Confetti />}
+      {won && <SnowBurst seed={99} count={36} spread={600} />}
+      <Typography className="animate-pop-in" sx={{ fontSize: 'clamp(4.4rem, 8vw, 8rem)', lineHeight: 1 }}>
+        {won ? (winnerName ? '👑' : '🎄') : '🫠'}
+      </Typography>
+      <Typography
+        className="animate-pop-in"
+        sx={{
+          fontFamily: TITLE_FONT,
+          fontWeight: 700,
+          fontSize: 'clamp(3.4rem, 6.4vw, 7rem)',
+          lineHeight: 1,
+          color: won ? XMAS.goldLight : XMAS.candy,
+          textShadow: '0 4px 0 rgba(0,0,0,0.45), 0 0 34px rgba(245, 194, 66, 0.5)',
+        }}
+      >
+        {won ? (winnerName ? `${winnerName} venceu!` : 'Feliz Natal!') : coop ? 'A árvore ficou pelada!' : 'Fim de jogo'}
+      </Typography>
+      <Typography sx={bigLine}>
+        {won
+          ? winnerName
+            ? 'Leu a mente de todo mundo — e ainda sobrou rabanada.'
+            : 'Os 10 níveis em sintonia total. Vocês são uma família de telepatas!'
+          : coop
+            ? `Acabaram os enfeites no nível ${reached}. Ano que vem tem revanche!`
+            : (state.gameOverReason ?? 'Partida encerrada.')}
+      </Typography>
+      {coop && (
+        <AdventCalendar opened={doorsOpen(state)} current={null} max={state.maxRounds} size={52} />
+      )}
+    </Box>
   )
 }

@@ -7,7 +7,7 @@ import { gameRoute, getGameColor, getGameMeta, gameName } from '../lib/gameCatal
 import type { Room } from '../lib/types'
 import { useMusic } from '../halloween/audio'
 import { useWakeLock } from '../halloween/framework/wakeLock'
-import { playerColor } from '../games/utils'
+import { assignAvatars } from '../natal/avatars'
 import {
   Brand,
   ChristmasTree,
@@ -106,6 +106,9 @@ export default function TvDisplay() {
   const meta = game ? getGameMeta(game.slug) : null
   const readyCount = players.filter((player) => player.ready).length
   const everyoneReady = players.length > 0 && readyCount === players.length
+  // A bola de cada pessoa na árvore é o avatar dela (o mesmo da mesa e do celular).
+  const seatAvatars = assignAvatars(players)
+  const treeAvatars = players.flatMap((player) => seatAvatars.get(player.id) ?? [])
   const tutorial = (room?.state?.tutorial ?? null) as { active: boolean; step: number } | null
   // Sempre uma cadeira vazia a mais (até o máximo do jogo): convida quem falta.
   const capacity = game
@@ -154,7 +157,8 @@ export default function TvDisplay() {
           }}
         >
           <ChristmasTree
-            ornaments={players.map((player) => playerColor(player.id))}
+            ornaments={treeAvatars.map((avatar) => avatar.color)}
+            avatars={treeAvatars}
             lit={everyoneReady}
             height="clamp(64px, 13vh, 170px)"
           />

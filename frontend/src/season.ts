@@ -9,9 +9,12 @@
  */
 export const SEASON_SLUGS = [
   'espiao-assombrado', // Espião de Natal
+  'pergunta-trocada',
+  'duas-verdades', // Duas Verdades, Uma Mentira
   'abobora-bomba', // Presente-Bomba (batata quente)
   'retrato-assombrado', // Retrato de Natal (espião desenhado)
-  'cidade-dorme',
+  'cidade-dorme', // Vila Dorme
+  'read-my-mind', // o das cartas de 1 a 100, jogadas em ordem sem falar
   'a-cacada',
 ] as const
 

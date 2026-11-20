@@ -4,8 +4,8 @@ import { getGameMeta } from './lib/gameCatalog'
 import { SEASON_SLUGS, isSeasonSlug, seasonGames, splitSeason } from './season'
 
 describe('catálogo de Natal', () => {
-  it('tem só os 5 jogos simples escolhidos', () => {
-    expect(SEASON_SLUGS).toEqual(['espiao-assombrado', 'abobora-bomba', 'retrato-assombrado', 'cidade-dorme', 'a-cacada'])
+  it('tem só os jogos simples escolhidos', () => {
+    expect(SEASON_SLUGS).toEqual(['espiao-assombrado', 'pergunta-trocada', 'duas-verdades', 'abobora-bomba', 'retrato-assombrado', 'cidade-dorme', 'read-my-mind', 'a-cacada'])
   })
 
   it('todo slug existe (jogo novo registrado ou jogo antigo no catálogo)', () => {

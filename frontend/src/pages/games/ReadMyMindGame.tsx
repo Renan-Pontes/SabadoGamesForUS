@@ -87,6 +87,7 @@ function mapRoomToGameState(room: Room | null): GameState {
     maxRounds: 10,
     nextRoundTs:
       typeof room.state?.next_round_ts === 'number' ? room.state.next_round_ts * 1000 : undefined,
+    deadlineTs: typeof room.state?.deadline_ts === 'number' ? room.state.deadline_ts * 1000 : undefined,
     playedCards,
     players,
     lives,
@@ -224,7 +225,7 @@ export default function ReadMyMindGame() {
     navigate(isHost ? `/host/${code}` : `/play/${code}`)
   }
 
-  if (authLoading || loadingRoom) return <LoadingScreen label="ENTRANDO NA MESA" accent="#22d3ee" />
+  if (authLoading || loadingRoom) return <LoadingScreen label="ARRUMANDO A MESA DA CEIA" accent="#f5c242" />
 
   const roomCode = code?.toUpperCase() ?? ''
 

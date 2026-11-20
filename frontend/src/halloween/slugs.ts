@@ -16,6 +16,9 @@ export const HALLOWEEN_SLUGS = [
   'portas-do-alem',
   'quiz-do-terror',
   'corrida-de-vassouras',
+  // Natal 2026
+  'pergunta-trocada',
+  'duas-verdades',
 ] as const
 
 export type HalloweenSlug = (typeof HALLOWEEN_SLUGS)[number]
