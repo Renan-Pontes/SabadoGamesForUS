@@ -25,9 +25,10 @@ const SIZES = {
  * A marca. Estava reescrita à mão em cada tela com pesos e gradientes
  * diferentes; agora é um componente só.
  *
- * Natal: "SÁBADO" em letra de cartão de Natal listrada de bengala doce
- * (vermelho e branco correndo), "GAMES" branco-neve com brilho dourado, um
- * gorrinho de Papai Noel no canto e o selo verde que pula.
+ * Natal: "SÁBADO" em letra de cartão de Natal, vermelho sólido (as listras
+ * de bengala correndo ficavam psicodélicas), com cada letra balançando numa
+ * "ola"; "GAMES" branco-neve com brilho dourado, um gorrinho de Papai Noel no
+ * canto e o selo verde que pula.
  */
 export default function Brand({ size = 'md', animated = false, tagline, badge = true }: BrandProps) {
   const dims = SIZES[size]
@@ -54,26 +55,25 @@ export default function Brand({ size = 'md', animated = false, tagline, badge = 
           fontSize: dims.sabado,
           lineHeight: 0.95,
           letterSpacing: '0.02em',
-          // Bengala doce: listras diagonais vermelhas e brancas que correm.
-          backgroundImage:
-            'repeating-linear-gradient(115deg, #ff4d5e 0 14px, #ffffff 14px 22px, #e8394a 22px 36px, #ffe3e6 36px 44px)',
-          backgroundSize: '200% auto',
-          WebkitBackgroundClip: 'text',
-          backgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          // A palavra entra inteira: letra animada dentro de texto recortado
-          // some no Chrome (cada letra vira uma camada fora do recorte).
-          animation: animated
-            ? 'riseFade 700ms cubic-bezier(0.22, 1, 0.36, 1) backwards, shimmer 6s linear infinite'
-            : 'shimmer 6s linear infinite',
-          // drop-shadow (e não text-shadow): com o texto recortado no
-          // gradiente, text-shadow pintaria por cima das letras.
-          filter: isHero
-            ? 'drop-shadow(0 0 26px rgba(255, 90, 102, 0.5)) drop-shadow(0 5px 0 rgba(120, 10, 26, 0.75))'
-            : 'drop-shadow(0 0 10px rgba(255, 90, 102, 0.4)) drop-shadow(0 2px 0 rgba(120, 10, 26, 0.7))',
+          // Cor parada; quem se mexe são as letras.
+          color: '#ff4d5e',
+          textShadow: isHero
+            ? '0 5px 0 #9e1424, 0 0 26px rgba(255, 90, 102, 0.5)'
+            : '0 2px 0 #9e1424, 0 0 10px rgba(255, 90, 102, 0.4)',
+          ...(animated && { animation: 'riseFade 700ms cubic-bezier(0.22, 1, 0.36, 1) backwards' }),
+          // Cada letra balança um pouco depois da anterior: uma "ola" que corre a palavra.
+          '& .brand-letter': {
+            display: 'inline-block',
+            transformOrigin: '50% 80%',
+            animation: 'letterWave 2.8s ease-in-out infinite',
+          },
         }}
       >
-        SÁBADO
+        {[...'SÁBADO'].map((letter, index) => (
+          <span key={index} aria-hidden className="brand-letter" style={{ animationDelay: `${index * 0.14}s` }}>
+            {letter}
+          </span>
+        ))}
       </Typography>
       {/* Gorro de Papai Noel pendurado no "S" */}
       <Box

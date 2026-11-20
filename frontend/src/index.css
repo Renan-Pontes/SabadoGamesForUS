@@ -380,6 +380,13 @@ a:hover {
   65% { transform: translateY(0) scale(1, 1); }
 }
 
+/* "Ola" das letras da marca: sobe, inclina e volta (cada letra com atraso) */
+@keyframes letterWave {
+  0%, 60%, 100% { transform: translateY(0) rotate(0deg); }
+  20% { transform: translateY(-0.12em) rotate(-4deg); }
+  40% { transform: translateY(0.02em) rotate(3deg); }
+}
+
 .animate-twinkle { animation: twinkle 2.6s ease-in-out infinite; }
 .animate-hop     { animation: hop 2.4s ease-in-out infinite; }
 
