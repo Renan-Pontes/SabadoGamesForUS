@@ -1,7 +1,23 @@
 import { describe, expect, it } from 'vitest'
+import { spokenLineProblems } from '../../../lib/spokenLines'
 import { makePlayers } from '../../engine/testkit'
+import { PAIRS } from './content'
 import type { PtResult } from './engine'
-import { REVEAL_TIMING, answerText, clock, holdsScares, kindHint, myOutcome, narrationFor, revealCopy, revealMeme, tableColumns, trackFor } from './view'
+import {
+  REVEAL_TIMING,
+  answerText,
+  clock,
+  finalSpoken,
+  holdsScares,
+  kindHint,
+  myOutcome,
+  narrationFor,
+  revealCopy,
+  revealMeme,
+  revealSpoken,
+  tableColumns,
+  trackFor,
+} from './view'
 
 const players = makePlayers(6)
 
@@ -64,13 +80,38 @@ describe('textos das telas', () => {
 
   it('narração por fase (e a pergunta lida em voz alta na conversa)', () => {
     const base = { round: 1, totalRounds: 5, realQuestion: null, over: false }
-    expect(narrationFor({ ...base, phase: 'question' })).toContain('Ho ho ho')
+    expect(narrationFor({ ...base, phase: 'question' })).toBe('Rodada 1. Respondam a pergunta no celular.')
     expect(narrationFor({ ...base, round: 2, phase: 'question' })).toContain('Rodada 2')
     expect(narrationFor({ ...base, round: 5, phase: 'question' })).toContain('Última rodada')
-    expect(narrationFor({ ...base, phase: 'talk', realQuestion: 'Qual a melhor parte do Natal?' })).toBe('E a pergunta era: Qual a melhor parte do Natal?')
+    // As respostas na mesa: a sala lê em silêncio.
+    expect(narrationFor({ ...base, phase: 'answers' })).toBe('')
+    expect(narrationFor({ ...base, phase: 'talk', realQuestion: 'Qual a melhor parte do Natal?' })).toBe('A pergunta de verdade era: Qual a melhor parte do Natal?')
     expect(narrationFor({ ...base, phase: 'vote' })).toContain('votar')
     expect(narrationFor({ ...base, phase: 'scores' })).toBe('')
-    expect(narrationFor({ ...base, phase: 'vote', over: true })).toContain('Fim da festa')
+    expect(narrationFor({ ...base, phase: 'vote', over: true })).toBe('')
+    expect(finalSpoken(players, [1])).toBe('Fim da festa! Quem venceu foi Vlad.')
+    expect(revealSpoken(caught, players)).toBe('Pegaram! O impostor era Gasparzinho.')
+    expect(revealSpoken(innocent, players)).toBe('Vlad era inocente! O impostor era Gasparzinho.')
+  })
+
+  it('toda fala possível passa nas regras da voz', () => {
+    const base = { round: 1, totalRounds: 5, realQuestion: null, over: false }
+    const phases = ['question', 'answers', 'talk', 'vote', 'result', 'scores'] as const
+    const lines = [
+      ...phases.flatMap((phase) => [narrationFor({ ...base, phase }), narrationFor({ ...base, round: 5, phase })]),
+      ...[caught, innocent, tie, silent, nobody].map((r) => revealSpoken(r, players)),
+      finalSpoken(players, []),
+      finalSpoken(players, [1, 2]),
+      finalSpoken(players, [1, 2, 3, 4]),
+    ].filter(Boolean)
+    for (const line of lines) expect(spokenLineProblems(line), line).toEqual([])
+    // A pergunta de verdade é lida inteira (pode passar das 14 palavras).
+    for (const pair of PAIRS) {
+      for (const question of [pair.a, pair.b]) {
+        const line = narrationFor({ ...base, phase: 'talk', realQuestion: question })
+        expect(spokenLineProblems(line, { maxWords: 22 }), line).toEqual([])
+      }
+    }
   })
 
   it('trilha e efeitos por fase', () => {

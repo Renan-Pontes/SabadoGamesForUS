@@ -1,8 +1,21 @@
 import { describe, expect, it } from 'vitest'
+import { spokenLineProblems } from '../../../lib/spokenLines'
 import { makePlayers } from '../../engine/testkit'
-import type { RoundResult } from './engine'
+import type { EspiaoState, Phase, RoundResult } from './engine'
 import { winnerOf, type Outcome } from './rules'
-import { clock, holdsScares, myOutcome, revealCopy, revealMeme, revealNarration, trackFor } from './view'
+import {
+  LAST_MINUTE_LINE,
+  clock,
+  finalSpoken,
+  holdsScares,
+  myOutcome,
+  revealCopy,
+  revealMeme,
+  revealNarration,
+  revealSpoken,
+  spokenLine,
+  trackFor,
+} from './view'
 
 const players = makePlayers(6)
 const OUTCOMES: Outcome[] = ['caught', 'escaped', 'guess-right', 'guess-wrong', 'innocent', 'tie', 'everyone', 'nobody-convicted', 'nobody-free']
@@ -71,9 +84,8 @@ describe('textos das telas', () => {
   })
 
   it('narração igual em toda rodada e trilha/piadas por fase', () => {
-    expect(revealNarration(2, 1)).toContain('Um de vocês é o espião')
-    expect(revealNarration(2, 2)).toContain('Dois de vocês são espiões')
-    expect(revealNarration(1, 1)).toContain('Ho ho ho')
+    expect(revealNarration(2, 1)).toBe('Rodada 2. Olhem a carta no celular, sem mostrar a ninguém.')
+    expect(revealNarration(2, 2)).toContain('dois espiões')
     expect(trackFor('talk', false)).toBe('natal')
     expect(trackFor('accuse', false)).toBe('jingle')
     expect(trackFor('reveal', false)).toBe('jingle')
@@ -81,5 +93,39 @@ describe('textos das telas', () => {
     expect(holdsScares('talk', false)).toBe(false)
     expect(holdsScares('accuse', false)).toBe(true)
     expect(holdsScares('result', false)).toBe(true)
+  })
+})
+
+describe('falas da TV', () => {
+  const state = {
+    round: 3,
+    spyCount: 1,
+    seg: 0,
+    starter: 2,
+    accusation: { by: 1, target: 3 },
+    caught: 4,
+    result: null,
+  } as unknown as EspiaoState
+  const phases: Phase[] = ['reveal', 'talk', 'accuse', 'final_vote', 'last_chance', 'result', 'scores', 'final']
+
+  it('uma fala curta por fase, só onde ajuda a sala', () => {
+    expect(spokenLine(state, players, 'talk')).toBe(`${players[1].name} começa perguntando. Valendo!`)
+    expect(spokenLine({ ...state, seg: 1 }, players, 'talk')).toContain('Acusação rejeitada')
+    expect(spokenLine(state, players, 'accuse')).toBe(`${players[0].name} acusou ${players[2].name}. Votem no celular!`)
+    expect(spokenLine(state, players, 'scores')).toBe('')
+    expect(spokenLine(state, players, 'final', [1])).toContain(players[0].name)
+    expect(spokenLine(state, players, 'final', [1, 2, 3, 4])).not.toContain(players[3].name)
+  })
+
+  it('toda fala possível passa nas regras da voz', () => {
+    const lines = [
+      ...phases.flatMap((phase) => [spokenLine(state, players, phase, [1]), spokenLine({ ...state, seg: 1, spyCount: 2 }, players, phase, [])]),
+      ...OUTCOMES.flatMap((outcome) => [revealSpoken(result(outcome), players), revealSpoken(result(outcome, { spies: [4] }), players)]),
+      revealSpoken(result('tie', { spies: [1, 2, 3, 4] }), players),
+      finalSpoken(players, [1, 2, 3, 4, 5]),
+      LAST_MINUTE_LINE,
+    ].filter(Boolean)
+    expect(lines.length).toBeGreaterThan(20)
+    for (const line of lines) expect(spokenLineProblems(line), line).toEqual([])
   })
 })

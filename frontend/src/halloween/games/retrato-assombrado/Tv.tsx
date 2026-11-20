@@ -12,18 +12,26 @@ import { finalAwards, type State } from './engine'
 import GiftRain from './GiftRain'
 import { meta } from './meta'
 import Portrait from './Portrait'
+import { paceDelay } from '../../../lib/spokenLines'
 import {
+  PHASE_LINES,
   VERDICT_DELAY_MS,
   drawSlotOf,
   drawingOf,
+  finalSpoken,
   galleryColumns,
   graceFor,
+  guessSpoken,
   isAnswerPhase,
   namesOf,
   phaseTotalMs,
   plural,
+  resultSpoken,
+  revealSpoken,
+  showSpoken,
   shownDeadline,
   trackFor,
+  verdictOf,
   verdictText,
   type PortraitTone,
 } from './view'
@@ -93,16 +101,30 @@ function useTvSounds(state: State, players: HPlayer[]) {
   const phase = state.over ? 'final' : state.phase
   const moment = `${state.round}-${phase}`
   const reveal = state.reveal
-  const verdict = reveal
-    ? (reveal.chaos ?? (reveal.caught ? 'caught' : reveal.accused === null ? 'tie' : 'innocent'))
-    : 'none'
+  const verdict = reveal ? verdictOf(reveal) : 'none'
   const firstEscape = !state.history.some((round) => round.escaped.length > 0)
   const sneaky = reveal && !reveal.chaos && !reveal.caught ? nameOf(players, reveal.impostors[0], '') : ''
   const accusedName = reveal?.accused != null ? nameOf(players, reveal.accused) : ''
-  const categoryName = categoryAt(state.categoryId).name
-  const round = state.round
-  const word = state.outcome?.word ?? ''
   const guess = state.outcome ? (state.outcome.guess === null ? 'none' : state.outcome.guessRight ? 'right' : 'wrong') : 'none'
+  /** A fala deste momento ('' = fica quieta). */
+  const line =
+    phase === 'show'
+      ? showSpoken(state.round, categoryAt(state.categoryId).name)
+      : phase === 'reveal'
+        ? reveal
+          ? revealSpoken(reveal, players)
+          : ''
+        : phase === 'guess'
+          ? guessSpoken(accusedName)
+          : phase === 'result'
+            ? state.outcome
+              ? resultSpoken(state.outcome)
+              : ''
+            : phase === 'final'
+              ? finalSpoken(players, finalAwards(state).champions)
+              : (PHASE_LINES[phase] ?? '')
+  /** Quando a última fala começou: duas falas nunca saem coladas. */
+  const lastSpoke = useRef<number | null>(null)
 
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = []
@@ -110,38 +132,43 @@ function useTvSounds(state: State, players: HPlayer[]) {
       timers.push(setTimeout(run, ms))
     }
     let hush: (() => void) | null = null
-    const say = (text: string) => {
-      hush?.()
-      hush = speakFestive(text)
+    /** Fala `line` daqui a `ms` (ou mais tarde, se a última fala foi há pouco). */
+    const sayLine = (ms: number) => {
+      if (!line) return
+      later(paceDelay(ms, lastSpoke.current, Date.now()), () => {
+        lastSpoke.current = Date.now()
+        hush?.()
+        hush = speakFestive(line)
+      })
     }
 
     switch (phase) {
       case 'show':
         playSfx('sleigh', { volume: 0.8 })
-        later(700, () => say(`Rodada ${round}! A categoria é: ${categoryName}.`))
+        sayLine(700)
         break
       case 'draw1':
         playSfx('chime')
-        later(400, () => say('Mãos à obra, artistas! Desenhem!'))
+        sayLine(400)
         break
       case 'draw2':
         playSfx('bell', { volume: 0.7 })
-        later(400, () => say('Últimos retoques!'))
+        sayLine(400)
         break
       case 'peek':
         playSfx('whoosh')
         playSfx('boing', { delay: 0.35 })
-        later(600, () => say('Espiadinha! Olho vivo, que tem gente copiando.'))
+        sayLine(600)
         break
       case 'gallery':
         playSfx('chime')
         playSfx('sleigh', { delay: 0.5, volume: 0.6 })
-        later(1100, () => say('Bem-vindos à exposição de Natal! Quem desenhou sem saber a palavra?'))
+        sayLine(1100)
         break
       case 'vote':
         // O "hmmm…" da mesa: todo mundo olhando torto para todo mundo 🤨.
         playSfx('boing')
-        later(500, () => say('Hora de votar! Quem é o impostor?'))
+        sayLine(500)
         break
       case 'reveal': {
         playSfx('drumroll')
@@ -150,22 +177,19 @@ function useTvSounds(state: State, players: HPlayer[]) {
             playSfx('boing')
             playSfx('win', { delay: 0.45 })
             playSfx('giggle', { delay: 1 })
-            say(`${accusedName} era o impostor! Direto pra lista dos malcriados!`)
           } else if (verdict === 'everyone') {
             playSfx('boing')
             playSfx('boing', { delay: 0.32 })
             playSfx('giggle', { delay: 0.7 })
-            say('Todo mundo era impostor! Que Natal é esse, gente?')
           } else if (verdict === 'nobody') {
             playSfx('chime')
             playSfx('giggle', { delay: 0.5 })
-            say('Ninguém era impostor! Milagre de Natal!')
           } else {
             playSfx('fail')
             playSfx('giggle', { delay: 0.5 })
-            say(verdict === 'tie' ? 'Empate! E o impostor fugiu de trenó!' : `${accusedName} era inocente! O impostor fugiu de trenó!`)
           }
         })
+        sayLine(VERDICT_DELAY_MS + 300)
         // O primeiro impostor que escapa na partida ganha o duende desconfiado 🤨 ("Hmm… Ana?").
         if ((verdict === 'innocent' || verdict === 'tie') && firstEscape && sneaky) {
           later(VERDICT_DELAY_MS + 2600, () => triggerScare('peek', { name: sneaky }))
@@ -174,21 +198,19 @@ function useTvSounds(state: State, players: HPlayer[]) {
       }
       case 'guess':
         playSfx('chime')
-        later(500, () => say(`${accusedName}, última chance! Qual é a palavra?`))
+        sayLine(500)
         break
       case 'result':
         if (guess === 'right') {
           playSfx('win')
           playSfx('sleigh', { delay: 0.5 })
-          if (word) later(900, () => say(`Acertou! A palavra era ${word}!`))
         } else if (guess === 'wrong') {
           playSfx('buzzer')
           playSfx('giggle', { delay: 0.5 })
-          if (word) later(1100, () => say(`Errou feio! A palavra era ${word}.`))
         } else {
           playSfx('reveal')
-          if (word) later(900, () => say(`A palavra era: ${word}!`))
         }
+        sayLine(guess === 'wrong' ? 1100 : 900)
         break
       case 'scores':
         playSfx('ding')
@@ -196,14 +218,14 @@ function useTvSounds(state: State, players: HPlayer[]) {
       case 'final':
         playSfx('sleigh')
         playSfx('win', { delay: 1.2 })
-        later(1800, () => say('Fim da exposição de Natal! Palmas para os artistas!'))
+        sayLine(1800)
         break
     }
     return () => {
       timers.forEach(clearTimeout)
       hush?.()
     }
-  }, [moment, phase, verdict, firstEscape, sneaky, accusedName, categoryName, round, word, guess])
+  }, [moment, phase, verdict, firstEscape, sneaky, guess, line])
 }
 
 // ---------------------------------------------------------------------------

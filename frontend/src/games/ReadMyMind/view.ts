@@ -97,7 +97,18 @@ export function mistakeOf(state: GameState): Mistake | null {
   }
 }
 
-/** Frase engraçada do erro (sem emoji: a TV também fala em voz alta). */
+/**
+ * O erro, falado: curto e sem número (os números e a piada ficam na tela,
+ * em `mistakeLine`).
+ */
+export function mistakeSpoken(m: Mistake): string {
+  const low = m.hidden[0]
+  if (low && low.playerId === m.cutterId) return `Ops! ${m.cutterName} tinha uma carta menor na própria mão.`
+  if (low) return `Ops! ${low.name} ainda tinha uma carta menor.`
+  return `Ops! ${m.cutterName} se adiantou.`
+}
+
+/** Frase engraçada do erro (só na tela; a voz fala `mistakeSpoken`). */
 export function mistakeLine(m: Mistake): string {
   const low = m.hidden[0]
   if (!low) {
@@ -149,7 +160,8 @@ export type TableSnap = {
   lives: number
   eliminated: number
   mistake: string | null
-  mistakeLine: string
+  /** O erro, como a TV fala. */
+  mistakeSpoken: string
   winner: string | null
   winnerName: string
   mode: GameState['mode']
@@ -166,7 +178,7 @@ export function snapOf(state: GameState): TableSnap {
     lives: state.lives,
     eliminated: state.players.filter((p) => p.isEliminated).length,
     mistake: m?.key ?? null,
-    mistakeLine: m ? mistakeLine(m) : '',
+    mistakeSpoken: m ? mistakeSpoken(m) : '',
     winner: state.winner,
     winnerName: state.winner && state.winner !== 'team' ? nameOf(state, state.winner) : '',
     mode: state.mode,
@@ -202,29 +214,65 @@ export function eventsBetween(before: TableSnap, after: TableSnap): TableEvent[]
   return events
 }
 
+// Falas da TV: poucas e curtas. A carta jogada não é lida (o número está na
+// mesa e a voz repetindo número a cada carta soava robótica); só começo de
+// nível, erro, nível vencido e fim.
+
 export function levelDoneLine(round: number, maxRounds: number): string {
-  if (round >= maxRounds) return 'Os dez níveis! Vocês leram a mente do Papai Noel!'
-  const lines = [
-    `Nível ${round} completo! Abram a portinha do calendário!`,
-    `Que sintonia! Nível ${round} no saco do Papai Noel.`,
-    `Nível ${round} vencido! Nem as renas jogam tão bem.`,
-  ]
-  return lines[round % lines.length]
+  if (round >= maxRounds) return 'Último nível completo!'
+  return `Nível ${round} completo!`
 }
 
 export function newLevelLine(round: number): string {
-  return round === 1
-    ? 'Valendo! Ninguém fala nada. Quem tem a carta mais baixa?'
-    : `Nível ${round}! ${round} cartas para cada um. Silêncio na ceia...`
+  return round === 1 ? 'Valendo! Joguem as cartas em ordem, sem falar nada.' : `Nível ${round}. Valendo!`
 }
 
-export function finalLine(snap: TableSnap): string {
-  if (!snap.winner) return snap.mode === 'coop' ? 'Acabaram os enfeites... a árvore ficou pelada!' : 'Fim de jogo!'
-  if (snap.winner === 'team') return 'Vitória! A família inteira em sintonia. Feliz Natal!'
-  return `${snap.winnerName} venceu! Leu a mente de todo mundo. Feliz Natal!`
+export function finalLine(snap: Pick<TableSnap, 'winner' | 'winnerName' | 'mode'>): string {
+  if (!snap.winner) return snap.mode === 'coop' ? 'Acabaram os enfeites. Fim de jogo!' : 'Fim de jogo!'
+  if (snap.winner === 'team') return 'Vitória! Vocês jogaram em total sintonia.'
+  return `${snap.winnerName} venceu! Feliz Natal!`
 }
 
-export const TIMEOUT_LINE = 'Ei, acordem! Ninguém jogou e um enfeite caiu.'
+/** Ninguém jogou a tempo: no co-op cai um enfeite; no contra, alguém sai. */
+export const TIMEOUT_LINE = 'Demoraram demais! Perderam um enfeite.'
+export const TIMEOUT_VERSUS_LINE = 'O tempo acabou! Alguém saiu do jogo.'
+
+export type TableSpeech = { ms: number; text: string; minor: boolean }
+type SnapWithMax = TableSnap & { maxRounds: number }
+
+/**
+ * A fala de um momento da mesa (null = só efeito sonoro, como a carta
+ * jogada). `minor` = aviso que perde a graça se sair atrasado (erro, demora).
+ */
+export function speechFor(event: TableEvent, after: SnapWithMax): TableSpeech | null {
+  switch (event) {
+    case 'start':
+      return { ms: 800, text: newLevelLine(after.round), minor: false }
+    case 'cut':
+      return after.mistakeSpoken ? { ms: 1500, text: after.mistakeSpoken, minor: true } : null
+    case 'timeout':
+      return { ms: 1000, text: after.mode === 'coop' ? TIMEOUT_LINE : TIMEOUT_VERSUS_LINE, minor: true }
+    case 'levelDone':
+      return { ms: 1300, text: levelDoneLine(after.round, after.maxRounds), minor: false }
+    case 'newLevel':
+      return { ms: 1500, text: newLevelLine(after.round), minor: false }
+    case 'win':
+    case 'lose':
+      return { ms: 1800, text: finalLine(after), minor: false }
+    default:
+      return null
+  }
+}
+
+/**
+ * Momentos que chegaram juntos falam uma frase só — a do último que tem fala
+ * (o erro que acaba o jogo fala só o fim). Nunca duas coladas.
+ */
+export function speechForEvents(events: readonly TableEvent[], after: SnapWithMax): TableSpeech | null {
+  let chosen: TableSpeech | null = null
+  for (const event of events) chosen = speechFor(event, after) ?? chosen
+  return chosen
+}
 
 /** Cartas para mostrar quem segue com quantas (TV e host). */
 export function seatLabel(player: Player): string {

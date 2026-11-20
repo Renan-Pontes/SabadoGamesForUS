@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { spokenLineProblems } from '../../../lib/spokenLines'
+import { THEMES } from './content'
 import {
   STAGE_ASPECT,
   boomLine,
@@ -6,6 +8,7 @@ import {
   heartsText,
   heatLabel,
   moodFor,
+  outLine,
   savedText,
   seatPosition,
   secondsOf,
@@ -24,14 +27,28 @@ describe('presente e falas do Natal', () => {
   })
 
   it('as falas usam o nome e mudam a cada rodada', () => {
-    expect(themeLine(1, 'Frutas')).toBe('Ho ho ho! O tema é: Frutas!')
+    expect(themeLine(1, 'Frutas')).toBe('Valendo! O tema é: Frutas.')
     expect(themeLine(2, 'Frutas')).not.toBe(themeLine(1, 'Frutas'))
     expect(boomLine(1, 'Ana', false)).toContain('Ana')
     expect(boomLine(2, 'Ana', false)).not.toBe(boomLine(1, 'Ana', false))
     expect(boomLine(1, 'Bia', true)).toBe('Bia virou boneco de neve!')
+    expect(outLine('Bia')).toBe('Bia virou boneco de neve e saiu do jogo.')
     expect(finalLine('Caio', 1)).toContain('Caio sobreviveu')
     expect(finalLine('Ana e Bia', 2)).toContain('sobreviveram')
-    expect(finalLine('', 0)).toContain('venceu todo mundo')
+    expect(finalLine('', 0)).toContain('estourou com todo mundo')
+    expect(finalLine('Ana, Bia, Caio e Davi', 4)).not.toContain('Ana')
+  })
+
+  it('toda fala possível passa nas regras da voz', () => {
+    const lines = [
+      ...THEMES.flatMap((theme, index) => [themeLine(index + 1, theme.text)]),
+      outLine('Gasparzinho'),
+      finalLine('', 0),
+      finalLine('Gasparzinho', 1),
+      finalLine('Ana, Bia e Caio', 3),
+      finalLine('Ana, Bia, Caio e Davi', 4),
+    ]
+    for (const line of lines) expect(spokenLineProblems(line), line).toEqual([])
   })
 })
 

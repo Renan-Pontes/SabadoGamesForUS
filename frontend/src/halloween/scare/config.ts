@@ -232,7 +232,7 @@ export function playScareSound(kind: ConcreteScare, name?: string): () => void {
       playSfx('whoosh', { delay: 0.6, volume: 0.8 })
       playSfx('whoosh', { delay: 1.3, volume: 0.9 })
       playSfx('chime', { delay: 0.25, volume: 0.6 })
-      sayFestiveLater('Brrrrr! Que friaca!', 1000, 1.15, 1.05)
+      sayFestiveLater('Que friaca!', 1000, 1, 1)
       break
     case 'giftRain':
       ;[0.25, 0.5, 0.72, 0.95, 1.2, 1.45].forEach((at, index) =>

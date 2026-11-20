@@ -10,7 +10,8 @@ import { FestiveTitle, GiftBox, Ornament, SantaHat, Sparkles, SpyMascot, XmasRai
 import { finalAwards, type EspiaoState, type Phase } from './engine'
 import { meta } from './meta'
 import { RESULT_SECONDS } from './rules'
-import { EVERYONE_ZOOM_NAME, clock, holdsScares, namesOf, revealCopy, revealMeme, revealNarration, spiesLabel, stagger, trackFor } from './view'
+import { paceDelay } from '../../../lib/spokenLines'
+import { EVERYONE_ZOOM_NAME, LAST_MINUTE_LINE, clock, holdsScares, namesOf, revealCopy, revealMeme, spiesLabel, spokenLine, stagger, trackFor } from './view'
 
 /**
  * TV do "Espião de Natal" — a mesa da festa. Só desenha o estado — quem
@@ -67,19 +68,28 @@ function usePhaseSounds(state: EspiaoState, players: HPlayer[], now: () => numbe
   const phase: Phase = state.over ? 'final' : state.phase
   const moment = `${state.round}-${phase}-${state.seg}`
   const targetName = nameOf(players, state.accusation?.target)
-  const narration = narrationFor(state, players, phase)
+  const narration = spokenLine(state, players, phase, phase === 'final' ? finalAwards(state).champions : [])
   const meme = state.result ? revealMeme(state.result.outcome) : null
   const resumed = state.seg > 0
   const newMatch = state.round === 1 && phase === 'reveal'
   const firstAccusation = useRef(true)
   /** Piadas da revelação que já saíram nesta partida (cada uma uma vez só). */
   const memesUsed = useRef(new Set<string>())
+  /** Quando a última fala começou: duas falas nunca saem coladas. */
+  const lastSpoke = useRef<number | null>(null)
 
   useEffect(() => {
     const timers: number[] = []
     let stopVoice: (() => void) | undefined
     const say = (text: string, delayMs: number) => {
-      if (text) timers.push(window.setTimeout(() => (stopVoice = speakFestive(text)), delayMs))
+      if (!text) return
+      const wait = paceDelay(delayMs, lastSpoke.current, Date.now())
+      timers.push(
+        window.setTimeout(() => {
+          lastSpoke.current = Date.now()
+          stopVoice = speakFestive(text)
+        }, wait),
+      )
     }
     switch (phase) {
       case 'reveal':
@@ -138,7 +148,7 @@ function usePhaseSounds(state: EspiaoState, players: HPlayer[], now: () => numbe
       case 'final':
         playSfx('sleigh')
         playSfx('win', { delay: 1.2 })
-        say('Ho ho ho! Fim da festa! Palmas pro campeão — e pros espiões, um pedaço de carvão!', 2600)
+        say(narration, 2600)
         break
     }
     return () => {
@@ -158,7 +168,11 @@ function usePhaseSounds(state: EspiaoState, players: HPlayer[], now: () => numbe
     if (phase === 'talk' && seconds === 60) {
       lastTick.current = key
       playSfx('sleigh')
-      speakFestive('Último minuto! Corre que o peru tá queimando!')
+      // Só fala se a última fala já foi há um tempo (na volta de uma acusação, fica no guizo).
+      if (paceDelay(0, lastSpoke.current, Date.now()) === 0) {
+        lastSpoke.current = Date.now()
+        speakFestive(LAST_MINUTE_LINE)
+      }
       return
     }
     // Última chance: guizo a cada 3 segundos, para o espião suar.
@@ -171,28 +185,6 @@ function usePhaseSounds(state: EspiaoState, players: HPlayer[], now: () => numbe
     lastTick.current = key
     playSfx('tick')
   }, [seconds, moment, phase])
-}
-
-/** O que o apresentador da festa fala em cada momento (igual em rodada normal e maluca). */
-function narrationFor(state: EspiaoState, players: HPlayer[], phase: Phase): string {
-  switch (phase) {
-    case 'reveal':
-      return revealNarration(state.round, state.spyCount)
-    case 'talk':
-      return state.seg > 0
-        ? 'Acusação rejeitada! Todo mundo de volta pra conversa — e nada de briga na ceia.'
-        : `${nameOf(players, state.starter)} começa perguntando. Valendo!`
-    case 'accuse':
-      return `${nameOf(players, state.accusation?.by)} acusa ${nameOf(players, state.accusation?.target)}! Vai pra lista dos malcriados? Votem!`
-    case 'final_vote':
-      return 'Acabou o tempo! Quem é o penetra da festa?'
-    case 'last_chance':
-      return `${nameOf(players, state.caught)} é espião! Última chance de adivinhar o lugar.`
-    case 'result':
-      return state.result ? revealCopy(state.result, players).title.toLowerCase() : ''
-    default:
-      return ''
-  }
 }
 
 // ---------------------------------------------------------------------------

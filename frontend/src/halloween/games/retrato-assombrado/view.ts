@@ -2,7 +2,7 @@ import type { MusicTrack } from '../../audio'
 import { GRACE_MS, listNames, nameOf } from '../../engine/helpers'
 import type { HInput, HPlayer } from '../../engine/types'
 import { MAX_POINTS, countPoints, readDrawing, type Stroke } from './drawing'
-import { ANSWER_PHASES, DRAW_SLOT, PHASE_SECONDS, drawKeys, type RaPhase, type State } from './engine'
+import { ANSWER_PHASES, DRAW_SLOT, PHASE_SECONDS, drawKeys, type RaOutcome, type RaPhase, type RaReveal, type State } from './engine'
 
 /**
  * Peças pequenas que a TV e o celular do "Retrato de Natal" dividem (as
@@ -133,6 +133,65 @@ export function plural(count: number, one: string, many: string): string {
 /** "Ana, Bia e Caio". */
 export function namesOf(players: readonly HPlayer[], ids: readonly number[]): string {
   return listNames(ids.map((id) => nameOf(players, id)))
+}
+
+// ---------------------------------------------------------------------------
+// Falas da TV: uma por fase, curta; piada e reação ficam no som e na tela
+// ---------------------------------------------------------------------------
+
+/** As falas fixas de troca de fase (fase sem fala fica de fora). */
+export const PHASE_LINES: Partial<Record<RaPhase, string>> = {
+  draw1: 'Podem desenhar!',
+  peek: 'Espiadinha! Olhem os desenhos na TV.',
+  draw2: 'Voltem a desenhar, últimos retoques!',
+  gallery: 'Exposição aberta! Olhem os retratos na TV.',
+  vote: 'Hora de votar! Quem é o impostor?',
+}
+
+export function showSpoken(round: number, category: string): string {
+  return `Rodada ${round}. A categoria é ${category}.`
+}
+
+export type RaVerdict = 'caught' | 'everyone' | 'nobody' | 'tie' | 'innocent'
+
+export function verdictOf(reveal: Pick<RaReveal, 'chaos' | 'caught' | 'accused'>): RaVerdict {
+  return reveal.chaos ?? (reveal.caught ? 'caught' : reveal.accused === null ? 'tie' : 'innocent')
+}
+
+/** O veredito falado depois do rufar. */
+export function revealSpoken(reveal: Pick<RaReveal, 'chaos' | 'caught' | 'accused' | 'impostors' | 'tally'>, players: readonly HPlayer[]): string {
+  const accused = nameOf(players, reveal.accused)
+  const escaped = reveal.impostors.length > 1 ? 'Os impostores escaparam.' : 'O impostor escapou.'
+  switch (verdictOf(reveal)) {
+    case 'caught':
+      return `${accused} era impostor!`
+    case 'everyone':
+      return 'Todo mundo era impostor! Não tinha palavra nenhuma.'
+    case 'nobody':
+      return 'Ninguém era impostor! Todo mundo sabia a palavra.'
+    case 'tie':
+      return `${reveal.tally.length ? 'Empate!' : 'Ninguém votou!'} ${escaped}`
+    case 'innocent':
+      return `${accused} era inocente! ${escaped}`
+  }
+}
+
+export function guessSpoken(name: string): string {
+  return `${name}, última chance: qual é a palavra?`
+}
+
+/** A palavra da rodada, falada no fim (com o resultado do chute, se teve). */
+export function resultSpoken(outcome: Pick<RaOutcome, 'word' | 'guess' | 'guessRight'>): string {
+  if (!outcome.word) return ''
+  if (outcome.guess === null) return `A palavra era ${outcome.word}.`
+  return `${outcome.guessRight ? 'Acertou!' : 'Errou!'} A palavra era ${outcome.word}.`
+}
+
+/** A fala do fim (os campeões, se forem até 3). */
+export function finalSpoken(players: readonly HPlayer[], champions: readonly number[]): string {
+  if (!champions.length) return 'Fim da exposição! Ninguém pontuou desta vez.'
+  if (champions.length > 3) return 'Fim da exposição! Olhem o placar na TV.'
+  return `Fim da exposição! ${champions.length > 1 ? 'Os campeões são' : 'Quem venceu foi'} ${namesOf(players, champions)}.`
 }
 
 /** Uma frase do veredito da rodada, para TV e celular falarem a mesma língua. */

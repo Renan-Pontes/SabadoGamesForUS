@@ -9,9 +9,11 @@ import { BigReveal, FESTIVE_ROUND_FONT, XMAS_COLORS, withAlpha } from '../../ui'
 import { Envelope, FestiveTitle, GiftBox, Ornament, PlaceCard, Sparkles, Tablecloth, XmasCard, XmasRain } from './Decor'
 import { ANSWER_PHASES, RESULT_SECONDS, finalAwards, type Phase, type State } from './engine'
 import { meta } from './meta'
+import { paceDelay } from '../../../lib/spokenLines'
 import {
   REVEAL_TIMING,
   answerText,
+  finalSpoken,
   holdsScares,
   kindHint,
   namesOf,
@@ -19,6 +21,7 @@ import {
   pointsLabel,
   revealCopy,
   revealMeme,
+  revealSpoken,
   stagger,
   tableColumns,
   trackFor,
@@ -77,18 +80,27 @@ export default function Tv({ state, players, now }: Props) {
 function usePhaseSounds(state: State, players: HPlayer[], now: () => number) {
   const phase: Phase = state.over ? 'final' : state.phase
   const moment = `${state.round}-${phase}`
-  const narration = narrationFor(state)
   const result = phase === 'result' ? state.result : null
   const accusedName = result && result.accused !== null ? nameOf(players, result.accused) : null
-  const headline = result ? revealCopy(result, players).title.toLowerCase() : ''
+  const narration =
+    phase === 'final' ? finalSpoken(players, finalAwards(state).champions) : result ? revealSpoken(result, players) : narrationFor(state)
   const meme = result ? revealMeme(result) : null
+  /** Quando a última fala começou: duas falas nunca saem coladas. */
+  const lastSpoke = useRef<number | null>(null)
 
   useEffect(() => {
     const timers: number[] = []
     let stopVoice: (() => void) | undefined
     const later = (fn: () => void, delayMs: number) => timers.push(window.setTimeout(fn, delayMs))
     const say = (text: string, delayMs: number) => {
-      if (text) later(() => (stopVoice = speakFestive(text)), delayMs)
+      if (!text) return
+      later(
+        () => {
+          lastSpoke.current = Date.now()
+          stopVoice = speakFestive(text)
+        },
+        paceDelay(delayMs, lastSpoke.current, Date.now()),
+      )
     }
     switch (phase) {
       case 'question':
@@ -96,9 +108,9 @@ function usePhaseSounds(state: State, players: HPlayer[], now: () => number) {
         say(narration, 900)
         break
       case 'answers':
+        // As respostas na mesa: só o efeito (a sala está lendo).
         playSfx('whoosh')
         playSfx('pop', { delay: 0.5 })
-        say(narration, 1200)
         break
       case 'talk':
         // A pergunta de verdade entra de mola.
@@ -117,7 +129,7 @@ function usePhaseSounds(state: State, players: HPlayer[], now: () => number) {
           playSfx('buzzer')
         }
         later(() => playSfx('drumroll'), REVEAL_TIMING.zoomEnd)
-        say(headline, REVEAL_TIMING.drumEnd + 700)
+        say(narration, REVEAL_TIMING.drumEnd + 700)
         if (meme) later(() => triggerScare(meme), REVEAL_TIMING.bigEnd + 300)
         break
       case 'scores':
@@ -133,7 +145,7 @@ function usePhaseSounds(state: State, players: HPlayer[], now: () => number) {
       for (const timer of timers) window.clearTimeout(timer)
       stopVoice?.()
     }
-  }, [moment, phase, narration, accusedName, headline, meme])
+  }, [moment, phase, narration, accusedName, meme])
 
   // Tique-taque no fim de cada prazo de resposta.
   const answering = ANSWER_PHASES.includes(phase)

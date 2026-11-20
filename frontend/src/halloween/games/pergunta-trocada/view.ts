@@ -89,24 +89,43 @@ export function holdsScares(phase: Phase, over: boolean): boolean {
   return over || phase === 'answers' || phase === 'vote' || phase === 'result'
 }
 
-/** O que o apresentador fala em cada momento (igual em rodada normal e sem impostor). */
+/**
+ * O que o apresentador fala ao entrar em cada momento (uma fala por fase; ''
+ * = fica quieto). Igual em rodada normal e sem impostor. As respostas na mesa
+ * não têm fala: é a hora de a sala ler em silêncio. O resultado fala
+ * `revealSpoken`; o fim, `finalSpoken`.
+ */
 export function narrationFor(state: Pick<State, 'phase' | 'round' | 'totalRounds' | 'realQuestion' | 'over'>): string {
-  if (state.over) return 'Ho ho ho! Fim da festa! Palmas pro campeão — e pro impostor, um pedaço de carvão!'
+  if (state.over) return ''
   switch (state.phase) {
     case 'question': {
-      const hello = state.round === 1 ? 'Ho ho ho! ' : ''
-      const last = state.round === state.totalRounds && state.round > 1 ? 'Última rodada! ' : `Rodada ${state.round}! `
-      return `${hello}${last}Todo mundo recebeu a mesma pergunta… ou quase todo mundo. Respondam no celular!`
+      const opener = state.round === state.totalRounds && state.round > 1 ? 'Última rodada!' : `Rodada ${state.round}.`
+      return `${opener} Respondam a pergunta no celular.`
     }
-    case 'answers':
-      return 'Respostas na mesa! Alguma aí parece meio estranha?'
     case 'talk':
-      return state.realQuestion ? `E a pergunta era: ${state.realQuestion}` : 'E a pergunta era…'
+      return state.realQuestion ? `A pergunta de verdade era: ${state.realQuestion}` : ''
     case 'vote':
       return 'Hora de votar! Quem recebeu a pergunta trocada?'
     default:
       return ''
   }
+}
+
+/** O resultado da rodada, falado (curto; a manchete e os pontos ficam na tela). */
+export function revealSpoken(result: PtResult, players: readonly HPlayer[]): string {
+  const impostor = nameOf(players, result.impostor)
+  const accused = nameOf(players, result.accused)
+  if (result.impostor === null) return 'Não tinha impostor! Todo mundo recebeu a mesma pergunta.'
+  if (result.caught) return `Pegaram! O impostor era ${impostor}.`
+  if (result.accused !== null) return `${accused} era inocente! O impostor era ${impostor}.`
+  return `O impostor era ${impostor}, e escapou!`
+}
+
+/** A fala do fim da partida (os campeões, se forem até 3). */
+export function finalSpoken(players: readonly HPlayer[], champions: readonly number[]): string {
+  if (!champions.length) return 'Fim da festa! Ninguém pontuou desta vez.'
+  if (champions.length > 3) return 'Fim da festa! Olhem o placar na TV.'
+  return `Fim da festa! ${champions.length > 1 ? 'Os campeões são' : 'Quem venceu foi'} ${namesOf(players, champions)}.`
 }
 
 export type RevealCopy = {

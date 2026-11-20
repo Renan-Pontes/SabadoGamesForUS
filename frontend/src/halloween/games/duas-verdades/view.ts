@@ -149,22 +149,45 @@ export function outcomeCopy(reveal: Pick<DvReveal, 'outcome' | 'right' | 'fooled
   }
 }
 
-/** O que o narrador fala quando a vez começa. */
-export function turnNarration(author: string, cards: readonly DvCard[], turn: number): string {
-  const opener = variant([`A vez de ${author}!`, `Agora é ${author} na cadeira da lareira!`, `Puxa a cadeira, ${author}!`], turn)
-  const lines = cards.map((card) => `${cardLetter(card.id)}: ${card.text}.`).join(' ')
-  return `${opener} ${lines} Qual é a mentira?`
+/** Termina a frase com pontuação (a cartinha pode vir sem). */
+function sentence(text: string): string {
+  const trimmed = text.trim()
+  return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`
 }
 
-/** O que o narrador fala depois do carimbo. */
-export function revealNarration(reveal: Pick<DvReveal, 'outcome' | 'right' | 'fooled'>, author: string, lieText: string, turn: number): string {
-  const copy = outcomeCopy(reveal, author, turn)
-  const title = copy.title.replace(/…/g, ',').replace(/!/g, '.').toLowerCase()
-  return `A mentira era: ${lieText}. ${title} ${copy.subtitle}.`
+/**
+ * O que o narrador fala quando a vez começa: quem conta e as três frases
+ * (a TV lê para a mesa — o autor só segura a cara de paisagem). Sem piada
+ * nem enfeite: o conteúdo já é longo.
+ */
+export function turnNarration(author: string, cards: readonly DvCard[]): string {
+  const lines = cards.map((card) => `Frase ${cardLetter(card.id)}: ${sentence(card.text)}`).join(' ')
+  return `A vez de ${author}. ${lines} Qual é a mentira?`
 }
 
-export const WRITE_NARRATION =
-  'Hora de mentir! Escrevam no celular três frases sobre vocês: duas verdades e uma mentira. E capricha, que mentira boa parece verdade!'
+/** O que o narrador fala depois do carimbo: qual frase era a mentira e quem caiu (os detalhes ficam na TV). */
+export function revealNarration(reveal: Pick<DvReveal, 'outcome' | 'lieCard'>, author: string): string {
+  const lie = `A mentira era a frase ${cardLetter(reveal.lieCard)}.`
+  switch (reveal.outcome) {
+    case 'fooled-all':
+      return `${lie} ${author} enganou todo mundo!`
+    case 'all-right':
+      return `${lie} Todo mundo acertou!`
+    case 'no-votes':
+      return `${lie} E ninguém votou.`
+    default:
+      return `${lie} Teve gente que caiu na conversa!`
+  }
+}
+
+/** A fala do fim (os campeões, se forem até 3). */
+export function finalNarration(players: readonly HPlayer[], champions: readonly number[]): string {
+  if (!champions.length) return 'Fim das histórias! Ninguém pontuou desta vez.'
+  if (champions.length > 3) return 'Fim das histórias! Olhem o placar na TV.'
+  return `Fim das histórias! ${champions.length > 1 ? 'Os campeões são' : 'Quem venceu foi'} ${namesOf(players, champions)}.`
+}
+
+export const WRITE_NARRATION = 'Escrevam no celular duas verdades e uma mentira sobre vocês.'
 
 /** Colunas do placar na TV: até 8 linhas por coluna. */
 export function rankColumns(count: number): number {

@@ -9,12 +9,14 @@ import { BigReveal, FESTIVE_ROUND_FONT, PlayerBadge, XMAS_COLORS, withAlpha } fr
 import { FestiveTitle, Fireplace, LieStamp, SantaHat, Sparkles, Stocking, XmasRain } from './Decor'
 import { MIN_TALK_SECONDS, finalAwards, votersOf, type DvCard, type DvPhase, type DvState } from './engine'
 import { meta } from './meta'
+import { paceDelay } from '../../../lib/spokenLines'
 import {
   DRUM_MS,
   SPOTLIGHT_MS,
   WRITE_NARRATION,
   cardFont,
   cardLetter,
+  finalNarration,
   holdsScares,
   namesOf,
   outcomeCopy,
@@ -78,27 +80,29 @@ function usePhaseSounds(state: DvState, players: HPlayer[], now: () => number) {
   const moment = `${state.round}-${phase}`
   const author = nameOf(players, state.author)
   const reveal = state.reveal
-  const lieText = reveal ? (state.cards[reveal.lieCard]?.text ?? '') : ''
   const narration =
     phase === 'write'
       ? WRITE_NARRATION
       : phase === 'vote'
-        ? turnNarration(author, state.cards, state.round)
+        ? turnNarration(author, state.cards)
         : phase === 'reveal' && reveal
-          ? revealNarration(reveal, author, lieText, state.round)
+          ? revealNarration(reveal, author)
           : ''
   const outcome = reveal?.outcome ?? null
-  const champions = finalAwards(state).champions
-  const finalLine = champions.length
-    ? `Ho ho ho! Fim das histórias! ${namesOf(players, champions)} ${champions.length > 1 ? 'são os campeões' : 'é o campeão'} da lareira!`
-    : 'Ho ho ho! Fim das histórias! Ninguém pontuou… quem diria, uma mesa sincera!'
+  const finalLine = phase === 'final' ? finalNarration(players, finalAwards(state).champions) : ''
+  /** Quando a última fala começou: duas falas nunca saem coladas. */
+  const lastSpoke = useRef<number | null>(null)
 
   useEffect(() => {
     const timers: number[] = []
     let stopVoice: (() => void) | undefined
     const later = (ms: number, run: () => void) => timers.push(window.setTimeout(run, ms))
     const say = (text: string, ms: number) => {
-      if (text) later(ms, () => (stopVoice = speakFestive(text)))
+      if (!text) return
+      later(paceDelay(ms, lastSpoke.current, Date.now()), () => {
+        lastSpoke.current = Date.now()
+        stopVoice = speakFestive(text)
+      })
     }
     switch (phase) {
       case 'write':
