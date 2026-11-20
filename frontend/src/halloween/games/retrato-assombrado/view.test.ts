@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { spokenLineProblems } from '../../../lib/spokenLines'
+import { makePlayers } from '../../engine/testkit'
 import type { HInput } from '../../engine/types'
+import { CATEGORIES } from './content'
 import { MAX_POINTS, type Stroke } from './drawing'
 import type { RaPhase } from './engine'
-import { drawView } from './view'
+import { PHASE_LINES, drawView, finalSpoken, guessSpoken, resultSpoken, revealSpoken, showSpoken } from './view'
 
 const A: Stroke = { c: 0, p: [0.1, 0.1, 0.2, 0.2] }
 const B: Stroke = { c: 1, p: [0.3, 0.3, 0.4, 0.4] }
@@ -61,5 +64,42 @@ describe('prancheta do celular (drawView)', () => {
     const big: Stroke = { c: 0, p: Array.from({ length: (MAX_POINTS - 1) * 2 }, () => 0.5) }
     expect(drawView(at('draw1'), null, [big]).full).toBe(true)
     expect(drawView(at('draw1'), null, [A]).full).toBe(false)
+  })
+})
+
+describe('falas da TV', () => {
+  const players = makePlayers(6)
+  const reveal = { chaos: null, caught: true, accused: 1, impostors: [1], tally: [{ id: 1, count: 3, voters: [2, 3, 4] }] }
+
+  it('uma fala curta por momento', () => {
+    expect(showSpoken(2, 'Ceia de Natal')).toBe('Rodada 2. A categoria é Ceia de Natal.')
+    expect(revealSpoken(reveal, players)).toBe('Vlad era impostor!')
+    expect(revealSpoken({ ...reveal, caught: false, accused: 2 }, players)).toBe('Mortícia era inocente! O impostor escapou.')
+    expect(revealSpoken({ ...reveal, caught: false, accused: null, impostors: [1, 3] }, players)).toBe('Empate! Os impostores escaparam.')
+    expect(revealSpoken({ ...reveal, caught: false, accused: null, tally: [] }, players)).toContain('Ninguém votou')
+    expect(resultSpoken({ word: 'Rena', guess: 'rena', guessRight: true })).toBe('Acertou! A palavra era Rena.')
+    expect(resultSpoken({ word: null, guess: null, guessRight: false })).toBe('')
+    expect(PHASE_LINES.scores).toBeUndefined()
+  })
+
+  it('toda fala possível passa nas regras da voz', () => {
+    const lines = [
+      ...Object.values(PHASE_LINES),
+      ...CATEGORIES.map((category, index) => showSpoken(index + 1, category.name)),
+      ...CATEGORIES.flatMap((category) =>
+        category.words.flatMap((word) => [
+          resultSpoken({ word: word.text, guess: null, guessRight: false }),
+          resultSpoken({ word: word.text, guess: 'x', guessRight: false }),
+        ]),
+      ),
+      ...(['everyone', 'nobody', null] as const).flatMap((chaos) =>
+        [true, false].flatMap((caught) => [revealSpoken({ ...reveal, chaos, caught }, players), revealSpoken({ ...reveal, chaos, caught, accused: null }, players)]),
+      ),
+      guessSpoken('Gasparzinho'),
+      finalSpoken(players, []),
+      finalSpoken(players, [1, 2, 3]),
+      finalSpoken(players, [1, 2, 3, 4]),
+    ]
+    for (const line of lines) expect(spokenLineProblems(line ?? ''), line).toEqual([])
   })
 })

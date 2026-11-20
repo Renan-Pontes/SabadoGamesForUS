@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest'
+import { spokenLineProblems } from '../../../lib/spokenLines'
+import { makePlayers } from '../../engine/testkit'
 import { PROMPTS } from './content'
 import { MAX_FACT_CHARS, revealSeconds, type DvOutcome } from './engine'
 import {
   PROMPTS_PER_PAGE,
+  WRITE_NARRATION,
   applyPrompt,
   cardFont,
   cardLetter,
   draftKey,
+  finalNarration,
   holdsScares,
   limitFact,
   myLieCard,
@@ -20,6 +24,7 @@ import {
 } from './view'
 
 const OUTCOMES: DvOutcome[] = ['fooled-all', 'all-right', 'mixed', 'no-votes']
+const players = makePlayers(6)
 
 describe('textos e contas das telas', () => {
   it('letras das cartas', () => {
@@ -43,17 +48,35 @@ describe('textos e contas das telas', () => {
     for (const sub of subs) expect(sub).toContain('Ana')
   })
 
-  it('narração da vez lê as três frases; a da revelação diz a mentira', () => {
+  it('narração da vez lê as três frases; a da revelação diz qual era a mentira e quem caiu', () => {
     const cards = [
       { id: 0, text: 'Comi panetone' },
-      { id: 1, text: 'Vi neve' },
-      { id: 2, text: 'Sou duende' },
+      { id: 1, text: 'Vi neve!' },
+      { id: 2, text: 'Sou duende ' },
     ]
-    const line = turnNarration('Bia', cards, 1)
-    expect(line).toContain('Bia')
-    for (const card of cards) expect(line).toContain(card.text)
-    expect(line).toContain('mentira')
-    expect(revealNarration({ outcome: 'mixed', right: [1], fooled: [2] }, 'Bia', 'Vi neve', 1)).toContain('Vi neve')
+    expect(turnNarration('Bia', cards)).toBe('A vez de Bia. Frase A: Comi panetone. Frase B: Vi neve! Frase C: Sou duende. Qual é a mentira?')
+    expect(revealNarration({ outcome: 'fooled-all', lieCard: 1 }, 'Bia')).toBe('A mentira era a frase B. Bia enganou todo mundo!')
+    expect(revealNarration({ outcome: 'all-right', lieCard: 0 }, 'Bia')).toContain('Todo mundo acertou')
+    expect(finalNarration(players, [1, 2])).toBe('Fim das histórias! Os campeões são Vlad e Mortícia.')
+  })
+
+  it('toda fala possível passa nas regras da voz', () => {
+    const lines = [
+      WRITE_NARRATION,
+      ...OUTCOMES.map((outcome) => revealNarration({ outcome, lieCard: 2 }, 'Gasparzinho')),
+      finalNarration(players, []),
+      finalNarration(players, [1]),
+      finalNarration(players, [1, 2, 3]),
+      finalNarration(players, [1, 2, 3, 4]),
+    ]
+    for (const line of lines) expect(spokenLineProblems(line), line).toEqual([])
+    // A vez lê as frases que a pessoa escreveu (longas por natureza): só a moldura é conferida.
+    const turn = turnNarration('Gasparzinho', [
+      { id: 0, text: 'a' },
+      { id: 1, text: 'b' },
+      { id: 2, text: 'c' },
+    ])
+    expect(spokenLineProblems(turn, { maxWords: 20 }), turn).toEqual([])
   })
 
   it('avisos das cartinhas', () => {

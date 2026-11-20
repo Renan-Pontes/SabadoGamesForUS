@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import type { MusicTrack, SfxName } from '../../audio'
 import { listNames, nameOf } from '../../engine/helpers'
 import type { HPlayer } from '../../engine/types'
+import type { Cameo } from '../../scare/cameos'
 import type { RevealTone } from '../../ui'
 import type { EspiaoState, Phase, RoundResult } from './engine'
 import { winnerOf, type Outcome } from './rules'
@@ -57,23 +58,23 @@ export function holdsScares(phase: Phase, over: boolean): boolean {
   return over || phase === 'accuse' || phase === 'final_vote' || phase === 'last_chance' || phase === 'result'
 }
 
-/** O que a TV escreve no zoom suspeito quando ninguém é inocente. */
+/** O que o duende desconfiado diz quando ninguém é inocente ("Hmm… TODO MUNDO?"). */
 export const EVERYONE_ZOOM_NAME = 'TODO MUNDO'
 
 /**
- * Piada da revelação (só na TV, uma vez por partida cada — repetida perde a
- * graça): a mesa condenou um inocente = "bruh"; o espião digitou o lugar
- * errado = cano de metal caindo; todo mundo era espião = zoom suspeito 🤨📸
- * em "TODO MUNDO".
+ * Visita de Natal da revelação (só na TV, uma vez por partida cada —
+ * repetida perde a graça): a mesa condenou um inocente = o boneco de neve
+ * perde o chapéu; o espião digitou o lugar errado = o pinguim escorrega;
+ * todo mundo era espião = o duende desconfiado de "TODO MUNDO".
  */
-export function revealMeme(outcome: Outcome): 'bruh' | 'pipe' | 'zoom' | null {
+export function revealMeme(outcome: Outcome): Extract<Cameo, 'snowman' | 'penguin' | 'peek'> | null {
   switch (outcome) {
     case 'innocent':
-      return 'bruh'
+      return 'snowman'
     case 'guess-wrong':
-      return 'pipe'
+      return 'penguin'
     case 'everyone':
-      return 'zoom'
+      return 'peek'
     default:
       return null
   }
@@ -81,9 +82,80 @@ export function revealMeme(outcome: Outcome): 'bruh' | 'pipe' | 'zoom' | null {
 
 /** Narração do começo da rodada (igual em toda rodada — inclusive nas malucas). */
 export function revealNarration(round: number, spyCount: number): string {
-  const hello = round === 1 ? 'Ho ho ho! ' : ''
-  return `${hello}Rodada ${round}! Olhem a carta, escondidinho. ${spyCount === 1 ? 'Um de vocês é o espião' : 'Dois de vocês são espiões'} — e ninguém convidou!`
+  return spyCount === 1
+    ? `Rodada ${round}. Olhem a carta no celular, sem mostrar a ninguém.`
+    : `Rodada ${round}. Olhem a carta: nesta rodada são dois espiões.`
 }
+
+/** Até 3 nomes falados ("Ana, Bia e Caio"); mais que isso, a voz não lista. */
+function spokenNames(players: readonly HPlayer[], ids: readonly number[]): string | null {
+  return ids.length && ids.length <= 3 ? namesOf(players, ids) : null
+}
+
+/** O resultado da rodada, falado (curto; a manchete e os detalhes ficam na tela). */
+export function revealSpoken(result: RoundResult, players: readonly HPlayer[]): string {
+  const convicted = nameOf(players, result.convicted)
+  const guesser = nameOf(players, result.guess?.by)
+  switch (result.outcome) {
+    case 'caught':
+      return 'Pegamos o espião! A mesa venceu.'
+    case 'escaped':
+      return `${convicted} era espião, mas acertou o lugar. Os espiões venceram!`
+    case 'guess-right':
+      return `${guesser} era espião e acertou o lugar. Os espiões venceram!`
+    case 'guess-wrong':
+      return `${guesser} era espião e errou o lugar. A mesa venceu!`
+    case 'innocent':
+      return `${convicted} era inocente! Os espiões venceram.`
+    case 'tie': {
+      const spies = spokenNames(players, result.spies)
+      if (!spies) return 'Ninguém foi condenado. Os espiões venceram.'
+      return `Ninguém foi condenado. ${result.spies.length > 1 ? 'Os espiões eram' : 'O espião era'} ${spies}.`
+    }
+    case 'everyone':
+      return 'Todo mundo era espião! Rodada maluca, sem pontos.'
+    case 'nobody-convicted':
+      return `Não tinha espião! ${convicted} foi condenado à toa.`
+    case 'nobody-free':
+      return 'Não tinha espião! Um ponto de presente para todo mundo.'
+  }
+}
+
+/** A fala do fim da partida (os campeões, se forem até 3). */
+export function finalSpoken(players: readonly HPlayer[], champions: readonly number[]): string {
+  if (!champions.length) return 'Fim da festa! Ninguém pontuou desta vez.'
+  const names = spokenNames(players, champions)
+  if (!names) return 'Fim da festa! Olhem o placar na TV.'
+  return `Fim da festa! ${champions.length > 1 ? 'Os campeões são' : 'Quem venceu foi'} ${names}.`
+}
+
+/**
+ * O que o apresentador fala ao entrar em cada momento (uma fala por fase; ''
+ * = fica quieto). Igual em rodada normal e maluca.
+ */
+export function spokenLine(state: EspiaoState, players: readonly HPlayer[], phase: Phase, champions: readonly number[] = []): string {
+  switch (phase) {
+    case 'reveal':
+      return revealNarration(state.round, state.spyCount)
+    case 'talk':
+      return state.seg > 0 ? 'Acusação rejeitada. Voltem para a conversa.' : `${nameOf(players, state.starter, 'Qualquer um')} começa perguntando. Valendo!`
+    case 'accuse':
+      return `${nameOf(players, state.accusation?.by)} acusou ${nameOf(players, state.accusation?.target)}. Votem no celular!`
+    case 'final_vote':
+      return 'Acabou o tempo! Votem: quem é o espião?'
+    case 'last_chance':
+      return `${nameOf(players, state.caught)} é espião! Última chance de adivinhar o lugar.`
+    case 'result':
+      return state.result ? revealSpoken(state.result, players) : ''
+    case 'final':
+      return finalSpoken(players, champions)
+    default:
+      return ''
+  }
+}
+
+/** Aviso falado quando falta um minuto de conversa. */
+export const LAST_MINUTE_LINE = 'Falta um minuto de conversa!'
 
 export type RevealCopy = {
   icon: string

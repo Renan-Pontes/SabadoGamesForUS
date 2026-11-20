@@ -33,7 +33,7 @@ export const ROLE_INFO: Record<Role, RoleInfo> = {
     was: 'Era duende travesso',
     mission: 'Toda noite escolha quem vira boneco de neve. Não deixe a vila te pegar.',
     night: 'para virar boneco de neve',
-    notePlaceholder: 'Cartãozinho anônimo para a vila (a TV lê)',
+    notePlaceholder: 'Cartãozinho anônimo para a vila (aparece na TV)',
     color: '#ff4d6d',
   },
   detective: {
@@ -74,40 +74,37 @@ export const SNOWMAN_INFO = {
   night: 'para levar uma bola de neve (aparece na TV)',
 }
 
+/*
+ * As falas da TV (voz do navegador): uma por fase, curtas — até umas 14
+ * palavras, sem emoji nem onomatopeia. Os recados e as bolas de neve da
+ * manhã ficam só na tela.
+ */
+
 /** Narração quando a noite cai — uma por noite, em ordem (depois repete). */
 export const NIGHT_LINES: readonly string[] = [
-  'A noite caiu sobre a Vila do Papai Noel. Ninguém fecha o olho: todo mundo no celular.',
-  'Mais uma noite na vila. Escolham alguém, e nada de espiar o celular do vizinho.',
-  'As luzinhas se apagam uma a uma. Os duendes travessos acordaram. Celular na mão.',
-  'Silêncio na vila. Só se ouve a neve caindo e os dedos na tela.',
-  'Mais uma noite fria. Alguém nesta sala está mentindo mais que vendedor de panetone.',
-  'A neve não para de cair. Cada um no seu celular, por favor.',
-  'As renas estão inquietas no estábulo. Escolham com cuidado.',
-  'A vila está cada vez mais cheia de bonecos de neve. Façam suas escolhas.',
+  'A noite caiu na vila. Todo mundo no celular, em silêncio.',
+  'Mais uma noite na vila. Escolham alguém no celular.',
+  'As luzinhas se apagaram. Celular na mão, e nada de espiar o vizinho.',
+  'Silêncio na vila. Façam suas escolhas no celular.',
+  'Mais uma noite fria. Escolham com cuidado.',
+  'A neve não para de cair. Cada um no seu celular.',
+  'As renas estão inquietas. Celular na mão.',
+  'A vila está cheia de bonecos de neve. Façam suas escolhas.',
 ]
 
 /** A última noite antes de os duendes fugirem (ver MAX_ROUNDS). */
-export const LAST_NIGHT_LINE = 'Última noite antes do Natal. Se a vila não pegar os duendes amanhã, eles fogem com os presentes.'
-
-/** Abertura da manhã com boneco de neve novo: "<abertura> Fulano virou boneco de neve!" */
-export const DEATH_INTROS: readonly string[] = [
-  'Amanheceu na vila.',
-  'O galo cantou Jingle Bells.',
-  'Bom dia, vila!',
-  'O sol nasceu sobre a neve.',
-  'Amanheceu com cheiro de chocolate quente.',
-]
+export const LAST_NIGHT_LINE = 'Última noite! Se a vila não pegar os duendes amanhã, eles fogem.'
 
 export const SAVED_LINES: readonly string[] = [
-  'Amanheceu. Os duendes atacaram, mas o Anjo do Natal chegou primeiro. Ninguém virou boneco de neve!',
-  'Amanheceu. Teve travessura, mas o anjo cobriu alguém com um cobertor quentinho. Todo mundo inteiro!',
-  'Amanheceu. Uma asinha dourada passou pela janela certa. O anjo salvou alguém!',
+  'Bom dia! O anjo chegou primeiro e ninguém virou boneco de neve.',
+  'Bom dia! Teve travessura, mas o anjo salvou alguém.',
+  'Bom dia! O anjo salvou alguém esta noite.',
 ]
 
 export const QUIET_LINES: readonly string[] = [
-  'Amanheceu. Ninguém virou boneco de neve. Tranquilo até demais.',
-  'Amanheceu e todo mundo acordou quentinho. Os duendes tiraram folga?',
-  'Amanheceu. Nenhum boneco de neve novo hoje. Por enquanto.',
+  'Bom dia! Ninguém virou boneco de neve esta noite.',
+  'Bom dia! Todo mundo acordou quentinho. Os duendes tiraram folga?',
+  'Bom dia! Nenhum boneco de neve novo. Por enquanto.',
 ]
 
 export const DAY_LINES: readonly string[] = [
@@ -117,7 +114,7 @@ export const DAY_LINES: readonly string[] = [
   'A vila quer o Natal de volta. Quem foi?',
 ]
 
-export const VOTE_LINE = 'Hora da votação. Quem vai de trenó pro Polo Norte?'
+export const VOTE_LINE = 'Hora de votar! Quem vai de trenó pro Polo Norte?'
 
 /** Ninguém saiu na votação: o porquê, em uma frase (TV e narração). */
 export const NOBODY_OUT: Record<'tie' | 'few' | 'none' | 'skip', string> = {
@@ -172,7 +169,7 @@ export const CITY_NOTES: readonly string[] = [
   'Se me congelar, eu volto de bola de neve ⛄',
 ]
 
-/** Sugestões de cartãozinho dos duendes para a vila (a TV lê de manhã). */
+/** Sugestões de cartãozinho dos duendes para a vila (aparece na TV de manhã). */
 export const KILLER_NOTES: readonly string[] = [
   'Vocês nunca vão me pegar 😜',
   'Quem será o próximo boneco? ⛄',

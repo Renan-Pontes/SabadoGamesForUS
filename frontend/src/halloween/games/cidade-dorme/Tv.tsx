@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { Box, Typography } from '@mui/material'
+import { paceDelay } from '../../../lib/spokenLines'
 import { playSfx, speakFestive, useMusic } from '../../audio'
 import { GRACE_MS, nameOf, type TallyEntry } from '../../engine/helpers'
 import type { HPlayer, HalloweenViewProps } from '../../engine/types'
@@ -107,6 +108,8 @@ function useTvCue(state: State, players: HPlayer[]) {
   const scareKind = cue.scare?.kind ?? null
   const scareName = cue.scare?.name ?? ''
   const scareDelay = cue.scare?.delayMs ?? 0
+  /** Quando a última fala começou: duas falas nunca saem coladas. */
+  const lastSpoke = useRef<number | null>(null)
   useEffect(() => {
     const timers: number[] = []
     const later = (ms: number, run: () => void) => {
@@ -115,7 +118,8 @@ function useTvCue(state: State, players: HPlayer[]) {
     const voice = { stop: () => {} }
     playStinger(stinger, later)
     if (speech) {
-      later(speechDelayMs, () => {
+      later(paceDelay(speechDelayMs, lastSpoke.current, Date.now()), () => {
+        lastSpoke.current = Date.now()
         // Noite: contador de histórias aconchegante (mais devagar); resto: animado.
         voice.stop = speakFestive(speech, tone === 'cozy' ? { rate: 0.9, pitch: 1 } : { rate: 1.05, pitch: 1.08 })
       })

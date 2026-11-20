@@ -1,8 +1,22 @@
 import { describe, expect, it } from 'vitest'
+import { spokenLineProblems } from '../../../lib/spokenLines'
 import { GRACE_MS, optionDefaults, seededRng } from '../../engine/helpers'
 import { makeCtx, makePlayers, runSimulation } from '../../engine/testkit'
 import type { EngineCtx, HCommand, HInput } from '../../engine/types'
-import { CITY_NOTES, EPITAPHS, KILLER_NOTES, NIGHT_LINES, NOBODY_OUT, ROLE_INFO } from './content'
+import {
+  CITY_NOTES,
+  DAY_LINES,
+  END_LINES,
+  EPITAPHS,
+  KILLER_NOTES,
+  LAST_NIGHT_LINE,
+  NIGHT_LINES,
+  NOBODY_OUT,
+  QUIET_LINES,
+  ROLE_INFO,
+  SAVED_LINES,
+  VOTE_LINE,
+} from './content'
 import {
   MAX_ROUNDS,
   MORNING_DEATH_SECONDS,
@@ -407,7 +421,7 @@ describe('manhã e dia', () => {
     expect(day.deadline).toBe(dramatic.deadline! + 3 * 60_000)
   })
 
-  it('a manhã dá tempo de a TV ler em voz alta bilhetes longos e as assombrações (com teto)', () => {
+  it('a manhã dá tempo de a sala ler na TV bilhetes longos e as assombrações (com teto)', () => {
     const base: News = { round: 1, killed: 4, role: 'citizen', saved: false, epitaph: 'x', notes: [], haunts: [], letters: 0 }
     const long = 'Vocês nunca vão me pegar, eu durmo do lado de vocês e ronco alto toda noite 😈'
     const short = 'Oi'
@@ -421,10 +435,10 @@ describe('manhã e dia', () => {
     // Três bilhetes enormes + cinco assombrações: longo, mas com teto.
     const maxed = { ...base, notes: [long, long, long], haunts }
     expect(morningSeconds(maxed)).toBe(MORNING_MAX_SECONDS)
-    // A narração cita no máximo 3 assombrados (e quantos mais).
+    // As bolas de neve ficam só na tela: a voz fala só de quem virou boneco de neve.
     const morning = skip(firstNight(6, SIX), { 1: { target: 4 } })
     const text = narration({ ...morning, news: { ...morning.news!, haunts } }, makePlayers(6))
-    expect(text).toContain('Os bonecos de neve jogaram bola de neve em Vlad, Mortícia, Gasparzinho e mais 2.')
+    expect(text).not.toContain('bola de neve')
   })
 
   it('dia: "pronto para votar" de todos os vivos online abre a votação; fantasma não conta', () => {
@@ -727,17 +741,34 @@ describe('simulações', () => {
 describe('narração', () => {
   const players = makePlayers(6)
 
-  it('manhã com morte, papel, bilhete e assombração', () => {
+  it('manhã com morte e papel numa frase só (o bilhete fica na tela)', () => {
     const morning = skip(firstNight(6, SIX), { 1: { target: 4, note: 'Quem será o próximo? 😈' } })
     const text = narration(morning, players)
-    expect(text).toContain(`${players[3].name} virou boneco de neve!`)
-    expect(text).toContain('Era um morador da vila.')
-    expect(text).toContain('Um cartãozinho foi encontrado na neve: Quem será o próximo?')
-    expect(text).not.toMatch(/\p{Extended_Pictographic}/u)
+    expect(text).toBe(`Bom dia! ${players[3].name} virou boneco de neve. Era um morador da vila.`)
+    expect(morning.news?.notes.length).toBe(1)
+    expect(text).not.toContain('Quem será o próximo')
     expect(tvCue(morning, players)).toMatchObject({ moment: '1-morning', stinger: 'death', scare: null })
   })
 
-  it('anjo salvou, noite tranquila e veredito com zoom no assassino pego', () => {
+  it('toda fala possível passa nas regras da voz', () => {
+    const lines = [
+      narration({ ...firstNight(6, SIX), phase: 'roles' }, players),
+      ...NIGHT_LINES,
+      LAST_NIGHT_LINE,
+      ...SAVED_LINES,
+      ...QUIET_LINES,
+      ...DAY_LINES,
+      VOTE_LINE,
+      ...Object.values(NOBODY_OUT),
+      ...Object.values(END_LINES),
+      ...Object.values(ROLE_INFO).map((role) => `Bom dia! Gasparzinho virou boneco de neve. ${role.was}.`),
+      ...Object.values(ROLE_INFO).map((role) => `Gasparzinho foi de trenó pro Polo Norte. ${role.was}!`),
+      'Fim da história. A partida foi encerrada.',
+    ]
+    for (const line of lines) expect(spokenLineProblems(line), line).toEqual([])
+  })
+
+  it('anjo salvou, noite tranquila e veredito com o duende desconfiado no assassino pego', () => {
     const night = firstNight(6, SIX)
     expect(tvCue(night, players).speech).toBe(NIGHT_LINES[0])
     const saved = skip(night, { 1: { target: 4 }, 3: { target: 4 } })
@@ -746,8 +777,8 @@ describe('narração', () => {
     const caught = skip(vote, { 2: { vote: 1 }, 3: { vote: 1 } })
     const cue = tvCue(caught, players)
     expect(cue.stinger).toBe('caught')
-    expect(cue.scare).toMatchObject({ kind: 'zoom', name: players[0].name })
-    expect(cue.speech).toBe(`A vila despachou ${players[0].name} de trenó pro Polo Norte. Era duende travesso!`)
+    expect(cue.scare).toMatchObject({ kind: 'peek', name: players[0].name })
+    expect(cue.speech).toBe(`${players[0].name} foi de trenó pro Polo Norte. Era duende travesso!`)
     const end = skip(caught)
     expect(tvCue(end, players)).toMatchObject({ moment: '1-end', stinger: 'city', scare: null })
     // "Encerrar" do host: over sem final.

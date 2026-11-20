@@ -1,14 +1,23 @@
 import { describe, expect, it } from 'vitest'
+import { spokenLineProblems } from '../../lib/spokenLines'
 import { makePlayers, makeState } from './fixtures'
 import {
+  TIMEOUT_LINE,
+  TIMEOUT_VERSUS_LINE,
   cardsLeft,
   doorsOpen,
   eventsBetween,
+  finalLine,
+  levelDoneLine,
   mistakeIndexes,
   mistakeLine,
   mistakeOf,
+  mistakeSpoken,
+  newLevelLine,
   snapOf,
   sortedHand,
+  speechFor,
+  speechForEvents,
 } from './view'
 
 const card = (value: number, playerId = '1') => ({ value, playerId })
@@ -103,5 +112,39 @@ describe('Mente Natalina: momentos da mesa (sons da TV)', () => {
 
   it('nada muda, nada toca', () => {
     expect(eventsBetween(snapOf(base), snapOf({ ...base }))).toEqual([])
+  })
+})
+
+describe('Mente Natalina: falas da TV', () => {
+  const base = makeState({ round: 2, players: makePlayers([[10, 50], [30, 70]]) })
+  const snap = (state: ReturnType<typeof makeState>) => ({ ...snapOf(state), maxRounds: 10 })
+
+  it('a carta jogada não é lida em voz alta', () => {
+    const after = snap({ ...base, playedCards: [card(10)] })
+    expect(speechFor('card', after)).toBeNull()
+    expect(speechForEvents(['card'], after)).toBeNull()
+  })
+
+  it('erro fala curto e sem número; o que acaba o jogo fala só o fim', () => {
+    const cut = snap({ ...base, lives: 2, playedCards: [card(50, '1')], lastCutterPlayer: '1', lastCutPlayer: '2' })
+    expect(speechFor('cut', cut)?.text).toBe('Ops! Ana tinha uma carta menor na própria mão.')
+    const other = makeState({ players: makePlayers([[60], [20]]), playedCards: [card(50, '1')], lastCutterPlayer: '1' })
+    expect(mistakeSpoken(mistakeOf(other)!)).toBe('Ops! Beto ainda tinha uma carta menor.')
+    const lost = snap({ ...base, phase: 'gameOver', lives: 0, playedCards: [card(50, '1')], lastCutterPlayer: '1' })
+    expect(speechForEvents(['cut', 'lose'], lost)?.text).toBe('Acabaram os enfeites. Fim de jogo!')
+  })
+
+  it('toda fala possível passa nas regras da voz', () => {
+    const lines = [
+      ...[1, 2, 9, 10].flatMap((round) => [newLevelLine(round), levelDoneLine(round, 10)]),
+      finalLine({ winner: null, winnerName: '', mode: 'coop' }),
+      finalLine({ winner: null, winnerName: '', mode: 'versus' }),
+      finalLine({ winner: 'team', winnerName: '', mode: 'coop' }),
+      finalLine({ winner: '2', winnerName: 'Beto', mode: 'versus' }),
+      TIMEOUT_LINE,
+      TIMEOUT_VERSUS_LINE,
+      mistakeSpoken({ key: 'k', cutterId: '1', cutterName: 'Ana', card: 9, hidden: [], victimId: null, victimName: null, coop: true }),
+    ]
+    for (const line of lines) expect(spokenLineProblems(line), line).toEqual([])
   })
 })

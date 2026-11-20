@@ -133,6 +133,28 @@ class Command(BaseCommand):
                 "is_active": True,
             },
             {
+                "slug": "cozinha-da-ceia",
+                "name": "Cozinha da Ceia",
+                "description": (
+                    "Dois times, duas cozinhas na TV: cada um cuida de uma estação pelo celular. "
+                    "Corte, cozinhe, tire antes de queimar e entregue a ceia antes do outro time."
+                ),
+                "min_players": 2,
+                "max_players": 15,
+                "is_active": True,
+            },
+            {
+                "slug": "fabrica-de-presentes",
+                "name": "Fábrica de Presentes",
+                "description": (
+                    "Time contra time na esteira do Papai Noel: cada um tem só algumas peças no "
+                    "celular. Gritem quem tem o laço dourado e encham o trenó antes do outro time."
+                ),
+                "min_players": 2,
+                "max_players": 15,
+                "is_active": True,
+            },
+            {
                 "slug": "corrida-de-vassouras",
                 "name": "Corrida de Vassouras",
                 "description": (

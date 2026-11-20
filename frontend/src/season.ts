@@ -11,6 +11,8 @@ export const SEASON_SLUGS = [
   'espiao-assombrado', // Espião de Natal
   'pergunta-trocada',
   'duas-verdades', // Duas Verdades, Uma Mentira
+  'cozinha-da-ceia', // time contra time
+  'fabrica-de-presentes', // time contra time
   'abobora-bomba', // Presente-Bomba (batata quente)
   'retrato-assombrado', // Retrato de Natal (espião desenhado)
   'cidade-dorme', // Vila Dorme
@@ -23,6 +25,14 @@ export const SEASON_SLUGS = [
  * host ainda solta efeitos na mão pelo painel.
  */
 export const AUTO_SCARES = false
+
+/**
+ * Visitas de Natal automáticas na TV: de tempos em tempos (≈1–2,5 min) uma
+ * visita fofa aparece num canto ou no fundo (biscoito, Papai Noel lá no céu,
+ * pinguim...). Respeita revelações/votações e a narração, e dá para desligar
+ * no controle do canto da TV ("Visitas de Natal").
+ */
+export const AMBIENT_CAMEOS = true
 
 export type SeasonSlug = (typeof SEASON_SLUGS)[number]
 

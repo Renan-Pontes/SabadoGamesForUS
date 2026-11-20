@@ -687,11 +687,13 @@ class CatalogTests(TestCase):
         "corrida-de-vassouras": ("Corrida de Vassouras", 2, 15),
         "pergunta-trocada": ("Pergunta Trocada", 3, 15),
         "duas-verdades": ("Duas Verdades, Uma Mentira", 3, 15),
+        "cozinha-da-ceia": ("Cozinha da Ceia", 2, 15),
+        "fabrica-de-presentes": ("Fábrica de Presentes", 2, 15),
     }
 
     def test_seed_creates_the_ten_halloween_games(self):
         call_command("seed_games", stdout=io.StringIO())
-        self.assertEqual(Game.objects.count(), 37, "10 de Halloween + 2 de Natal + os 25 de sempre")
+        self.assertEqual(Game.objects.count(), 39, "10 de Halloween + 4 de Natal + os 25 de sempre")
         for slug, (name, low, high) in self.EXPECTED.items():
             game = Game.objects.get(slug=slug)
             self.assertEqual((game.name, game.min_players, game.max_players), (name, low, high))
@@ -700,7 +702,7 @@ class CatalogTests(TestCase):
             self.assertTrue(all(ord(char) < 0x2000 for char in game.name), f"{name}: sem emoji")
         # Rodar de novo não duplica nada.
         call_command("seed_games", stdout=io.StringIO())
-        self.assertEqual(Game.objects.count(), 37)
+        self.assertEqual(Game.objects.count(), 39)
 
     def test_slug_list_matches_the_table(self):
         self.assertEqual(list(HALLOWEEN_SLUGS), list(self.EXPECTED))

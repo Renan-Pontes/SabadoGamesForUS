@@ -1,4 +1,4 @@
-import { speak } from '../../lib/narrator'
+import { narrationWorthIt, speak } from '../../lib/narrator'
 import { MUSIC_LEVEL, applyVolumes, buildGraph as buildAudioGraph, hushMusicOn, playSfxOn } from './graph'
 import { isLoudSfx } from './loud'
 import type { AudioGraph } from './graph'
@@ -292,13 +292,19 @@ export function speakSpooky(text: string, options: SpookyVoiceOptions = {}): () 
  * fala de duende); o grosso da graça vem dos efeitos sonoros e da tela.
  */
 export function speakFestive(text: string, options: SpookyVoiceOptions = {}): () => void {
-  return narrate(text, { pitch: options.pitch ?? 1.05, rate: options.rate ?? 1.03 })
+  // Tom e velocidade travados perto do natural: pedir voz de Papai Noel
+  // (0,85) ou de duende (1,8) só deixava a voz do navegador robótica.
+  const pitch = Math.min(1.05, Math.max(0.95, options.pitch ?? 1))
+  const rate = Math.min(1.08, Math.max(0.92, options.rate ?? 1.02))
+  return narrate(text, { pitch, rate })
 }
 
 function narrate(text: string, voiceOptions: { pitch: number; rate: number }): () => void {
   const options = voiceOptions
   const s = getSoundState()
-  if (s.muted || !text.trim()) return () => undefined
+  // Narração desligada no controle da TV, ou só voz robótica e ninguém escolheu
+  // uma: os jogos seguem só com texto e efeitos.
+  if (s.muted || !s.voice || !narrationWorthIt() || !text.trim()) return () => undefined
   // Chrome só deixa falar depois de algum gesto na página.
   if (!s.unlocked && !hasUserActivation()) return () => undefined
 

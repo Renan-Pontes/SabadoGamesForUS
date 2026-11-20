@@ -1,0 +1,490 @@
+/*
+ * Visitas de Natal (prefixo hwc-). Pequenas, nos cantos e no fundo; só
+ * transform e opacity (as TVs são fracas); cada uma roda uma vez em
+ * var(--hwc-dur) e some sozinha. Nada pisca, nada treme, nada cobre a tela.
+ */
+
+.hwc-root {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* No cenário: por cima do céu/morros (z 0, depois no DOM), atrás do conteúdo (.app-content, z 1). */
+.hwc-root--back {
+  z-index: 0;
+}
+
+/* Cantinho por cima do jogo (acima da vinheta da neve, abaixo do controle da TV e dos diálogos). */
+.hwc-root--front {
+  z-index: 45;
+}
+
+.hwc-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* Só quem atravessa a tela ganha camada própria (barato para a GPU da TV). */
+.hwc-cookie,
+.hwc-santa,
+.hwc-snowman,
+.hwc-penguin,
+.hwc-shooting,
+.hwc-chute,
+.hwc-deer,
+.hwc-elf,
+.hwc-peek {
+  will-change: transform;
+}
+
+/* --- Biscoito: espia do canto de baixo à esquerda, acena, pisca e volta ---- */
+
+.hwc-cookie {
+  position: absolute;
+  left: 4vw;
+  bottom: 0;
+  width: 13vmin;
+  transform: translateY(110%);
+  animation: hwc-peek-up var(--hwc-dur, 6000ms) ease-in-out forwards;
+}
+
+.hwc-cookie-arm {
+  transform-box: fill-box;
+  transform-origin: 10% 80%;
+  animation: hwc-wave 520ms ease-in-out 1100ms 6 alternate;
+}
+
+.hwc-cookie-wink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hwc-wink 420ms ease-in-out 2600ms 1;
+}
+
+@keyframes hwc-peek-up {
+  0% { transform: translateY(110%) rotate(10deg); }
+  15% { transform: translateY(22%) rotate(5deg); }
+  50% { transform: translateY(20%) rotate(-2deg); }
+  82% { transform: translateY(22%) rotate(4deg); }
+  100% { transform: translateY(110%) rotate(10deg); }
+}
+
+@keyframes hwc-wave {
+  from { transform: rotate(18deg); }
+  to { transform: rotate(-22deg); }
+}
+
+@keyframes hwc-wink {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.15); }
+}
+
+/* --- Papai Noel: cruza o alto do céu, pequeno, atrás do conteúdo ---------- */
+
+.hwc-santa {
+  position: absolute;
+  top: 7vh;
+  left: 0;
+  width: 20vmin;
+  opacity: 0;
+  animation: hwc-fly-right var(--hwc-dur, 10000ms) linear forwards;
+}
+
+.hwc-bob {
+  animation: hwc-bob 1600ms ease-in-out infinite alternate;
+}
+
+.hwc-santa-gift {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: hwc-gift-wiggle 900ms ease-in-out infinite alternate;
+}
+
+.hwc-dust {
+  animation: hwc-dust 1200ms ease-out infinite;
+  animation-delay: calc(var(--hwc-i, 0) * 160ms);
+}
+
+@keyframes hwc-fly-right {
+  0% { transform: translate3d(-24vmin, 3vh, 0); opacity: 0; }
+  6% { opacity: 0.95; }
+  50% { transform: translate3d(48vw, 0, 0); }
+  94% { opacity: 0.95; }
+  100% { transform: translate3d(calc(100vw + 4vmin), 2vh, 0); opacity: 0; }
+}
+
+@keyframes hwc-bob {
+  from { transform: translateY(0); }
+  to { transform: translateY(-1.4vmin); }
+}
+
+@keyframes hwc-gift-wiggle {
+  from { transform: rotate(-8deg); }
+  to { transform: rotate(8deg); }
+}
+
+@keyframes hwc-dust {
+  0% { opacity: 0.9; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(-2vmin); }
+}
+
+/* --- Boneco de neve: sobe no canto direito, acena, o chapéu pula ---------- */
+
+.hwc-snowman {
+  position: absolute;
+  /* Longe do controle da TV (canto direito, 58 px). */
+  right: 8vw;
+  bottom: 0;
+  width: 12vmin;
+  transform: translateY(110%);
+  animation: hwc-rise var(--hwc-dur, 7000ms) ease-in-out forwards;
+}
+
+.hwc-snow-arm {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  animation: hwc-wave 560ms ease-in-out 1000ms 4 alternate;
+}
+
+.hwc-snow-hat {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: hwc-hat-pop var(--hwc-dur, 7000ms) ease-in-out forwards;
+}
+
+@keyframes hwc-rise {
+  0% { transform: translateY(110%); }
+  14% { transform: translateY(8%); }
+  84% { transform: translateY(8%); }
+  100% { transform: translateY(110%); }
+}
+
+@keyframes hwc-hat-pop {
+  0%, 47% { transform: translateY(0) rotate(0); }
+  52% { transform: translateY(-90%) rotate(-18deg); }
+  57% { transform: translateY(-120%) rotate(-30deg); }
+  64% { transform: translateY(0) rotate(6deg); }
+  68%, 100% { transform: translateY(0) rotate(0); }
+}
+
+/* --- Pinguim: escorrega de barriga pelos morros, atrás do conteúdo ------- */
+
+.hwc-penguin {
+  position: absolute;
+  left: 0;
+  bottom: 2.5vh;
+  width: 15vmin;
+  animation: hwc-slide-right var(--hwc-dur, 7000ms) cubic-bezier(0.35, 0.1, 0.55, 1) forwards;
+}
+
+.hwc-wobble {
+  animation: hwc-wobble 700ms ease-in-out infinite alternate;
+}
+
+.hwc-puff {
+  animation: hwc-dust 600ms ease-out infinite;
+  animation-delay: calc(var(--hwc-i, 0) * 140ms);
+}
+
+@keyframes hwc-slide-right {
+  0% { transform: translate3d(-18vmin, 0, 0); }
+  100% { transform: translate3d(calc(100vw + 4vmin), 0, 0); }
+}
+
+@keyframes hwc-wobble {
+  from { transform: rotate(-3deg); }
+  to { transform: rotate(2deg); }
+}
+
+/* --- Estrela cadente: risca o céu lá no alto, atrás do conteúdo ---------- */
+
+.hwc-sky-path {
+  position: absolute;
+  top: 20vh;
+  right: 4vw;
+  width: 0;
+  height: 0;
+  transform: rotate(-12deg);
+  transform-origin: 0 0;
+}
+
+.hwc-shooting {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  animation: hwc-shoot var(--hwc-dur, 4500ms) cubic-bezier(0.3, 0.2, 0.7, 0.9) forwards;
+}
+
+.hwc-star {
+  position: absolute;
+  left: -2.5vmin;
+  top: -2.5vmin;
+  width: 5vmin;
+}
+
+.hwc-star-trail {
+  position: absolute;
+  left: 0;
+  top: -0.35vmin;
+  width: 20vmin;
+  height: 0.7vmin;
+  border-radius: 1vmin;
+  background: linear-gradient(90deg, rgba(255, 233, 170, 0.95), rgba(255, 233, 170, 0));
+}
+
+@keyframes hwc-shoot {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  10% { opacity: 1; }
+  75% { opacity: 1; }
+  100% { transform: translate3d(-80vw, 0, 0); opacity: 0; }
+}
+
+/* --- Presente de paraquedas: desce pela borda esquerda e pousa no canto --- */
+
+.hwc-chute {
+  position: absolute;
+  left: 4vw;
+  top: 0;
+  width: 10vmin;
+  animation: hwc-fall var(--hwc-dur, 8000ms) linear forwards;
+}
+
+.hwc-sway {
+  transform-origin: 50% 0;
+  animation: hwc-sway 1800ms ease-in-out infinite alternate;
+}
+
+.hwc-canopy {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: hwc-deflate var(--hwc-dur, 8000ms) ease-in forwards;
+}
+
+.hwc-sparkle {
+  position: absolute;
+  left: 50%;
+  bottom: 2vmin;
+  color: #ffd975;
+  font-size: 3vmin;
+  line-height: 1;
+  opacity: 0;
+  animation: hwc-sparkle var(--hwc-dur, 8000ms) ease-out forwards;
+}
+
+@keyframes hwc-fall {
+  0% { transform: translate3d(0, -20vmin, 0); opacity: 0; }
+  6% { opacity: 1; }
+  69% { transform: translate3d(0, calc(100vh - 16vmin), 0); }
+  90% { transform: translate3d(0, calc(100vh - 16vmin), 0); opacity: 1; }
+  100% { transform: translate3d(0, calc(100vh - 16vmin), 0); opacity: 0; }
+}
+
+@keyframes hwc-sway {
+  from { transform: rotate(-7deg); }
+  to { transform: rotate(7deg); }
+}
+
+@keyframes hwc-deflate {
+  0%, 68% { transform: scaleY(1); opacity: 1; }
+  78%, 100% { transform: scaleY(0.25); opacity: 0; }
+}
+
+@keyframes hwc-sparkle {
+  0%, 69% { transform: translate(0, 0) scale(0.4); opacity: 0; }
+  74% { opacity: 1; }
+  88% { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 0.9; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 0; }
+}
+
+/* --- Renazinha: pula pelos morros da direita para a esquerda ------------- */
+
+.hwc-deer {
+  position: absolute;
+  right: 0;
+  bottom: 3vh;
+  width: 12vmin;
+  animation: hwc-run-left var(--hwc-dur, 8000ms) linear forwards;
+}
+
+.hwc-hop {
+  animation: hwc-hop 700ms ease-in-out infinite;
+}
+
+@keyframes hwc-run-left {
+  0% { transform: translate3d(14vmin, 0, 0); }
+  100% { transform: translate3d(calc(-100vw - 4vmin), 0, 0); }
+}
+
+@keyframes hwc-hop {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  45% { transform: translateY(-4.5vmin) rotate(-6deg); }
+  70% { transform: translateY(-2vmin) rotate(3deg); }
+}
+
+/* --- Duende da chaminé: sai da chaminé da casinha dos morros ------------- */
+
+/*
+ * A chaminé da casinha (SnowBackdrop: x 537,5 de 1000; topo em y 114 de 200).
+ * Os morros esticam pela largura da tela e se apoiam no chão, então o topo da
+ * chaminé fica a 53,75vw da esquerda e a (200 − 114) / 1000 × 100vw do chão
+ * — mas a faixa dos morros tem altura fixa (--hwc-hills-h: 15vh na TV) e, numa
+ * tela larga, corta o telhado: aí o duende sai da beirada de cima da casinha.
+ * A caixa corta o duende nessa linha: ele sobe de dentro da casa.
+ */
+.hwc-chimney {
+  position: absolute;
+  left: calc(53.75vw - 3.5vmin);
+  bottom: calc(min(8.6vw, var(--hwc-hills-h, 15vh)) - 0.4vmin);
+  width: 7vmin;
+  height: 9vmin;
+  overflow: hidden;
+}
+
+.hwc-elf {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  transform: translateY(105%);
+  animation: hwc-chimney-pop var(--hwc-dur, 6500ms) ease-in-out forwards;
+}
+
+.hwc-elf-arms {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: hwc-cheer 400ms ease-in-out 1800ms 4 alternate;
+}
+
+.hwc-confetti-origin {
+  position: absolute;
+  left: 53.75vw;
+  bottom: calc(min(8.6vw, var(--hwc-hills-h, 15vh)) + 7vmin);
+  width: 0;
+  height: 0;
+}
+
+.hwc-confetti {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1.1vmin;
+  height: 1.6vmin;
+  border-radius: 0.2vmin;
+  opacity: 0;
+  animation: hwc-confetti 2600ms ease-out 2000ms forwards;
+}
+
+@keyframes hwc-chimney-pop {
+  0%, 8% { transform: translateY(105%); }
+  20% { transform: translateY(0); }
+  80% { transform: translateY(0); }
+  92%, 100% { transform: translateY(105%); }
+}
+
+@keyframes hwc-cheer {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(1.12) translateY(-4%); }
+}
+
+@keyframes hwc-confetti {
+  0% { transform: translate(0, 0) rotate(0); opacity: 0; }
+  8% { opacity: 1; }
+  45% { transform: translate(var(--dx), var(--dy)) rotate(200deg); opacity: 1; }
+  100% { transform: translate(calc(var(--dx) * 1.3), calc(var(--dy) + 12vmin)) rotate(480deg); opacity: 0; }
+}
+
+/* --- Desconfiado: um duende espia do canto de baixo à esquerda, sobrancelha erguida --- */
+
+.hwc-peek {
+  position: absolute;
+  left: 0;
+  bottom: 1vh;
+  width: 13vmin;
+  transform: translateX(-110%);
+  animation: hwc-peek-side var(--hwc-dur, 4800ms) ease-in-out forwards;
+}
+
+.hwc-brow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hwc-brow 380ms ease-in-out 900ms 4 alternate;
+}
+
+.hwc-bubble {
+  position: absolute;
+  left: 11vmin;
+  bottom: calc(1vh + 10vmin);
+  max-width: 40vw;
+  padding: 0.6em 1em;
+  border-radius: 1.2em;
+  background: #fffaf0;
+  color: #1d2433;
+  font-weight: 800;
+  font-size: clamp(1.3rem, 3.2vmin, 2.6rem);
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 0.4vmin 0 rgba(0, 0, 0, 0.25);
+  transform-origin: 0 100%;
+  opacity: 0;
+  animation: hwc-bubble var(--hwc-dur, 4800ms) ease-out forwards;
+}
+
+@keyframes hwc-peek-side {
+  0% { transform: translateX(-110%) rotate(0); }
+  14% { transform: translateX(-28%) rotate(10deg); }
+  50% { transform: translateX(-24%) rotate(6deg); }
+  84% { transform: translateX(-28%) rotate(10deg); }
+  100% { transform: translateX(-110%) rotate(0); }
+}
+
+@keyframes hwc-brow {
+  from { transform: translateY(0); }
+  to { transform: translateY(-14%); }
+}
+
+@keyframes hwc-bubble {
+  0%, 14% { transform: scale(0.6); opacity: 0; }
+  22% { transform: scale(1); opacity: 1; }
+  82% { transform: scale(1); opacity: 1; }
+  92%, 100% { transform: scale(0.9); opacity: 0; }
+}
+
+/* --- Versão calma (reduzir movimento): cartãozinho parado no canto ------- */
+
+.hwc-calm {
+  position: absolute;
+  left: 2vmin;
+  bottom: 2vmin;
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  max-width: min(46vw, 560px);
+  padding: 0.6em 1em;
+  border-radius: 1em;
+  background: rgba(6, 16, 31, 0.88);
+  border: 1px solid rgba(245, 194, 66, 0.45);
+  color: #fff6dc;
+  font-weight: 700;
+  font-size: clamp(1rem, 2.4vmin, 1.6rem);
+  line-height: 1.2;
+}
+
+.hwc-calm-icon {
+  font-size: 1.6em;
+  line-height: 1;
+}
+
+/* Rede de segurança: se o navegador pedir menos movimento, nada se mexe. */
+@media (prefers-reduced-motion: reduce) {
+  .hwc-root *,
+  .hwc-root *::before,
+  .hwc-root *::after {
+    animation: none !important;
+  }
+}

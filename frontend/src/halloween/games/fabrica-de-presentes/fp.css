@@ -1,0 +1,119 @@
+/* Fábrica de Presentes — animações da esteira, do trenó e da bagunça. */
+
+.fp-belt {
+  background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.10) 0 18px, rgba(0, 0, 0, 0.18) 18px 36px);
+  background-size: 36px 100%;
+  animation: fp-belt 1.2s linear infinite;
+}
+
+@keyframes fp-belt {
+  from { background-position: 0 0; }
+  to { background-position: 36px 0; }
+}
+
+.fp-to-sleigh {
+  animation: fp-to-sleigh 1.6s cubic-bezier(0.55, 0, 0.6, 1) both;
+}
+
+@keyframes fp-to-sleigh {
+  0% { transform: translate(0, 0) scale(1) rotate(0); opacity: 1; }
+  25% { transform: translate(0, -24%) scale(1.12) rotate(-6deg); opacity: 1; }
+  100% { transform: translate(120%, 70%) scale(0.25) rotate(18deg); opacity: 0; }
+}
+
+.fp-mess {
+  animation: fp-mess 1.4s ease-in both;
+}
+
+@keyframes fp-mess {
+  0% { transform: rotate(0) scale(1); opacity: 1; }
+  15% { transform: rotate(-12deg) scale(1.1); }
+  30% { transform: rotate(10deg) scale(1.05); }
+  45% { transform: rotate(-6deg) scale(0.95); opacity: 1; }
+  100% { transform: translate(-40%, 80%) rotate(-120deg) scale(0.2); opacity: 0; }
+}
+
+.fp-float-up {
+  animation: fp-float-up 1.8s ease-out both;
+}
+
+@keyframes fp-float-up {
+  0% { transform: translateY(20px) scale(0.6); opacity: 0; }
+  20% { transform: translateY(0) scale(1.15); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translateY(-50px) scale(1); opacity: 0; }
+}
+
+.fp-bob {
+  animation: fp-bob 1s ease-in-out infinite;
+}
+
+@keyframes fp-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.fp-next {
+  animation: fp-next 1.1s ease-in-out infinite;
+}
+
+@keyframes fp-next {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 194, 66, 0.0); }
+  50% { box-shadow: 0 0 0 6px rgba(245, 194, 66, 0.35); }
+}
+
+.fp-tap {
+  animation: fp-tap 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes fp-tap {
+  0% { transform: scale(1); }
+  35% { transform: scale(0.88); }
+  70% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+.fp-scrap {
+  animation: fp-scrap 1.3s ease-out both;
+}
+
+@keyframes fp-scrap {
+  0% { transform: translate(0, 0) rotate(0); opacity: 1; }
+  100% { transform: translate(var(--fp-dx, 40px), var(--fp-dy, 60px)) rotate(var(--fp-rot, 200deg)); opacity: 0; }
+}
+
+.fp-wiggle {
+  animation: fp-wiggle 2.4s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+@keyframes fp-wiggle {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+.fp-sleigh-ride {
+  animation: fp-sleigh-ride 3.2s ease-in-out infinite;
+}
+
+@keyframes fp-sleigh-ride {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-5px) rotate(1deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fp-belt,
+  .fp-bob,
+  .fp-next,
+  .fp-wiggle,
+  .fp-sleigh-ride {
+    animation: none;
+  }
+  .fp-to-sleigh,
+  .fp-mess,
+  .fp-float-up,
+  .fp-scrap,
+  .fp-tap {
+    animation-duration: 1ms;
+  }
+}

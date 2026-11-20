@@ -19,6 +19,10 @@ export type SoundSettings = {
   music: boolean
   /** Sustos aleatórios de tempos em tempos (só na TV). */
   randomScares: boolean
+  /** Narração por voz (a voz do navegador). Dá para desligar se soar robótica. */
+  voice: boolean
+  /** Visitas de Natal automáticas (um biscoito, o Papai Noel lá no céu...) de tempos em tempos (só na TV). */
+  cameos: boolean
 }
 
 export type SoundState = SoundSettings & {
@@ -30,8 +34,8 @@ export type SoundState = SoundSettings & {
 }
 
 export const SOUND_DEFAULTS: Record<SoundRole, SoundSettings> = {
-  tv: { muted: false, volume: 0.8, music: true, randomScares: true },
-  phone: { muted: true, volume: 0.8, music: true, randomScares: false },
+  tv: { muted: false, volume: 0.8, music: true, randomScares: true, voice: true, cameos: true },
+  phone: { muted: true, volume: 0.8, music: true, randomScares: false, voice: true, cameos: false },
 }
 
 const STORAGE_PREFIX = 'sabado_hw_sound_'
@@ -55,6 +59,8 @@ function loadSettings(role: SoundRole): SoundSettings {
       music: typeof parsed.music === 'boolean' ? parsed.music : base.music,
       randomScares:
         typeof parsed.randomScares === 'boolean' ? parsed.randomScares : base.randomScares,
+      voice: typeof parsed.voice === 'boolean' ? parsed.voice : base.voice,
+      cameos: typeof parsed.cameos === 'boolean' ? parsed.cameos : base.cameos,
     }
   } catch {
     // Sem localStorage (modo privado, teste em Node): fica no padrão.
@@ -64,10 +70,10 @@ function loadSettings(role: SoundRole): SoundSettings {
 
 function saveSettings(state: SoundState) {
   try {
-    const { muted, volume, music, randomScares } = state
+    const { muted, volume, music, randomScares, voice, cameos } = state
     window.localStorage.setItem(
       STORAGE_PREFIX + state.role,
-      JSON.stringify({ muted, volume, music, randomScares }),
+      JSON.stringify({ muted, volume, music, randomScares, voice, cameos }),
     )
   } catch {
     // Sem onde guardar: a preferência vale só até recarregar.
@@ -140,6 +146,14 @@ export function setMusicEnabled(music: boolean) {
 
 export function setRandomScaresEnabled(randomScares: boolean) {
   update({ randomScares }, true)
+}
+
+export function setVoiceEnabled(voice: boolean) {
+  update({ voice }, true)
+}
+
+export function setCameosEnabled(cameos: boolean) {
+  update({ cameos }, true)
 }
 
 /** Uso interno do motor de áudio. */

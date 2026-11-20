@@ -33,8 +33,10 @@ import { saveLastRoom } from '../lib/roomHistory'
 import { gameRoute, getGameColor, getGameMeta, PERFIL_THEMES } from '../lib/gameCatalog'
 import type { Game, Player, Room } from '../lib/types'
 import { isHalloweenSlug } from '../halloween/slugs'
+import { HOST_CAMEO_BUTTONS } from '../halloween/scare/cameos'
+import type { HostCameoButton } from '../halloween/scare/cameos'
 import {
-  FESTIVE_RANDOM,
+  CAMEO_RANDOM,
   RANDOM_SCARES_OFF,
   RANDOM_SCARES_ON,
   RANDOM_SCARES_TOGGLE,
@@ -819,48 +821,11 @@ export default function HostRoom() {
 }
 
 // ---------------------------------------------------------------------------
-// Efeitos da TV: o host anima a sala pelo celular (Natal: comédia, nada de susto)
+// Efeitos da TV: o host anima a sala pelo celular (Natal: só visitas fofas,
+// pequenas, nos cantos da TV — nada de tela cheia, nada de susto)
 // ---------------------------------------------------------------------------
 
-type ScareButton = {
-  kind: string
-  label: string
-  icon: string
-  /** O efeito usa o nome de alguém da mesa (sorteado na hora). */
-  named?: boolean
-  done: (name?: string) => string
-}
-
-const SCARES: ScareButton[] = [
-  {
-    kind: 'hohoho',
-    label: 'Ho ho ho!',
-    icon: '🎅',
-    named: true,
-    done: (name) => (name ? `🎅 Papai Noel vai pôr ${name} na lista dos malcriados!` : '🎅 Ho ho ho a caminho!'),
-  },
-  {
-    kind: 'zoom',
-    label: 'Zoom suspeito',
-    icon: '🤨',
-    named: true,
-    done: (name) => (name ? `🤨 A TV está desconfiada de ${name}...` : '🤨 Zoom suspeito enviado!'),
-  },
-  {
-    kind: 'secretSanta',
-    label: 'Amigo secreto',
-    icon: '🥁',
-    named: true,
-    done: (name) => (name ? `🥁 Rufem os tambores: o amigo secreto é ${name}!` : '🥁 Amigo secreto a caminho!'),
-  },
-  { kind: 'blizzard', label: 'Nevasca', icon: '🥶', done: () => '🥶 Nevasca na sala! Brrrr...' },
-  { kind: 'giftRain', label: 'Presentes', icon: '🎁', done: () => '🎁 Chuva de presentes na TV!' },
-  { kind: 'reindeer', label: 'Rena sem freio', icon: '🦌', done: () => '🦌 Sai da frente que a rena tá sem freio!' },
-  { kind: 'lightsParty', label: 'Pisca-pisca', icon: '💡', done: () => '💡 O pisca-pisca vai enlouquecer!' },
-  { kind: 'elfChoir', label: 'Duendes', icon: '🧝', done: () => '🧝 O coral dos duendes vai cantar!' },
-]
-
-/** Espera entre efeitos: cada um dura uns 3–4 s na TV (ela enfileira o próximo), e evita rajada de cliques. */
+/** Espera entre visitas: a TV enfileira a próxima, e evita rajada de cliques. */
 const FX_COOLDOWN_MS = 2500
 const MUSIC_KEY_PREFIX = 'sabado_tv_music_'
 const RANDOM_SCARES_KEY_PREFIX = 'sabado_tv_scares_'
@@ -915,7 +880,7 @@ function TvFxPanel({ code, players, tvConnected }: { code: string; players: Play
     }
   }
 
-  function scare(button: ScareButton) {
+  function scare(button: HostCameoButton) {
     const name = button.named ? pickVictim(players) : undefined
     send(name ? { scare: button.kind, name } : { scare: button.kind }, button.done(name))
   }
@@ -949,15 +914,15 @@ function TvFxPanel({ code, players, tvConnected }: { code: string; players: Play
         size="large"
         disabled={busy}
         onClick={() =>
-          send({ scare: FESTIVE_RANDOM }, '🎅 Surpresa a caminho! Olhe a cara da galera.')
+          send({ scare: CAMEO_RANDOM }, '🎄 Uma visita de Natal a caminho! Olhe os cantos da TV.')
         }
         sx={{ py: 1.7, fontSize: '1.08rem' }}
       >
-        🎅&nbsp;&nbsp;Surpresa na TV
+        🎄&nbsp;&nbsp;Surpresa na TV
       </Button>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 1, mt: 1.5 }}>
-        {SCARES.map((button) => (
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1, mt: 1.5 }}>
+        {HOST_CAMEO_BUTTONS.map((button) => (
           <Button
             key={button.kind}
             variant="outlined"
@@ -1028,8 +993,8 @@ function TvFxPanel({ code, players, tvConnected }: { code: string; players: Play
       >
         {feedback?.text ??
           (tvConnected
-            ? 'Os efeitos e a música tocam na TV.'
-            : 'A TV ainda não está aberta: os efeitos só aparecem quando ela conectar.')}
+            ? 'As visitas aparecem nos cantos da TV, e a música toca lá.'
+            : 'A TV ainda não está aberta: as visitas só aparecem quando ela conectar.')}
       </Typography>
     </Panel>
   )

@@ -39,18 +39,16 @@ function pick<T>(list: readonly T[], index: number): T {
   return list[((index % list.length) + list.length) % list.length]
 }
 
-const THEME_INTROS = [
-  'Ho ho ho! O tema é',
-  'Atenção, duendes! Tema',
-  'Valendo! O tema é',
-  'Segura o presente! Tema',
-  'Lá vem! O tema é',
-  'Pisca-pisca ligado! Tema',
-] as const
+const THEME_INTROS = ['Valendo! O tema é', 'Novo tema', 'Agora o tema é', 'Próximo tema'] as const
 
-/** O que a TV narra ao anunciar o tema. */
+/** O que a TV narra ao anunciar o tema (a única fala da rodada, fora quem sai do jogo). */
 export function themeLine(round: number, text: string): string {
-  return `${pick(THEME_INTROS, round - 1)}: ${text}!`
+  return `${pick(THEME_INTROS, round - 1)}: ${text}.`
+}
+
+/** Fala de quando alguém perde a última vida (o POF comum fica só no som e na tela). */
+export function outLine(name: string): string {
+  return `${name} virou boneco de neve e saiu do jogo.`
 }
 
 const BOOM_LINES: readonly ((name: string) => string)[] = [
@@ -69,7 +67,7 @@ const OUT_LINES: readonly ((name: string) => string)[] = [
   (name) => `Tchau, ${name}! Agora é enfeite de árvore.`,
 ]
 
-/** A piada do POF (TV fala e escreve a mesma frase). */
+/** A piada do POF (só na tela: a voz fica quieta no POF comum). */
 export function boomLine(round: number, name: string, eliminated: boolean): string {
   return eliminated ? pick(OUT_LINES, round - 1)(name) : pick(BOOM_LINES, round - 1)(name)
 }
@@ -81,10 +79,11 @@ export function prizeFor(round: number): string {
   return pick(PRIZES, round - 1)
 }
 
-/** Fala do fim: quem sobreviveu ao presente-bomba. */
+/** Fala do fim: quem sobreviveu ao presente-bomba (até 3 nomes; mais que isso, a voz não lista). */
 export function finalLine(names: string, count: number): string {
-  if (count === 0) return 'Feliz Natal! O presente-bomba venceu todo mundo!'
-  return `Feliz Natal! ${names} ${count === 1 ? 'sobreviveu' : 'sobreviveram'} ao presente-bomba!`
+  if (count === 0) return 'Fim de jogo! O presente estourou com todo mundo.'
+  if (count > 3) return 'Fim de jogo! Olhem quem sobreviveu na TV.'
+  return `Fim de jogo! ${names} ${count === 1 ? 'sobreviveu' : 'sobreviveram'} ao presente-bomba!`
 }
 
 /** Segundos inteiros para mostrar (para cima: 0,2 s ainda é "1"). */

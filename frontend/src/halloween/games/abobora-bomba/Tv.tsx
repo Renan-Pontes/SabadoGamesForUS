@@ -1,10 +1,11 @@
-import { memo, useEffect } from 'react'
+import { memo, useEffect, useRef } from 'react'
 import { Box, Typography } from '@mui/material'
+import { paceDelay } from '../../../lib/spokenLines'
 import { playSfx, speakFestive, useMusic } from '../../audio'
 import { listNames, nameOf } from '../../engine/helpers'
 import type { HPlayer, HalloweenViewProps } from '../../engine/types'
 import { useServerNow } from '../../framework/clockHooks'
-import { triggerScare, useSuppressScares, type ScareKind } from '../../scare'
+import { triggerScare, useSuppressScares, type Cameo } from '../../scare'
 import { CandleTimer, FESTIVE_ROUND_FONT, PlayerBadge } from '../../ui'
 import {
   ARRIVAL_GRACE_MS,
@@ -38,6 +39,7 @@ import {
   heartsText,
   heatLabel,
   moodFor,
+  outLine,
   prizeFor,
   savedText,
   seatPosition,
@@ -87,46 +89,48 @@ function useTvSounds(state: AbbState, players: HPlayer[], now: () => number) {
   const themeText = state.theme?.text ?? ''
   const champs = phase === 'final' ? winners(state) : []
   const finalText = phase === 'final' ? finalLine(listNames(champs.map((id) => nameOf(players, id))), champs.length) : ''
+  /** Quando a última fala começou: duas falas nunca saem coladas. */
+  const lastSpoke = useRef<number | null>(null)
 
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = []
     let stopVoice: (() => void) | null = null
     const later = (ms: number, run: () => void) => timers.push(setTimeout(run, ms))
+    const say = (ms: number, text: string) => {
+      if (!text) return
+      later(paceDelay(ms, lastSpoke.current, Date.now()), () => {
+        lastSpoke.current = Date.now()
+        stopVoice = speakFestive(text)
+      })
+    }
 
     if (phase === 'theme') {
       playSfx('sleigh', { volume: 0.8 })
-      later(700, () => {
-        stopVoice = speakFestive(themeLine(round, themeText))
-      })
+      say(700, themeLine(round, themeText))
     } else if (phase === 'play') {
       playSfx('fuse')
     } else if (phase === 'boom' && victim === null) {
-      // O host apagou o pavio: "ding" de alívio e brilhinho.
+      // O host apagou o pavio: "ding" de alívio e brilhinho (a tela diz o resto).
       playSfx('ding')
       playSfx('chime', { delay: 0.3 })
-      later(900, () => {
-        stopVoice = speakFestive('Ufa! O host salvou o Natal!')
-      })
     } else if (phase === 'boom') {
-      // POF: estouro, brilho de purpurina e o trombone triste da vítima.
+      // POF: estouro, brilho de purpurina e o trombone triste da vítima. A
+      // piada fica na tela; a voz só fala quando alguém sai do jogo.
       playSfx('pop', { volume: 1.4 })
       playSfx('boom', { volume: 0.8, delay: 0.05 })
       playSfx('chime', { volume: 0.9, delay: 0.2 })
       const sad = playSfx('fail', { volume: 0.8, delay: 1 })
-      later(1000 + Math.round(sad * 1000), () => {
-        stopVoice = speakFestive(boomLine(round, victimName, eliminated))
-      })
-      // Efeito de Natal só nos momentos grandes, depois da tela do POF: o
-      // primeiro boneco de neve ganha nevasca, o POF que decide o jogo chove
-      // presente e, de vez em quando, o zoom 🤨📸 em quem estourou.
-      const effect: ScareKind | null = firstOut ? 'blizzard' : decided ? 'giftRain' : Math.random() < 0.18 ? 'zoom' : null
-      if (effect) later(BOOM_REVEAL_MS + 300, () => triggerScare(effect, { name: victimName }))
+      if (eliminated) say(1000 + Math.round(sad * 1000), outLine(victimName))
+      // Visita de Natal só nos momentos grandes, depois da tela do POF: o
+      // primeiro a sair ganha o boneco de neve acenando do canto, o POF que
+      // decide o jogo traz um presente de paraquedas e, de vez em quando, o
+      // duende desconfiado 🤨 espia quem estourou.
+      const visit: Cameo | null = firstOut ? 'snowman' : decided ? 'parachuteGift' : Math.random() < 0.18 ? 'peek' : null
+      if (visit) later(BOOM_REVEAL_MS + 300, () => triggerScare(visit, { name: victimName }))
     } else if (phase === 'final') {
       playSfx('win')
       playSfx('sleigh', { delay: 0.8 })
-      later(1600, () => {
-        stopVoice = speakFestive(finalText)
-      })
+      say(1600, finalText)
     }
 
     return () => {

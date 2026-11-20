@@ -1,18 +1,8 @@
-import { listNames, nameOf } from '../../engine/helpers'
+import { nameOf } from '../../engine/helpers'
 import type { HPlayer } from '../../engine/types'
-import {
-  DAY_LINES,
-  DEATH_INTROS,
-  END_LINES,
-  LAST_NIGHT_LINE,
-  NIGHT_LINES,
-  NOBODY_OUT,
-  QUIET_LINES,
-  ROLE_INFO,
-  SAVED_LINES,
-  VOTE_LINE,
-} from './content'
-import { MAX_ROUNDS, MAX_SPOKEN_HAUNTS, type State } from './engine'
+import type { Cameo } from '../../scare/cameos'
+import { DAY_LINES, END_LINES, LAST_NIGHT_LINE, NIGHT_LINES, NOBODY_OUT, QUIET_LINES, ROLE_INFO, SAVED_LINES, VOTE_LINE } from './content'
+import { MAX_ROUNDS, type State } from './engine'
 
 /**
  * O roteiro da TV: o que ela fala e qual efeito toca em cada momento da
@@ -46,8 +36,8 @@ export type TvCue = {
   voice: 'cozy' | 'cheer'
   /** Quando falar (ms depois da entrada): no veredito, depois do rufar. */
   speechDelayMs: number
-  /** Susto de meme do momento (só em 1–2 momentos dramáticos da partida). */
-  scare: { kind: 'zoom' | 'bruh'; name?: string; delayMs: number } | null
+  /** Visita de Natal do momento (só em 1–2 momentos da partida): pequena, no canto da TV. */
+  scare: { kind: Extract<Cameo, 'peek' | 'penguin'>; name?: string; delayMs: number } | null
 }
 
 /** Quanto dura o rufar do veredito antes do resultado aparecer. */
@@ -67,44 +57,25 @@ function lineFor(lines: readonly string[], index: number): string {
   return lines[((index % lines.length) + lines.length) % lines.length]
 }
 
-/** Termina a frase com pontuação (o bilhete pode vir sem). */
-function sentence(text: string): string {
-  return /[.!?…]$/.test(text) ? text : `${text}.`
-}
-
-/** O que a TV fala ao entrar em cada momento. */
+/**
+ * O que a TV fala ao entrar em cada momento: uma frase curta por fase. Na
+ * manhã, só quem virou boneco de neve (e o papel) ou que ninguém virou — os
+ * cartõezinhos dos duendes e as bolas de neve ficam na tela.
+ */
 export function narration(state: State, players: readonly HPlayer[]): string {
   const name = (id: number) => nameOf(players, id)
   if (state.over) return state.final ? END_LINES[state.final.reason] : 'Fim da história. A partida foi encerrada.'
   switch (state.phase) {
     case 'roles':
-      return 'Bem-vindos à Vila Dorme! Olhem o papel de vocês, em segredo. E cuidado com os duendes.'
+      return 'Bem-vindos à Vila Dorme! Olhem seu papel no celular, em segredo.'
     case 'night':
       return state.round >= MAX_ROUNDS ? LAST_NIGHT_LINE : lineFor(NIGHT_LINES, state.round - 1)
     case 'morning': {
       const news = state.news
       if (!news) return ''
-      const parts: string[] = []
-      if (news.killed !== null) {
-        parts.push(`${lineFor(DEATH_INTROS, news.round - 1)} ${name(news.killed)} virou boneco de neve!`)
-        if (news.role) parts.push(`${ROLE_INFO[news.role].was}.`)
-      } else {
-        parts.push(lineFor(news.saved ? SAVED_LINES : QUIET_LINES, news.round - 1))
-      }
-      for (const note of news.notes) {
-        const spoken = speakable(note)
-        parts.push(
-          spoken ? `Um cartãozinho foi encontrado na neve: ${sentence(spoken)}` : 'Um cartãozinho foi encontrado na neve, só com figurinhas.',
-        )
-      }
-      if (news.haunts.length) {
-        // Até 3 nomes: a lista inteira com 10 bonecos de neve atropelaria o dia.
-        const spoken = news.haunts.slice(0, MAX_SPOKEN_HAUNTS).map((haunt) => name(haunt.id))
-        const more = news.haunts.length - spoken.length
-        const list = more > 0 ? `${spoken.join(', ')} e mais ${more}` : listNames(spoken)
-        parts.push(`Os bonecos de neve jogaram bola de neve em ${list}.`)
-      }
-      return speakable(parts.join(' '))
+      if (news.killed === null) return lineFor(news.saved ? SAVED_LINES : QUIET_LINES, news.round - 1)
+      const role = news.role ? ` ${ROLE_INFO[news.role].was}.` : ''
+      return speakable(`Bom dia! ${name(news.killed)} virou boneco de neve.${role}`)
     }
     case 'day':
       return lineFor(DAY_LINES, state.round - 1)
@@ -115,7 +86,7 @@ export function narration(state: State, players: readonly HPlayer[]): string {
       if (!verdict) return ''
       if (verdict.out === null) return NOBODY_OUT[verdict.reason === 'out' ? 'few' : verdict.reason]
       const role = verdict.role ? ` ${ROLE_INFO[verdict.role].was}!` : ''
-      return speakable(`A vila despachou ${name(verdict.out)} de trenó pro Polo Norte.${role}`)
+      return speakable(`${name(verdict.out)} foi de trenó pro Polo Norte.${role}`)
     }
     default:
       return ''
@@ -151,8 +122,8 @@ export function tvCue(state: State, players: readonly HPlayer[]): TvCue {
         ...base,
         stinger,
         speechDelayMs: SUSPENSE_MS + 400,
-        // 🤨📸 Zoom suspeito no duende pego — o meme do momento.
-        scare: caught && out !== null ? { kind: 'zoom', name: nameOf(players, out), delayMs: SUSPENSE_MS } : null,
+        // 🤨 O duende desconfiado espia o duende pego ("Hmm… Ana?").
+        scare: caught && out !== null ? { kind: 'peek', name: nameOf(players, out), delayMs: SUSPENSE_MS } : null,
       }
     }
     case 'end': {
@@ -162,8 +133,8 @@ export function tvCue(state: State, players: readonly HPlayer[]): TvCue {
         ...base,
         stinger: killersWon ? 'killers' : 'city',
         speechDelayMs: 900,
-        // Os duendes venceram: o "bruh" de meme — a vila passou vergonha.
-        scare: killersWon ? { kind: 'bruh', delayMs: 4500 } : null,
+        // Os duendes venceram: um pinguim escorrega pelos morros — a vila passou vergonha.
+        scare: killersWon ? { kind: 'penguin', delayMs: 4500 } : null,
       }
     }
     default:

@@ -8,6 +8,8 @@ import { CenterMessage, HalloweenFrame } from '../halloween/framework/Frame'
 import PhaseFlourish from '../halloween/framework/PhaseFlourish'
 import { ViewBoundary } from '../halloween/framework/ViewBoundary'
 import { HALLOWEEN_REGISTRY } from '../halloween/registry'
+import { CAMEOS, CAMEO_INFO, triggerScare } from '../halloween/scare'
+import type { Cameo } from '../halloween/scare'
 import { SEASON_SLUGS } from '../season'
 
 /**
@@ -67,6 +69,7 @@ export default function Preview() {
   const [view, setView] = useState(initial.view)
   const [step, setStep] = useState(initial.step)
   const [auto, setAuto] = useState(initial.auto)
+  const [cameo, setCameo] = useState<Cameo>('cookie')
   const game = HALLOWEEN_REGISTRY[slug]
   const players = useMemo(() => previewPlayers(count), [count])
 
@@ -169,6 +172,12 @@ export default function Preview() {
         <label>
           <input type="checkbox" checked={auto} onChange={(event) => setAuto(event.target.checked)} /> auto
         </label>
+        <select value={cameo} onChange={(event) => setCameo(event.target.value as Cameo)} aria-label="visita de Natal">
+          {CAMEOS.map((kind) => (
+            <option key={kind} value={kind}>{CAMEO_INFO[kind].icon} {CAMEO_INFO[kind].label}</option>
+          ))}
+        </select>
+        <button type="button" onClick={() => triggerScare(cameo, { name: players[0]?.name })}>testar visita</button>
       </Box>
 
       <Box sx={{ flex: 1, position: 'relative', ...(viewer ? { maxWidth: 430, width: '100%', mx: 'auto', borderInline: '1px dashed var(--border-medium)' } : {}) }}>

@@ -3,18 +3,18 @@ import { clearScareNames, emitScare, setScareNames, suppressScares } from './bus
 import type { ScareKind } from './bus'
 
 /**
- * Efeitos de tela cheia da TV — a API que os jogos usam.
+ * Efeitos da TV — a API que os jogos usam.
  *
- * Natal (cômicos, nada de susto):
- *   triggerScare('festive')                   // um efeito de Natal sorteado
- *   triggerScare('hohoho', { name: 'Pedro' }) // Papai Noel: "Pedro está na lista dos malcriados"
- *   triggerScare('blizzard')                  // nevasca, a sala inteira tremendo de frio
- *   triggerScare('giftRain')                  // chuva de presentes (o grandão é... meia)
- *   triggerScare('reindeer')                  // rena sem freio atravessa a tela com o trenó
- *   triggerScare('lightsParty')               // pisca-pisca enlouquecido (e queima o fusível)
- *   triggerScare('secretSanta', { name })     // rufar + holofote: "o amigo secreto é..."
- *   triggerScare('elfChoir')                  // coral de duendes cantando Jingle Bells
- *   triggerScare('zoom', { name: 'Pedro' })   // zoom suspeito no Pedro 🤨📸 (com gorro)
+ * Natal: só VISITAS (cameos.ts) — pequenas, nos cantos e no fundo, som
+ * baixinho, sem fala e sem susto:
+ *   triggerScare('cameo')                     // uma visita sorteada
+ *   triggerScare('peek', { name: 'Pedro' })   // duende desconfiado: "Hmm… Pedro?"
+ *   triggerScare('cookie')                    // biscoito de gengibre acena do canto
+ *   triggerScare('snowman')                   // boneco de neve acena (e o chapéu pula)
+ *   triggerScare('parachuteGift')             // presente desce de paraquedas
+ *   triggerScare('santaSleigh' | 'penguin' | 'shootingStar' | 'reindeerHop' | 'chimneyElf')
+ * Os efeitos de tela cheia de Natal ('hohoho', 'blizzard'...) e o zoom 🤨📸
+ * continuam no código, mas nenhum jogo da temporada os chama.
  *
  * Noite do Terror (jogos "Old"):
  *   triggerScare()                          // um susto sorteado (~2/3 assustadores, ~1/3 meme)
@@ -26,6 +26,20 @@ import type { ScareKind } from './bus'
  */
 
 export type { ConcreteScare, FestiveEffect, ScareKind, ScareRequest, XmasEffect } from './bus'
+export type { Cameo, CameoRequest, HostCameoButton } from './cameos'
+export {
+  CAMEOS,
+  CAMEO_INFO,
+  CAMEO_RANDOM,
+  HOST_CAMEO_BUTTONS,
+  RANDOM_CAMEOS,
+  isCameo,
+  isCameoRequest,
+  isCameoShowing,
+  onCameo,
+  pickCameo,
+  resolveCameo,
+} from './cameos'
 export {
   AUTO_SCARY_GAP_MS,
   FESTIVE_EFFECTS,
