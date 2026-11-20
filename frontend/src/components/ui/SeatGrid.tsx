@@ -1,6 +1,7 @@
 import { Box, Typography } from '@mui/material'
 import type { Player } from '../../lib/types'
-import { playerColor, playerInitials, playerLabel } from '../../games/utils'
+import { playerLabel } from '../../games/utils'
+import { ChristmasAvatar, useRosterAvatars } from '../../natal/avatars'
 
 type SeatGridProps = {
   players: Player[]
@@ -20,7 +21,8 @@ const ONE_ROW_LIMIT = 8
  * A mesa se enchendo. As cadeiras vazias são desenhadas de propósito: numa
  * TV de sala, ver quantos lugares faltam é mais útil do que só a lista de
  * quem já entrou. No Natal cada pessoa é uma bola de árvore (com o
- * pendurador dourado e o brilho) que entra quicando; a vaga é um presente.
+ * pendurador dourado) que entra quicando, com o avatar de Natal dela dentro
+ * — o mesmo que aparece no celular; a vaga é um presente.
  *
  * Os tamanhos vêm de variáveis CSS (`--seat-w`, `--seat-gap`) calculadas pela
  * largura da tela, e a largura máxima força fileiras equilibradas: 15 pessoas
@@ -35,6 +37,7 @@ export default function SeatGrid({
   const total = Math.max(players.length, Math.min(capacity ?? players.length, MAX_SEATS))
   const emptySeats = Math.max(0, total - players.length)
   const columns = total > ONE_ROW_LIMIT ? Math.ceil(total / 2) : Math.max(total, 1)
+  const avatarOf = useRosterAvatars(players)
 
   return (
     <Box
@@ -53,7 +56,8 @@ export default function SeatGrid({
       }}
     >
       {players.map((player, index) => {
-        const color = playerColor(player.id)
+        const avatar = avatarOf(player)
+        const color = avatar.color
         const online = player.online ?? true
 
         return (
@@ -80,11 +84,7 @@ export default function SeatGrid({
                 borderRadius: '50%',
                 display: 'grid',
                 placeItems: 'center',
-                fontFamily: 'var(--font-numeric)',
-                fontSize: 'calc(var(--seat-w) * 0.24)',
-                letterSpacing: '0.04em',
-                color: '#06101f',
-                background: `radial-gradient(circle at 32% 28%, ${color}, ${color}b3 70%)`,
+                background: color,
                 border: player.ready ? '3px solid var(--status-ready)' : '3px solid rgba(255,255,255,0.08)',
                 boxShadow: player.ready
                   ? '0 0 26px var(--slime-glow), 0 10px 24px rgba(0,0,0,0.45)'
@@ -105,22 +105,15 @@ export default function SeatGrid({
                   background: 'linear-gradient(180deg, #ffd975, #c48a12)',
                   boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
                 },
-                // Reflexo de vidro.
-                '&::after': {
-                  content: '""',
-                  position: 'absolute',
-                  top: '14%',
-                  left: '20%',
-                  width: '22%',
-                  height: '16%',
-                  borderRadius: '50%',
-                  background: 'rgba(255,255,255,0.55)',
-                  transform: 'rotate(-30deg)',
-                  pointerEvents: 'none',
-                },
               }}
             >
-              {playerInitials(player)}
+              <ChristmasAvatar
+                avatar={avatar}
+                size="100%"
+                animated={online}
+                frozen={!online}
+                title={`${playerLabel(player)}: ${avatar.label}`}
+              />
 
               {player.is_host && (
                 <Box

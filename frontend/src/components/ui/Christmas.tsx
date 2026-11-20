@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { Box } from '@mui/material'
 import type { SxProps, Theme } from '@mui/material'
+import { ChristmasAvatar, type AvatarInfo } from '../../natal/avatars'
 
 /**
  * Enfeites de Natal das telas fora de jogo (só SVG + CSS, nada de canvas:
@@ -28,6 +29,11 @@ const SLOTS: ReadonlyArray<readonly [number, number]> = [
 type ChristmasTreeProps = {
   /** Uma cor por pessoa na mesa: cada uma vira uma bola pendurada. */
   ornaments: readonly string[]
+  /**
+   * O avatar de cada pessoa (mesma ordem de `ornaments`): a bola vira o
+   * rostinho dela. Sem isso, bola lisa.
+   */
+  avatars?: readonly (AvatarInfo | undefined)[]
   /** Estrela acesa de verdade (ex.: todo mundo pronto). */
   lit?: boolean
   /** Altura do desenho (valor CSS). */
@@ -39,9 +45,9 @@ type ChristmasTreeProps = {
  * Pinheiro que ganha uma bola a cada pessoa que entra na sala. Os ganchos
  * vazios aparecem bem de leve — dá para ver que ainda cabe gente.
  *
- *   <ChristmasTree ornaments={players.map((p) => playerColor(p.id))} lit={everyoneReady} />
+ *   <ChristmasTree ornaments={avatars.map((a) => a.color)} avatars={avatars} lit={everyoneReady} />
  */
-export function ChristmasTree({ ornaments, lit = false, height = '140px', sx }: ChristmasTreeProps) {
+export function ChristmasTree({ ornaments, avatars, lit = false, height = '140px', sx }: ChristmasTreeProps) {
   const filled = ornaments.slice(0, SLOTS.length)
   return (
     <Box
@@ -77,6 +83,18 @@ export function ChristmasTree({ ornaments, lit = false, height = '140px', sx }: 
       {/* Uma bola por pessoa (a key pela posição: quem entra depois quica sozinho) */}
       {filled.map((color, index) => {
         const [x, y] = SLOTS[index]
+        const avatar = avatars?.[index]
+        if (avatar) {
+          const r = 6.4
+          return (
+            <g key={`ornament-${index}`} style={POP_IN}>
+              <rect x={x - 1.6} y={y - r - 2} width="3.2" height="2.4" rx="0.6" fill="#f5c242" />
+              <g transform={`translate(${x - r} ${y - r})`}>
+                <ChristmasAvatar avatar={avatar} size={r * 2} color={color} title="" />
+              </g>
+            </g>
+          )
+        }
         return (
           <g key={`ornament-${index}`} style={POP_IN}>
             <rect x={x - 1.6} y={y - 7.4} width="3.2" height="2.4" rx="0.6" fill="#f5c242" />

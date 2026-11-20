@@ -33,7 +33,7 @@ export const THEMES: readonly Theme[] = [
   { text: 'Presentes de amigo secreto baratinhos', icon: '💸', xmas: true },
   { text: 'Comidas que sobram no dia 26', icon: '🍽️', xmas: true },
   { text: 'Nomes para uma rena', icon: '🦌', xmas: true },
-  { text: 'O que o Grinch roubaria', icon: '💚', xmas: true },
+  { text: 'O que um duende ladrão roubaria', icon: '💚', xmas: true },
   { text: 'O que o Papai Noel faz nas férias', icon: '🏝️', xmas: true },
   { text: 'Coisas que brilham ou piscam', icon: '✨', xmas: true },
   { text: 'Coisas que dá para embrulhar', icon: '🎁', xmas: true },

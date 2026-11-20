@@ -34,7 +34,8 @@ type Config = {
 }
 
 const CONFIG: Record<SnowIntensity, Config> = {
-  tv: { aurora: 2, stars: 42, guide: true, flakes: 70, crystals: 10, hills: '22vh', sleigh: true, bulbs: 30, swags: 5, vignette: 0.45, frontFlakes: 6 },
+  // Morros baixos: as telas de jogo usam a TV inteira e o texto de baixo ficava em cima dos pinheiros.
+  tv: { aurora: 2, stars: 42, guide: true, flakes: 70, crystals: 10, hills: '15vh', sleigh: true, bulbs: 30, swags: 5, vignette: 0.45, frontFlakes: 6 },
   phone: { aurora: 1, stars: 18, guide: true, flakes: 28, crystals: 4, hills: '12vh', sleigh: false, bulbs: 12, swags: 2, vignette: 0.3, frontFlakes: 0 },
   subtle: { aurora: 0, stars: 10, guide: false, flakes: 14, crystals: 2, hills: null, sleigh: false, bulbs: 0, swags: 1, vignette: 0.2, frontFlakes: 0 },
 }

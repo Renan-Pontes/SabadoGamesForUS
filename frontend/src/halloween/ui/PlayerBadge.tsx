@@ -1,12 +1,22 @@
 import type { ReactNode } from 'react'
 import { Box } from '@mui/material'
 import { withAlpha } from './color'
+import { ChristmasAvatar, getAvatar, useAvatar, type AvatarId, type AvatarInfo } from '../../natal/avatars'
 import './spooky.css'
 
 type PlayerBadgeProps = {
   name: string
-  /** Cor do jogador (padrão: sai do nome, sempre a mesma). */
+  /**
+   * Cor da borda/brilho (padrão: a cor do avatar da pessoa). O avatar
+   * continua com a cor dele, para ser o mesmo do lobby e do celular.
+   */
   color?: string
+  /** Id do jogador: acha o avatar sem depender do nome. */
+  playerId?: number
+  /** Força um avatar (padrão: o da mesa, pelo RoomAvatarsProvider; sem mesa, pelo nome). */
+  avatar?: AvatarInfo | AvatarId
+  /** Avatar respirando/piscando (padrão: só no tamanho 'lg', o da TV). */
+  animated?: boolean
   /** Já agiu nesta fase (mostra ✓ sem revelar o quê). */
   acted?: boolean
   /** Saiu da rodada (virou boneco de neve). O nome `ghost` ficou do Halloween. */
@@ -21,29 +31,25 @@ type PlayerBadgeProps = {
   trailing?: ReactNode
 }
 
-/** Cores de enfeite de árvore: bem diferentes entre si (até 15 na mesa). */
-const COLORS = ['#ff5a66', '#4fd67e', '#f5c242', '#7fd8ff', '#ff8fd0', '#b49cff', '#ff9f43', '#2ec4b6', '#ffd975', '#5aa9ff']
-
-function colorFor(name: string) {
-  let hash = 0
-  for (let i = 0; i < name.length; i += 1) hash = (hash * 31 + name.charCodeAt(i)) % 9973
-  return COLORS[hash % COLORS.length]
-}
-
 const SIZES = {
-  sm: { height: 30, font: '0.85rem', avatar: 22, gap: 0.75, px: 0.75 },
-  md: { height: 38, font: '1rem', avatar: 28, gap: 1, px: 1 },
-  lg: { height: 56, font: '1.8rem', avatar: 42, gap: 1.25, px: 1.25 },
+  sm: { height: 30, font: '0.85rem', avatar: 24, gap: 0.75, px: 0.75 },
+  md: { height: 38, font: '1rem', avatar: 32, gap: 1, px: 1 },
+  lg: { height: 56, font: '1.8rem', avatar: 48, gap: 1.25, px: 1.25 },
 } as const
 
 /**
- * Nome do jogador em pílula: cor, ✓ de quem já agiu, ☃️ de quem saiu da rodada.
+ * Nome do jogador em pílula: avatar de Natal (o mesmo do lobby e do
+ * celular), ✓ de quem já agiu, ☃️ de quem saiu da rodada (avatar
+ * congelado com um boneco de neve no canto).
  *
  *   <PlayerBadge name={p.name} acted={state.acted?.includes(p.id)} ghost={dead} size="lg" />
  */
 export default function PlayerBadge({
   name,
   color,
+  playerId,
+  avatar,
+  animated,
   acted = false,
   ghost = false,
   host = false,
@@ -52,9 +58,10 @@ export default function PlayerBadge({
   highlight = false,
   trailing,
 }: PlayerBadgeProps) {
-  const tint = color ?? colorFor(name)
+  const fromRoom = useAvatar({ id: playerId, name })
+  const look = avatar === undefined ? fromRoom : typeof avatar === 'string' ? getAvatar(avatar) : avatar
+  const tint = color ?? look.color
   const s = SIZES[size]
-  const initial = name.trim().charAt(0).toUpperCase() || '?'
 
   return (
     <Box
@@ -82,21 +89,30 @@ export default function PlayerBadge({
         transition: 'opacity 300ms ease, border-color 300ms ease',
       }}
     >
-      <Box
-        sx={{
-          width: s.avatar,
-          height: s.avatar,
-          flexShrink: 0,
-          borderRadius: '50%',
-          display: 'grid',
-          placeItems: 'center',
-          background: ghost ? 'rgba(224, 242, 254, 0.2)' : tint,
-          color: '#06101f',
-          fontSize: `calc(${s.font} * 0.8)`,
-          fontWeight: 800,
-        }}
-      >
-        {ghost ? '☃️' : initial}
+      <Box sx={{ position: 'relative', width: s.avatar, height: s.avatar, flexShrink: 0 }}>
+        <ChristmasAvatar
+          avatar={look}
+          size={s.avatar}
+          frozen={ghost}
+          animated={animated ?? size === 'lg'}
+          title=""
+        />
+        {ghost && (
+          <Box
+            component="span"
+            aria-label="fora da rodada"
+            sx={{
+              position: 'absolute',
+              right: '-18%',
+              bottom: '-14%',
+              fontSize: `${Math.round(s.avatar * 0.52)}px`,
+              lineHeight: 1,
+              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))',
+            }}
+          >
+            ☃️
+          </Box>
+        )}
       </Box>
       <Box
         component="span"

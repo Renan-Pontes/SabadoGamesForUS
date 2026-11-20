@@ -27,14 +27,14 @@ export const PERFIL_THEMES = ['Pessoa', 'Lugar', 'Coisa', 'Ano', 'Ficção'] as 
 const CATALOG: Record<string, GameMeta> = {
   'read-my-mind': {
     icon: '🧠',
-    pitch: 'Joguem as cartas em ordem crescente sem trocar uma palavra.',
+    pitch: 'Sintonia de família na ceia: cartas de 1 a 100 na mesa, em ordem, sem dizer uma palavra.',
     duration: '10-15 min',
     vibe: 'Cooperativo',
     howTo: [
-      'Cada jogador recebe cartas de 1 a 100. Ninguém mostra a mão.',
-      'Sem falar nem dar sinais, joguem as cartas em ordem crescente.',
-      'No co-op vocês têm 3 vidas e precisam chegar à rodada 10 juntos.',
-      'No versus, quem cortar a sequência está eliminado.',
+      'Cada um recebe cartas de Natal de 1 a 100 no celular. Ninguém mostra a mão.',
+      'Sem falar nem dar sinais, joguem na mesa (a TV) em ordem crescente: toque na sua menor carta ou arraste para cima.',
+      'Se alguém se adiantar, a TV revela quem estava escondendo a menor — e cai um enfeite da árvore.',
+      'No co-op são 3 enfeites para abrir as 10 portinhas do calendário do Advento; no versus, quem se adiantar vira boneco de neve.',
     ],
   },
   'confinamento-solitario': {

@@ -11,6 +11,7 @@ import { isHalloweenSlug } from '../halloween/slugs'
 import { AppShell, GiftSvg, Snowman, LoadingScreen, MIST, Panel, RoomCode, TutorialOverlay, withAlpha } from '../components/ui'
 import { PlayerRoster } from '../games/ui'
 import { haptic } from '../games/utils'
+import { assignAvatars, ChristmasAvatar, type AvatarInfo } from '../natal/avatars'
 
 /** Recadinho da espera (um por pessoa, sempre o mesmo: sai do id do jogador). */
 const WAITING_TIPS = [
@@ -175,6 +176,9 @@ export default function PlayerController() {
   const isLive = room?.status === 'live'
   const tutorial = (room?.state?.tutorial ?? null) as { active: boolean; step: number } | null
   const statusColor = isReady ? 'var(--status-ready)' : 'var(--status-waiting)'
+  // Seu avatar de Natal sai da mesa inteira (igual à TV); só aparece quando
+  // a mesa chegou, para não trocar de bichinho na frente da pessoa.
+  const myAvatar = player ? assignAvatars(players).get(player.id) : undefined
 
   return (
     <AppShell
@@ -186,6 +190,8 @@ export default function PlayerController() {
       error={error}
       headerRight={<RoomCode code={roomCode} size="sm" accent={accent} label="SALA" />}
     >
+      {myAvatar && <YouAre avatar={myAvatar} name={player?.name || user?.nickname || 'Você'} />}
+
       {/* Status grande — é o que a pessoa checa de relance */}
       <Panel accent={statusColor} highlight snow>
         <Box sx={{ textAlign: 'center', py: 1, position: 'relative' }}>
@@ -337,5 +343,50 @@ export default function PlayerController() {
         />
       )}
     </AppShell>
+  )
+}
+
+/** "Esse é você na TV": o seu avatar grande, para achar a si mesmo na mesa. */
+function YouAre({ avatar, name }: { avatar: AvatarInfo; name: string }) {
+  return (
+    <Box
+      className="animate-pop-in"
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        mb: 2.5,
+        p: 1.5,
+        pr: 2,
+        borderRadius: 'var(--radius-lg, 20px)',
+        border: `2px solid ${withAlpha(avatar.color, 0.55)}`,
+        background: `linear-gradient(100deg, ${withAlpha(avatar.color, 0.22)}, rgba(6, 16, 31, 0.6) 70%)`,
+        boxShadow: `0 0 26px ${withAlpha(avatar.color, 0.25)}`,
+      }}
+    >
+      <Box sx={{ flexShrink: 0, borderRadius: '50%', boxShadow: `0 0 0 4px ${withAlpha(avatar.color, 0.35)}, 0 10px 24px rgba(0,0,0,0.45)` }}>
+        <ChristmasAvatar avatar={avatar} size={104} animated title={`Seu avatar: ${avatar.label}`} />
+      </Box>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography sx={{ fontSize: '0.72rem', letterSpacing: '0.18em', fontWeight: 800, color: 'var(--text-muted)' }}>
+          ESSE É VOCÊ NA TV
+        </Typography>
+        <Typography
+          sx={{
+            fontFamily: 'var(--font-display)',
+            fontSize: { xs: '1.7rem', sm: '2rem' },
+            lineHeight: 1.05,
+            letterSpacing: '0.03em',
+            color: avatar.color,
+            textShadow: `0 0 16px ${withAlpha(avatar.color, 0.45)}`,
+          }}
+        >
+          {avatar.article === 'a' ? 'A' : 'O'} {avatar.label}
+        </Typography>
+        <Typography noWrap sx={{ color: 'var(--text-secondary)', fontSize: '0.92rem', fontWeight: 700, mt: 0.25 }}>
+          {name}
+        </Typography>
+      </Box>
+    </Box>
   )
 }
