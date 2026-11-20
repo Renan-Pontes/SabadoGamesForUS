@@ -68,7 +68,7 @@ export const PAIRS: readonly QuestionPair[] = [
   p('Quem aqui seria o duende mais preguiçoso do Papai Noel?', 'Quem aqui seria o pior motorista de aplicativo?'),
   p('Quem aqui esconde o melhor pedaço do peru?', 'Quem aqui pega o último pedaço da pizza sem perguntar?'),
   p('Quem aqui esquece de comprar o presente do amigo secreto?', 'Quem aqui esquece o aniversário dos amigos?'),
-  p('Quem aqui seria o Grinch da festa?', 'Quem aqui reclama de tudo no restaurante?'),
+  p('Quem aqui seria o estraga-Natal da festa?', 'Quem aqui reclama de tudo no restaurante?'),
   p('Quem aqui puxaria a oração antes da ceia?', 'Quem aqui faria o discurso num casamento?'),
 
   // --- Poucas palavras ----------------------------------------------------

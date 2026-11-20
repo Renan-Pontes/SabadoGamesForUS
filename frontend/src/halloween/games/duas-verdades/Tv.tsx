@@ -356,7 +356,8 @@ function LetterCard({ card, font, look = 'open', shake = false, footer, index }:
         >
           {cardLetter(card.id)}
         </Box>
-        <Typography sx={{ flex: 1, minWidth: 0, fontSize: font, fontWeight: 800, lineHeight: 1.18, overflowWrap: 'anywhere', textDecoration: lie ? 'line-through' : 'none', textDecorationColor: withAlpha(RED, 0.6) }}>
+        {/* color: inherit — sem isso a regra global de <p> pintava o texto de azul-claro no cartão creme. */}
+        <Typography sx={{ flex: 1, minWidth: 0, color: 'inherit', fontSize: font, fontWeight: 800, lineHeight: 1.18, overflowWrap: 'anywhere', textDecoration: lie ? 'line-through' : 'none', textDecorationColor: withAlpha(RED, 0.6) }}>
           {card.text}
         </Typography>
         {truth && (
@@ -591,7 +592,7 @@ function FinalBoard({ state, players }: { state: DvState; players: HPlayer[] }) 
         />
         <AwardCard
           icon="🦌"
-          title="Nariz de Rudolph"
+          title="Nariz de Rena"
           names={awards.detectives.length ? namesOf(players, awards.detectives) : 'Ninguém farejou'}
           detail={awards.detectives.length ? `${awards.maxRight} ${awards.maxRight === 1 ? 'mentira achada' : 'mentiras achadas'}` : 'os mentirosos agradecem'}
           delay={1000}

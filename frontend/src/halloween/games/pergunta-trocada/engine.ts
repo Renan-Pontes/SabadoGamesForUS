@@ -495,7 +495,7 @@ export type PtAwards = {
   /** 🥸 Cara de pau: quem mais escapou como impostor. */
   bluffers: number[]
   maxEscapes: number
-  /** 🦌 Nariz de Rudolph: quem mais votou certo no impostor. */
+  /** 🦌 Nariz de Rena: quem mais votou certo no impostor. */
   sniffers: number[]
   maxSharp: number
 }

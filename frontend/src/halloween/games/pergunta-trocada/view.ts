@@ -161,7 +161,7 @@ export function revealCopy(result: PtResult, players: readonly HPlayer[]): Revea
     title: `ERA ${impostor.toUpperCase()}!`,
     subtitle: result.top.length ? `Deu empate na votação: ${impostor} escapou e leva +${ESCAPE_POINTS}` : `Ninguém votou: ${impostor} escapou e leva +${ESCAPE_POINTS}`,
     tone: 'pumpkin',
-    sound: 'laugh',
+    sound: 'giggle',
     headline: '🥸 O impostor escapou',
   }
 }

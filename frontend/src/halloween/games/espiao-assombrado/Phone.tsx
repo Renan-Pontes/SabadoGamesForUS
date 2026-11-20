@@ -735,7 +735,7 @@ function FinalPanel({ state, players, me }: Props) {
       label: 'Mestre do disfarce',
       value: awards.masterSpies.length ? `${namesOf(players, awards.masterSpies)} (${awards.maxSpyWins})` : 'Ninguém',
     },
-    { icon: '🦌', label: 'Nariz de Rudolph', value: awards.detectives.length ? `${namesOf(players, awards.detectives)} (${awards.maxSharp})` : 'Ninguém' },
+    { icon: '🦌', label: 'Nariz de Rena', value: awards.detectives.length ? `${namesOf(players, awards.detectives)} (${awards.maxSharp})` : 'Ninguém' },
   ]
   return (
     <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1.5 }}>

@@ -74,9 +74,12 @@ export function secretSantaGift(name?: string): string {
   return JOKE_GIFTS[hash % JOKE_GIFTS.length]
 }
 
-/** A fala do Papai Noel (em pt-BR o "h" é mudo: "Rô rô rô" soa como "ho ho ho"). */
+/**
+ * A fala do Papai Noel depois da risada. O "Ho ho ho" em si é o efeito
+ * sintetizado 'hohoho' — a voz do navegador lendo "Rô rô rô" soava robótica.
+ */
 export function santaLine(name?: string): string {
-  return name ? `Rô, rô, rô! ${name}... lista dos malcriados!` : 'Rô, rô, rô! Feliz Natal!'
+  return name ? `${name}... tá na lista dos malcriados!` : 'Feliz Natal, pessoal!'
 }
 
 /** Quando o Penetra some e a tela corta para a estática (casa com o fim do grito). */
@@ -220,7 +223,8 @@ export function playScareSound(kind: ConcreteScare, name?: string): () => void {
     case 'hohoho':
       playSfx('sleigh')
       playSfx('boing', { delay: 0.35, volume: 0.7 })
-      sayFestiveLater(santaLine(name), 300, 0.55, 0.85)
+      playSfx('hohoho', { delay: 0.45 })
+      sayFestiveLater(santaLine(name), 1800, 0.85, 0.95)
       playSfx(name ? 'buzzer' : 'chime', { delay: HOHOHO_SIGN_MS / 1000, volume: name ? 0.5 : 1 })
       break
     case 'blizzard':

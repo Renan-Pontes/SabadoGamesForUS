@@ -706,7 +706,7 @@ function FinalBoard({ state, players }: { state: EspiaoState; players: HPlayer[]
         />
         <AwardCard
           icon="🦌"
-          title="Nariz de Rudolph"
+          title="Nariz de Rena"
           names={awards.detectives.length ? namesOf(players, awards.detectives) : 'Ninguém farejou'}
           detail={awards.detectives.length ? `${awards.maxSharp} ${awards.maxSharp === 1 ? 'acusação certeira' : 'acusações certeiras'}` : 'os espiões agradecem'}
           delay={1000}

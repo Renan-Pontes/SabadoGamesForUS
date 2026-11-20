@@ -82,7 +82,7 @@ export const PLACES: readonly Place[] = [
     name: 'Trenó em Pane',
     icon: '🛷',
     aliases: ['trenó', 'trenó quebrado', 'trenó voador', 'trenó do noel'],
-    roles: ['Rudolph de nariz queimado', 'Papai Noel sem GPS', 'Mecânico de trenó', 'Rena com preguiça', 'Duende copiloto', 'Controlador de voo', 'Presente que caiu no caminho', 'Piloto de avião assustado'],
+    roles: ['Rena de nariz queimado', 'Papai Noel sem GPS', 'Mecânico de trenó', 'Rena com preguiça', 'Duende copiloto', 'Controlador de voo', 'Presente que caiu no caminho', 'Piloto de avião assustado'],
   },
   {
     name: 'Loja de Panetone',
@@ -238,7 +238,7 @@ export const PLACES: readonly Place[] = [
     name: 'Estábulo das Renas',
     icon: '🦌',
     aliases: ['renas', 'curral das renas', 'casa das renas'],
-    roles: ['Rena Rudolph', 'Rena que não voa', 'Veterinária', 'Tratador', 'Duende que limpa o chão', 'Rena fofoqueira', 'Treinador de voo', 'Papai Noel escalando o time'],
+    roles: ['Rena do nariz vermelho', 'Rena que não voa', 'Veterinária', 'Tratador', 'Duende que limpa o chão', 'Rena fofoqueira', 'Treinador de voo', 'Papai Noel escalando o time'],
   },
   {
     name: 'Hospedaria de Belém',

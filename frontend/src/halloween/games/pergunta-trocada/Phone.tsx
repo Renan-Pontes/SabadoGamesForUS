@@ -390,7 +390,7 @@ function FinalPanel({ state, players, me }: Props) {
   const rows: { icon: string; label: string; value: string }[] = [
     { icon: '🏆', label: 'Campeão da festa', value: awards.champions.length ? namesOf(players, awards.champions) : 'Ninguém' },
     { icon: '🥸', label: 'Cara de pau', value: awards.bluffers.length ? `${namesOf(players, awards.bluffers)} (${awards.maxEscapes})` : 'Ninguém' },
-    { icon: '🦌', label: 'Nariz de Rudolph', value: awards.sniffers.length ? `${namesOf(players, awards.sniffers)} (${awards.maxSharp})` : 'Ninguém' },
+    { icon: '🦌', label: 'Nariz de Rena', value: awards.sniffers.length ? `${namesOf(players, awards.sniffers)} (${awards.maxSharp})` : 'Ninguém' },
   ]
   return (
     <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1.5 }}>

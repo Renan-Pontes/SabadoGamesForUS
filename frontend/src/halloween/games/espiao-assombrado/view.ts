@@ -121,7 +121,7 @@ export function revealCopy(result: RoundResult, players: readonly HPlayer[]): Re
         title: `${convicted.toUpperCase()} ESCAPOU!`,
         subtitle: `Foi pego, mas acertou o lugar: ${place}`,
         tone: 'blood',
-        sound: 'laugh',
+        sound: 'giggle',
         headline: '🕵️ Os espiões venceram',
       }
     case 'guess-right':
@@ -157,7 +157,7 @@ export function revealCopy(result: RoundResult, players: readonly HPlayer[]): Re
         title: `${spyWord.toUpperCase()} ${spies.toUpperCase()}!`,
         subtitle: result.spies.length > 1 ? 'Ninguém foi condenado — saíram ilesos' : 'Ninguém foi condenado — saiu ileso',
         tone: 'blood',
-        sound: 'laugh',
+        sound: 'giggle',
         headline: '🕵️ Os espiões venceram',
       }
     case 'everyone':

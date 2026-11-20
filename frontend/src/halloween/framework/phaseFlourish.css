@@ -1,0 +1,54 @@
+/* Transição entre fases na TV (PhaseFlourish) */
+.phase-flourish {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* A fita: listra larga na cor do jogo com bordas douradas, cruzando em diagonal */
+.phase-flourish__ribbon {
+  position: absolute;
+  top: 50%;
+  left: -20vw;
+  width: 140vw;
+  height: 16vh;
+  margin-top: -8vh;
+  background:
+    linear-gradient(180deg, #f5c242 0 7%, transparent 7% 93%, #f5c242 93%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0 18px, transparent 18px 46px),
+    var(--pf-color, #e8394a);
+  box-shadow: 0 0 40px rgba(245, 194, 66, 0.45);
+  opacity: 0.92;
+  transform: rotate(-12deg) translateX(-150vw);
+  animation: pfRibbon 900ms cubic-bezier(0.45, 0.05, 0.4, 1) forwards;
+}
+
+@keyframes pfRibbon {
+  0% { transform: rotate(-12deg) translateX(-150vw); opacity: 0.95; }
+  60% { opacity: 0.95; }
+  100% { transform: rotate(-12deg) translateX(150vw); opacity: 0.2; }
+}
+
+.phase-flourish__spark {
+  position: absolute;
+  left: var(--pf-x);
+  top: var(--pf-y);
+  color: #fff6dc;
+  font-size: clamp(1.4rem, 3vmin, 2.6rem);
+  text-shadow: 0 0 12px rgba(245, 194, 66, 0.9);
+  opacity: 0;
+  animation: pfSpark 700ms ease-out forwards;
+  animation-delay: calc(180ms + var(--pf-delay, 0ms));
+}
+
+@keyframes pfSpark {
+  0% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+  35% { opacity: 1; transform: scale(1.25) rotate(40deg); }
+  100% { opacity: 0; transform: scale(0.6) translateY(-4vh) rotate(110deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phase-flourish { display: none; }
+}

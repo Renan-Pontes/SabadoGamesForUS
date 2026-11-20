@@ -149,20 +149,20 @@ function useTvSounds(state: State, players: HPlayer[]) {
           if (verdict === 'caught') {
             playSfx('boing')
             playSfx('win', { delay: 0.45 })
-            playSfx('laugh', { delay: 1 })
+            playSfx('giggle', { delay: 1 })
             say(`${accusedName} era o impostor! Direto pra lista dos malcriados!`)
           } else if (verdict === 'everyone') {
             playSfx('boing')
             playSfx('boing', { delay: 0.32 })
-            playSfx('laugh', { delay: 0.7 })
+            playSfx('giggle', { delay: 0.7 })
             say('Todo mundo era impostor! Que Natal é esse, gente?')
           } else if (verdict === 'nobody') {
             playSfx('chime')
-            playSfx('laugh', { delay: 0.5 })
+            playSfx('giggle', { delay: 0.5 })
             say('Ninguém era impostor! Milagre de Natal!')
           } else {
             playSfx('fail')
-            playSfx('laugh', { delay: 0.5 })
+            playSfx('giggle', { delay: 0.5 })
             say(verdict === 'tie' ? 'Empate! E o impostor fugiu de trenó!' : `${accusedName} era inocente! O impostor fugiu de trenó!`)
           }
         })
@@ -186,7 +186,7 @@ function useTvSounds(state: State, players: HPlayer[]) {
           if (word) later(900, () => say(`Acertou! A palavra era ${word}!`))
         } else if (guess === 'wrong') {
           playSfx('buzzer')
-          playSfx('laugh', { delay: 0.5 })
+          playSfx('giggle', { delay: 0.5 })
           if (word) later(1100, () => say(`Errou feio! A palavra era ${word}.`))
         } else {
           playSfx('reveal')

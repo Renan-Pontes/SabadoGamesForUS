@@ -421,7 +421,7 @@ function Present({ state, spot, t }: { state: AbbState; spot: Point; t: number }
           <PofBurst prize={prizeFor(state.round)} />
         ) : (
           <GiftBox
-            size={112}
+            size={150}
             fuse={play ? fuseFraction(state, holder, t) : null}
             lit={burning}
             mood={state.phase === 'boom' ? 'surprised' : moodFor(level)}

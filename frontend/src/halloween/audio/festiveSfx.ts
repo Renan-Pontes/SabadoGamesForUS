@@ -1,5 +1,5 @@
 import { freq } from './notes'
-import { bell as bellNote, clop, noiseHit, patch, pluckEnv, xylo } from './synth'
+import { bell as bellNote, clop, holdEnv, noiseHit, patch, pluckEnv, xylo } from './synth'
 import type { Voice } from './synth'
 
 /**
@@ -99,4 +99,73 @@ export function gallop(v: Voice, t: number, vol: number): number {
     clop(v, start + 0.14, 640, 1 * vol * near)
   }
   return strides * 0.27 + 0.1
+}
+
+/**
+ * Uma sílaba cantada por síntese de formantes: serra na altura `f0`
+ * passando por dois filtros de banda (as "vogais"), com um sopro de ruído
+ * no começo (o "h"). Base do "Ho ho ho" e da risadinha de duende.
+ */
+function syllable(
+  v: Voice,
+  t: number,
+  vol: number,
+  shape: { f0: number; f0End: number; formants: [number, number]; dur: number; breath: number; vibrato?: number },
+) {
+  const p = patch(v)
+  const source = p.osc('sawtooth', shape.f0)
+  source.frequency.setValueAtTime(shape.f0, t)
+  source.frequency.exponentialRampToValueAtTime(shape.f0End, t + shape.dur)
+  if (shape.vibrato) {
+    const lfo = p.osc('sine', 7)
+    const depth = p.gain(shape.f0 * shape.vibrato)
+    lfo.connect(depth).connect(source.frequency)
+    lfo.start(t)
+    lfo.stop(t + shape.dur + 0.15)
+  }
+  const out = p.gain(0)
+  for (const [index, formant] of shape.formants.entries()) {
+    const band = p.filter('bandpass', formant, index === 0 ? 5 : 7)
+    const level = p.gain(index === 0 ? 1 : 0.55)
+    source.connect(band).connect(level).connect(out)
+  }
+  holdEnv(out.gain, t, 0.9 * vol, 0.035, shape.dur * 0.75, shape.dur * 0.3)
+  p.toOut(out, 0.25)
+  source.start(t)
+  source.stop(t + shape.dur + 0.15)
+  p.finish()
+  if (shape.breath > 0) {
+    noiseHit(v, t - 0.02, { type: 'bandpass', freq: 1600, q: 0.8, peak: shape.breath * vol, decay: 0.07, wet: 0.1 })
+  }
+}
+
+/** "Ho! Ho! Ho!" do Papai Noel: três "rô" graves, cada um um tiquinho mais baixo. */
+export function hohoho(v: Voice, t: number, vol: number): number {
+  const pitches = [128, 118, 104]
+  pitches.forEach((f0, index) => {
+    syllable(v, t + index * 0.36, vol * (index === 2 ? 1.1 : 1), {
+      f0,
+      f0End: f0 * 0.82,
+      formants: [470, 820],
+      dur: index === 2 ? 0.42 : 0.26,
+      breath: 0.18,
+    })
+  })
+  return 1.25
+}
+
+/** Risadinha de duende ("hi-hi-hi-hi!"): agudinha, rápida e marota. */
+export function giggle(v: Voice, t: number, vol: number): number {
+  const pitches = [620, 700, 660, 760, 820]
+  pitches.forEach((f0, index) => {
+    syllable(v, t + index * 0.115, vol * 0.75, {
+      f0,
+      f0End: f0 * (index === pitches.length - 1 ? 1.25 : 0.9),
+      formants: [330, 2300],
+      dur: index === pitches.length - 1 ? 0.2 : 0.085,
+      breath: 0.12,
+      vibrato: 0.03,
+    })
+  })
+  return 0.8
 }

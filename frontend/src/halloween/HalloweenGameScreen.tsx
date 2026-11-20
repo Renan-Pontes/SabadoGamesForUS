@@ -7,6 +7,7 @@ import { useMusic } from './audio'
 import type { BaseState, HalloweenGameModule, HalloweenView, HalloweenViewProps } from './engine/types'
 import { CenterMessage, HalloweenFrame } from './framework/Frame'
 import { EndBar, HostBar } from './framework/HostControls'
+import PhaseFlourish from './framework/PhaseFlourish'
 import { HostSetupScreen, PlayerSetupScreen, TvSetupScreen } from './framework/SetupScreen'
 import { useHalloweenRoom, type HalloweenRoomApi } from './framework/useHalloweenRoom'
 import { ViewBoundary } from './framework/ViewBoundary'
@@ -230,6 +231,7 @@ function GameView({
   }
   const Screen = isTv ? game.Tv : game.Phone
   return (
+    <>
     <ViewBoundary
       resetKey={`${state.phase}:${state.round ?? ''}:${state.inputKey}:${state.over}`}
       fallback={(retry) => (
@@ -249,6 +251,10 @@ function GameView({
         <Screen {...props} />
       </Suspense>
     </ViewBoundary>
+    {/* Fita de presente cruzando a TV a cada fase nova (com whoosh e sininho).
+        Fora do ViewBoundary: ele recomeça a cada fase e a fita nunca animaria. */}
+    {isTv && <PhaseFlourish moment={`${state.phase}:${state.round ?? ''}:${state.over}`} color={game.meta.accent.main} />}
+    </>
   )
 }
 

@@ -125,8 +125,8 @@ describe('som dos efeitos de Natal', () => {
     const texts = calls.festive.map(({ text }) => text)
     expect(texts).toContain(santaLine('Ana'))
     expect(texts).toContain('Ana')
-    // Papai Noel fala grave; o duende, fino.
-    expect(calls.festive.find(({ text }) => text === santaLine('Ana'))?.pitch).toBeLessThan(0.8)
+    // Papai Noel fala mais grave que o normal; o duende, fino.
+    expect(calls.festive.find(({ text }) => text === santaLine('Ana'))?.pitch).toBeLessThan(1)
     expect(calls.festive.find(({ text }) => text === 'Feliz Natal!')?.pitch).toBeGreaterThan(1.4)
   })
 
@@ -137,8 +137,10 @@ describe('som dos efeitos de Natal', () => {
     expect(calls.festive).toEqual([])
   })
 
-  it('Papai Noel fala "Rô rô rô" (em pt-BR o "h" é mudo) e cita a lista dos malcriados', () => {
-    expect(santaLine()).toMatch(/^Rô, rô, rô!/)
+  it('Papai Noel ri com o efeito sintetizado e depois cita a lista dos malcriados', () => {
+    playScareSound('hohoho', 'Beto')
+    expect(calls.sfx.map(([name]) => name)).toContain('hohoho')
+    expect(santaLine()).not.toMatch(/Rô/)
     expect(santaLine('Beto')).toContain('Beto')
     expect(santaLine('Beto')).toContain('malcriados')
   })

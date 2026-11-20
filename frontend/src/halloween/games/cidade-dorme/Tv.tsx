@@ -180,7 +180,7 @@ function playStinger(stinger: Stinger | null, later: (ms: number, run: () => voi
       break
     case 'killers':
       // A risada de vilão dos duendes, com mola de desenho animado.
-      playSfx('laugh')
+      playSfx('giggle')
       playSfx('boing', { delay: 1.1 })
       break
     case 'ended':

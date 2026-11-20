@@ -145,6 +145,9 @@
   left: 0;
   right: 0;
   bottom: 0;
+  /* SVG absoluto não estica com left/right: sem largura explícita ele
+     desenhava só a proporção da altura (metade da TV). */
+  width: 100%;
   height: var(--xm-hills-h, 22vh);
   display: block;
 }
