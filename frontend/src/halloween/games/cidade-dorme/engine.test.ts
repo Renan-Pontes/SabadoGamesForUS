@@ -737,7 +737,7 @@ describe('narração', () => {
     expect(tvCue(morning, players)).toMatchObject({ moment: '1-morning', stinger: 'death', scare: null })
   })
 
-  it('anjo salvou, noite tranquila e veredito com zoom no assassino pego', () => {
+  it('anjo salvou, noite tranquila e veredito com o duende desconfiado no assassino pego', () => {
     const night = firstNight(6, SIX)
     expect(tvCue(night, players).speech).toBe(NIGHT_LINES[0])
     const saved = skip(night, { 1: { target: 4 }, 3: { target: 4 } })
@@ -746,7 +746,7 @@ describe('narração', () => {
     const caught = skip(vote, { 2: { vote: 1 }, 3: { vote: 1 } })
     const cue = tvCue(caught, players)
     expect(cue.stinger).toBe('caught')
-    expect(cue.scare).toMatchObject({ kind: 'zoom', name: players[0].name })
+    expect(cue.scare).toMatchObject({ kind: 'peek', name: players[0].name })
     expect(cue.speech).toBe(`A vila despachou ${players[0].name} de trenó pro Polo Norte. Era duende travesso!`)
     const end = skip(caught)
     expect(tvCue(end, players)).toMatchObject({ moment: '1-end', stinger: 'city', scare: null })

@@ -166,12 +166,9 @@ function useTvSounds(state: State, players: HPlayer[]) {
             say(verdict === 'tie' ? 'Empate! E o impostor fugiu de trenó!' : `${accusedName} era inocente! O impostor fugiu de trenó!`)
           }
         })
-        // O primeiro impostor que escapa na partida ganha o zoom suspeito 🤨.
+        // O primeiro impostor que escapa na partida ganha o duende desconfiado 🤨 ("Hmm… Ana?").
         if ((verdict === 'innocent' || verdict === 'tie') && firstEscape && sneaky) {
-          later(VERDICT_DELAY_MS + 2600, () => {
-            playSfx('boing')
-            triggerScare('zoom', { name: sneaky })
-          })
+          later(VERDICT_DELAY_MS + 2600, () => triggerScare('peek', { name: sneaky }))
         }
         break
       }

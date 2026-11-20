@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import type { MusicTrack, SfxName } from '../../audio'
 import { listNames, nameOf } from '../../engine/helpers'
 import type { HPlayer } from '../../engine/types'
+import type { Cameo } from '../../scare/cameos'
 import type { RevealTone } from '../../ui'
 import type { EspiaoState, Phase, RoundResult } from './engine'
 import { winnerOf, type Outcome } from './rules'
@@ -57,23 +58,23 @@ export function holdsScares(phase: Phase, over: boolean): boolean {
   return over || phase === 'accuse' || phase === 'final_vote' || phase === 'last_chance' || phase === 'result'
 }
 
-/** O que a TV escreve no zoom suspeito quando ninguém é inocente. */
+/** O que o duende desconfiado diz quando ninguém é inocente ("Hmm… TODO MUNDO?"). */
 export const EVERYONE_ZOOM_NAME = 'TODO MUNDO'
 
 /**
- * Piada da revelação (só na TV, uma vez por partida cada — repetida perde a
- * graça): a mesa condenou um inocente = "bruh"; o espião digitou o lugar
- * errado = cano de metal caindo; todo mundo era espião = zoom suspeito 🤨📸
- * em "TODO MUNDO".
+ * Visita de Natal da revelação (só na TV, uma vez por partida cada —
+ * repetida perde a graça): a mesa condenou um inocente = o boneco de neve
+ * perde o chapéu; o espião digitou o lugar errado = o pinguim escorrega;
+ * todo mundo era espião = o duende desconfiado de "TODO MUNDO".
  */
-export function revealMeme(outcome: Outcome): 'bruh' | 'pipe' | 'zoom' | null {
+export function revealMeme(outcome: Outcome): Extract<Cameo, 'snowman' | 'penguin' | 'peek'> | null {
   switch (outcome) {
     case 'innocent':
-      return 'bruh'
+      return 'snowman'
     case 'guess-wrong':
-      return 'pipe'
+      return 'penguin'
     case 'everyone':
-      return 'zoom'
+      return 'peek'
     default:
       return null
   }

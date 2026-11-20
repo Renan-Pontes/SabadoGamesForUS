@@ -29,8 +29,8 @@ import {
  * toalha xadrez de Natal, com uma plaquinha de lugar para cada um. Só desenha
  * o estado (quem decide é o motor) e nunca recebe segredo: as respostas
  * aparecem juntas depois que todo mundo respondeu, a pergunta de verdade
- * entra de mola ("boing") depois, e o impostor só na revelação — com o zoom
- * suspeito 🤨📸 no mais votado antes. Letras para 3 metros.
+ * entra de mola ("boing") depois, e o impostor só na revelação — com o
+ * duende desconfiado 🤨 espiando o mais votado antes. Letras para 3 metros.
  */
 
 const ACCENT = meta.accent
@@ -110,9 +110,9 @@ function usePhaseSounds(state: State, players: HPlayer[], now: () => number) {
         say(narration, 700)
         break
       case 'result':
-        // 1) zoom suspeito no mais votado; 2) rufar; 3) a manchete (o BigReveal toca o som dela).
+        // 1) o duende desconfiado espia o mais votado; 2) rufar; 3) a manchete (o BigReveal toca o som dela).
         if (accusedName) {
-          later(() => triggerScare('zoom', { name: accusedName }), 300)
+          later(() => triggerScare('peek', { name: accusedName }), 300)
         } else {
           playSfx('buzzer')
         }

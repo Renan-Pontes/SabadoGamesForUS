@@ -24,6 +24,14 @@ export const SEASON_SLUGS = [
  */
 export const AUTO_SCARES = false
 
+/**
+ * Visitas de Natal automáticas na TV: de tempos em tempos (≈1–2,5 min) uma
+ * visita fofa aparece num canto ou no fundo (biscoito, Papai Noel lá no céu,
+ * pinguim...). Respeita revelações/votações e a narração, e dá para desligar
+ * no controle do canto da TV ("Visitas de Natal").
+ */
+export const AMBIENT_CAMEOS = true
+
 export type SeasonSlug = (typeof SEASON_SLUGS)[number]
 
 export function isSeasonSlug(slug: string | null | undefined): slug is SeasonSlug {

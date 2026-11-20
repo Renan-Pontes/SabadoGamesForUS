@@ -14,7 +14,7 @@ import { ViewBoundary } from './framework/ViewBoundary'
 import { useWakeLock } from './framework/wakeLock'
 import { sendRoomFx } from './fx/api'
 import { getHalloweenGame } from './registry'
-import { FESTIVE_RANDOM, useScareNames } from './scare'
+import { CAMEO_RANDOM, useScareNames } from './scare'
 import { isHalloweenSlug } from './slugs'
 
 /**
@@ -172,7 +172,7 @@ function GameRunner({ code, view, game }: { code: string; view: HalloweenView; g
         <HostBar
           onSkip={() => room.command('skip')}
           onEnd={() => room.command('end')}
-          onScare={() => sendRoomFx(code, { scare: FESTIVE_RANDOM })}
+          onScare={() => sendRoomFx(code, { scare: CAMEO_RANDOM })}
         />
       )
     ) : undefined

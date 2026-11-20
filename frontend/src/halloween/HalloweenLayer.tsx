@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { initAudio, setSoundRole } from './audio'
 import { isTvLocation, roomCodeFromPath } from './fx/route'
 import TvFxLayer from './fx/TvFxLayer'
+import CameoOverlay from './scare/CameoOverlay'
 import ScareOverlay from './scare/ScareOverlay'
 import { AudioUnlockPrompt, PhoneSoundButton } from './ui/SoundControls'
 import SnowBackdrop from '../natal/SnowBackdrop'
@@ -15,7 +16,8 @@ import './ui/fonts'
  *
  * - cenário: atrás do conteúdo (aurora, estrelas, neve, morros, trenó) e por
  *   cima dele só o que não atrapalha (pisca-pisca e vinheta) — sem clique;
- * - palco dos sustos (acima de tudo);
+ * - palco dos sustos (acima de tudo) e o das visitas de Natal (pequenas, nos
+ *   cantos e no fundo);
  * - na TV: efeitos da sala (susto do host, música, sustos aleatórios), o
  *   controle discreto do canto e o aviso "clique para acordar os mortos";
  * - no celular: o botãozinho flutuante de som (nasce mudo).
@@ -37,6 +39,7 @@ export default function HalloweenLayer() {
       <SnowBackdrop intensity={intensity} layer="back" zIndex={0} />
       <SnowBackdrop intensity={intensity} layer="front" zIndex={40} />
       <ScareOverlay />
+      <CameoOverlay tv={tv} />
       {tv && code && <TvFxLayer key={code} code={code} />}
       {tv && <AudioUnlockPrompt />}
       {!tv && <PhoneSoundButton />}

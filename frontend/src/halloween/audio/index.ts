@@ -33,6 +33,7 @@ export {
   setMusicEnabled,
   setRandomScaresEnabled,
   setVoiceEnabled,
+  setCameosEnabled,
   setSoundRole,
   setVolume,
   subscribeSound,

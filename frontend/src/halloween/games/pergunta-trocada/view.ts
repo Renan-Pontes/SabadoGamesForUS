@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import type { MusicTrack, SfxName } from '../../audio'
 import { listNames, nameOf } from '../../engine/helpers'
 import type { HPlayer } from '../../engine/types'
+import type { Cameo } from '../../scare/cameos'
 import type { RevealTone } from '../../ui'
 import { KIND_HINT, type AnswerKind } from './content'
 import { CONSOLATION_POINTS, ESCAPE_POINTS, GROUP_POINTS, SHARP_BONUS, type Phase, type PtResult, type State } from './engine'
@@ -15,7 +16,7 @@ import { CONSOLATION_POINTS, ESCAPE_POINTS, GROUP_POINTS, SHARP_BONUS, type Phas
 
 /** Linha do tempo da revelação na TV (ms desde o começo do `result`). */
 export const REVEAL_TIMING = {
-  /** Até aqui: o mais votado na mesa (com o zoom suspeito 🤨📸). */
+  /** Até aqui: o mais votado na mesa (com o duende desconfiado 🤨 no canto). */
   zoomEnd: 2600,
   /** Até aqui: o rufar "E o impostor era…". */
   drumEnd: 4600,
@@ -166,10 +167,13 @@ export function revealCopy(result: PtResult, players: readonly HPlayer[]): Revea
   }
 }
 
-/** Efeito da TV depois da manchete: inocente condenado = "bruh"; sem impostor = presentes caindo. */
-export function revealMeme(result: PtResult): 'bruh' | 'giftRain' | null {
-  if (result.impostor === null) return 'giftRain'
-  if (!result.caught && result.accused !== null) return 'bruh'
+/**
+ * Visita de Natal depois da manchete: inocente condenado = o boneco de neve
+ * perde o chapéu; sem impostor = um presente desce de paraquedas.
+ */
+export function revealMeme(result: PtResult): Extract<Cameo, 'snowman' | 'parachuteGift'> | null {
+  if (result.impostor === null) return 'parachuteGift'
+  if (!result.caught && result.accused !== null) return 'snowman'
   return null
 }
 

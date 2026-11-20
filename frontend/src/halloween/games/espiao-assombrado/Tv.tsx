@@ -17,7 +17,7 @@ import { EVERYONE_ZOOM_NAME, clock, holdsScares, namesOf, revealCopy, revealMeme
  * decide fase, votos e pontos é o motor — e nunca recebe segredo: o lugar, os
  * papéis e quem é espião só aparecem na revelação. Letras para 3 metros
  * (texto ≥ 28 px, títulos ≥ 64 px), vela de Natal gigante como cronômetro da
- * conversa, presente sacudindo no rufar e o zoom suspeito 🤨📸 com "boing".
+ * conversa, presente sacudindo no rufar e o duende desconfiado 🤨 espiando do canto.
  */
 
 const ACCENT = meta.accent
@@ -97,12 +97,11 @@ function usePhaseSounds(state: EspiaoState, players: HPlayer[], now: () => numbe
         say(narration, 600)
         break
       case 'accuse':
-        // A primeira acusação da noite ganha o zoom suspeito 🤨📸 no acusado — com boing.
+        // A primeira acusação da noite ganha o duende desconfiado 🤨 ("Hmm… Ana?") no canto da TV.
         if (firstAccusation.current) {
           firstAccusation.current = false
-          triggerScare('zoom', { name: targetName })
-          playSfx('boing', { delay: 0.25 })
-          say(narration, 2400)
+          triggerScare('peek', { name: targetName })
+          say(narration, 1600)
         } else {
           playSfx('boing')
           playSfx('gong', { delay: 0.5, volume: 0.6 })
@@ -122,17 +121,13 @@ function usePhaseSounds(state: EspiaoState, players: HPlayer[], now: () => numbe
       case 'result':
         playSfx('drumroll')
         say(narration, DRUM_MS + 900)
-        // Piada da revelação: zoom em "TODO MUNDO", "bruh" ou o cano caindo — uma vez por partida cada.
+        // Visita da revelação (uma vez por partida cada): o duende desconfiado de
+        // "TODO MUNDO", o boneco de neve que perde o chapéu ou o pinguim que escorrega.
         if (meme && !memesUsed.current.has(meme)) {
           timers.push(
             window.setTimeout(() => {
               memesUsed.current.add(meme)
-              if (meme === 'zoom') {
-                triggerScare('zoom', { name: EVERYONE_ZOOM_NAME })
-                playSfx('boing', { delay: 0.25 })
-              } else {
-                triggerScare(meme)
-              }
+              triggerScare(meme, meme === 'peek' ? { name: EVERYONE_ZOOM_NAME } : undefined)
             }, DRUM_MS + 2600),
           )
         }

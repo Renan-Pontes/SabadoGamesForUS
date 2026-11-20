@@ -89,7 +89,8 @@ export function useTableSounds(state: GameState) {
       } else if (event === 'win') {
         playSfx('win')
         playSfx('chime', { delay: 0.6 })
-        later(2600, () => triggerScare('giftRain'))
+        // Visita de Natal: um presente desce de paraquedas no canto da TV.
+        later(2600, () => triggerScare('parachuteGift'))
         say(1800, finalLine(after))
       } else if (event === 'lose') {
         playSfx('fail', { delay: 0.4 })

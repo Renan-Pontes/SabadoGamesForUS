@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { Box, Button } from '@mui/material'
 import type { GameAccent } from '../../games/theme'
 import { scareRoomTv } from '../fx/api'
-import { FESTIVE_RANDOM } from '../scare'
+import { CAMEO_RANDOM } from '../scare'
 
 /**
  * Controles do host, numa barra discreta presa ao rodapé do celular. O jogo
@@ -55,8 +55,8 @@ const barButton = {
  * Durante a partida: pular a fase, encerrar (com confirmação) e a
  * "Surpresa" na TV.
  *
- * A "Surpresa" (o antigo botão de Susto) manda um dos assustadores de verdade (animatrônico, rosto,
- * grito, estática), sorteado na TV, direto para a sala da URL
+ * A "Surpresa" (o antigo botão de Susto) manda uma visita de Natal fofa
+ * (biscoito, pinguim, Papai Noel lá no céu...), sorteada na TV, direto para a sala da URL
  * (`/game/:code/...`). `onScare` fica de reserva para uma tela sem código
  * na URL.
  */
@@ -74,7 +74,7 @@ export function HostBar({
   const [scareState, setScareState] = useState<'idle' | 'sent' | 'error'>('idle')
   const { code } = useParams()
   const roomCode = code?.trim().toUpperCase()
-  const sendScare = () => (roomCode ? scareRoomTv(roomCode, FESTIVE_RANDOM) : onScare())
+  const sendScare = () => (roomCode ? scareRoomTv(roomCode, CAMEO_RANDOM) : onScare())
 
   if (confirming) {
     return (

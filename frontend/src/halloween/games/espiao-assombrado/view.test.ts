@@ -62,9 +62,9 @@ describe('textos das telas', () => {
   })
 
   it('meme da revelação: inocente condenado, chute errado e todo mundo espião', () => {
-    expect(revealMeme('innocent')).toBe('bruh')
-    expect(revealMeme('guess-wrong')).toBe('pipe')
-    expect(revealMeme('everyone')).toBe('zoom')
+    expect(revealMeme('innocent')).toBe('snowman')
+    expect(revealMeme('guess-wrong')).toBe('penguin')
+    expect(revealMeme('everyone')).toBe('peek')
     for (const outcome of ['caught', 'escaped', 'guess-right', 'tie', 'nobody-convicted', 'nobody-free'] as const) {
       expect(revealMeme(outcome), outcome).toBeNull()
     }

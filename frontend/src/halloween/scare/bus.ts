@@ -3,6 +3,9 @@
  * pela camada global) escuta. Sem React aqui — dá para testar em Node.
  */
 
+import { CAMEO_INFO, CAMEO_RANDOM, LEGACY_FESTIVE_RANDOM, emitCameo, isCameoRequest, resolveCameo } from './cameos'
+import type { Cameo } from './cameos'
+
 export const SCARE_KINDS = [
   'doot',
   'zoom',
@@ -49,15 +52,20 @@ export type FestiveEffect = (typeof FESTIVE_EFFECTS)[number]
 export type ConcreteScare = (typeof SCARE_KINDS)[number] | typeof RARE_SCARE | XmasEffect
 /**
  * 'random' = sorteio de Halloween com peso; 'scary' = só entre os
- * assustadores de verdade; 'festive' = um efeito de Natal sorteado.
+ * assustadores de verdade; 'cameo' (ou o antigo 'festive') = uma visita de
+ * Natal sorteada; uma visita pelo nome ('cookie', 'peek'...) vai para o palco
+ * das visitas (cameos.ts), não para a tela cheia.
  */
-export type ScareKind = 'random' | 'scary' | 'festive' | ConcreteScare
+export type ScareKind = 'random' | 'scary' | 'festive' | typeof CAMEO_RANDOM | Cameo | ConcreteScare
 
 /** Pedido de susto assustador sorteado (botão "Susto" do host, "Testar susto" da TV). */
 export const SCARY_RANDOM = 'scary'
 
-/** Pedido de efeito de Natal sorteado (botão grande do painel do host, "Testar efeito" da TV). */
-export const FESTIVE_RANDOM = 'festive'
+/**
+ * O pedido antigo de "efeito de Natal sorteado". Hoje vira uma visita de
+ * Natal sorteada (nada de tela cheia): prefira CAMEO_RANDOM.
+ */
+export const FESTIVE_RANDOM = LEGACY_FESTIVE_RANDOM
 
 export function isXmasEffect(value: unknown): value is XmasEffect {
   return typeof value === 'string' && (XMAS_EFFECTS as readonly string[]).includes(value)
@@ -158,8 +166,17 @@ export function resolveScareKind(kind: unknown, random: () => number = Math.rand
   return kind === SCARY_RANDOM ? pickScaryScare(random) : pickScare(random)
 }
 
-/** Emite um susto para o overlay. Devolve o pedido (ou null se ninguém está ouvindo). */
+/**
+ * Emite um susto para o overlay. Devolve o pedido (ou null se ninguém está
+ * ouvindo). Pedido de visita de Natal vai para o palco das visitas.
+ */
 export function emitScare(kind: unknown, options: { name?: string | null } = {}): ScareRequest | null {
+  if (isCameoRequest(kind)) {
+    const cameo = resolveCameo(kind)
+    const name = options.name?.trim() || (CAMEO_INFO[cameo].named ? randomScareName() : undefined)
+    emitCameo(cameo, { name })
+    return null
+  }
   const concrete = resolveScareKind(kind)
   lastKind = concrete
   if (isScaryScare(concrete)) lastScaryAt = Date.now()

@@ -1,5 +1,6 @@
 import { listNames, nameOf } from '../../engine/helpers'
 import type { HPlayer } from '../../engine/types'
+import type { Cameo } from '../../scare/cameos'
 import {
   DAY_LINES,
   DEATH_INTROS,
@@ -46,8 +47,8 @@ export type TvCue = {
   voice: 'cozy' | 'cheer'
   /** Quando falar (ms depois da entrada): no veredito, depois do rufar. */
   speechDelayMs: number
-  /** Susto de meme do momento (só em 1–2 momentos dramáticos da partida). */
-  scare: { kind: 'zoom' | 'bruh'; name?: string; delayMs: number } | null
+  /** Visita de Natal do momento (só em 1–2 momentos da partida): pequena, no canto da TV. */
+  scare: { kind: Extract<Cameo, 'peek' | 'penguin'>; name?: string; delayMs: number } | null
 }
 
 /** Quanto dura o rufar do veredito antes do resultado aparecer. */
@@ -151,8 +152,8 @@ export function tvCue(state: State, players: readonly HPlayer[]): TvCue {
         ...base,
         stinger,
         speechDelayMs: SUSPENSE_MS + 400,
-        // 🤨📸 Zoom suspeito no duende pego — o meme do momento.
-        scare: caught && out !== null ? { kind: 'zoom', name: nameOf(players, out), delayMs: SUSPENSE_MS } : null,
+        // 🤨 O duende desconfiado espia o duende pego ("Hmm… Ana?").
+        scare: caught && out !== null ? { kind: 'peek', name: nameOf(players, out), delayMs: SUSPENSE_MS } : null,
       }
     }
     case 'end': {
@@ -162,8 +163,8 @@ export function tvCue(state: State, players: readonly HPlayer[]): TvCue {
         ...base,
         stinger: killersWon ? 'killers' : 'city',
         speechDelayMs: 900,
-        // Os duendes venceram: o "bruh" de meme — a vila passou vergonha.
-        scare: killersWon ? { kind: 'bruh', delayMs: 4500 } : null,
+        // Os duendes venceram: um pinguim escorrega pelos morros — a vila passou vergonha.
+        scare: killersWon ? { kind: 'penguin', delayMs: 4500 } : null,
       }
     }
     default:

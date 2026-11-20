@@ -1,14 +1,24 @@
 import { useState } from 'react'
 import { Box, Button, FormControlLabel, IconButton, Popover, Slider, Switch, Typography } from '@mui/material'
-import { setMuted, setMusicEnabled, setRandomScaresEnabled, setVoiceEnabled, setVolume, useSoundState } from '../audio'
-import { AUTO_SCARES } from '../../season'
-import { FESTIVE_RANDOM, RARE_SCARE, SCARY_RANDOM, triggerScare } from '../scare'
+import {
+  setCameosEnabled,
+  setMuted,
+  setMusicEnabled,
+  setRandomScaresEnabled,
+  setVoiceEnabled,
+  setVolume,
+  useSoundState,
+} from '../audio'
+import { AMBIENT_CAMEOS, AUTO_SCARES } from '../../season'
+import { CAMEO_RANDOM, RARE_SCARE, SCARY_RANDOM, triggerScare } from '../scare'
 import { CREEPY_FONT } from '../ui/fonts'
+import VoicePicker from '../ui/VoicePicker'
 
 /**
  * Controle discreto no canto da TV: uma arvorezinha quase transparente que,
- * clicada, abre som, volume, música e "testar efeito" (no Natal, os sustos
- * aleatórios ficam desligados — AUTO_SCARES — e os botões deles somem).
+ * clicada, abre som, volume, música, as visitas de Natal automáticas e
+ * "testar visita" (no Natal, os sustos aleatórios ficam desligados —
+ * AUTO_SCARES — e os botões deles somem).
  * Ninguém aperta botão na TV — mas quem está no notebook precisa poder.
  */
 export default function TvControl() {
@@ -101,6 +111,13 @@ export default function TvControl() {
             control={<Switch checked={sound.voice} onChange={(_, checked) => setVoiceEnabled(checked)} />}
             label="Narração (voz)"
           />
+          {sound.voice && <VoicePicker />}
+          {AMBIENT_CAMEOS && (
+            <FormControlLabel
+              control={<Switch checked={sound.cameos} onChange={(_, checked) => setCameosEnabled(checked)} />}
+              label="Visitas de Natal 🍪"
+            />
+          )}
           {AUTO_SCARES && (
             <FormControlLabel
               control={
@@ -117,11 +134,11 @@ export default function TvControl() {
           sx={{ mt: 1.5 }}
           onClick={() => {
             setAnchor(null)
-            // Natal: um efeito cômico sorteado. Com os sustos ligados: um assustador de verdade.
-            triggerScare(AUTO_SCARES ? SCARY_RANDOM : FESTIVE_RANDOM)
+            // Natal: uma visita fofa sorteada. Com os sustos ligados: um assustador de verdade.
+            triggerScare(AUTO_SCARES ? SCARY_RANDOM : CAMEO_RANDOM)
           }}
         >
-          {AUTO_SCARES ? 'Testar susto 😱' : 'Testar efeito 🎅'}
+          {AUTO_SCARES ? 'Testar susto 😱' : 'Testar visita 🍪'}
         </Button>
         {AUTO_SCARES && (
           <Button

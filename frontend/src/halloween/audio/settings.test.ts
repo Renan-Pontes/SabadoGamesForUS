@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   SOUND_DEFAULTS,
   getSoundState,
+  setCameosEnabled,
   setMuted,
   setRandomScaresEnabled,
   setSoundRole,
@@ -26,6 +27,18 @@ describe('preferências de som', () => {
     expect(getSoundState().randomScares).toBe(true)
     setSoundRole('phone')
     expect(getSoundState().muted).toBe(true)
+  })
+
+  it('visitas de Natal: ligadas na TV, desligadas no celular, com liga/desliga próprio', () => {
+    expect(SOUND_DEFAULTS.tv.cameos).toBe(true)
+    expect(SOUND_DEFAULTS.phone.cameos).toBe(false)
+    setSoundRole('tv')
+    expect(getSoundState().cameos).toBe(true)
+    setCameosEnabled(false)
+    expect(getSoundState().cameos).toBe(false)
+    setCameosEnabled(true)
+    expect(getSoundState().cameos).toBe(true)
+    setSoundRole('phone')
   })
 
   it('volume fica entre 0 e 1 e ignora NaN', () => {

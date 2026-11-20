@@ -1,3 +1,4 @@
+import { CAMEO_RANDOM, isCameoRequest } from '../scare/cameos'
 import { RANDOM_SCARES_OFF, RANDOM_SCARES_ON } from './api'
 import type { RoomFx } from './api'
 
@@ -20,6 +21,17 @@ export type FxAction =
   | { type: 'scare'; kind: string; name?: string }
   | { type: 'music'; on: boolean }
   | { type: 'randomScares'; on: boolean }
+
+/**
+ * O que a TV mostra para um pedido do host. Fora do Halloween (sustos
+ * desligados na temporada), só visitas de Natal: um pedido de susto ou de
+ * efeito de tela cheia (de um celular com a página velha, por exemplo) vira
+ * uma visita sorteada.
+ */
+export function seasonFxKind(kind: string, scaresAllowed: boolean): string {
+  if (scaresAllowed || isCameoRequest(kind)) return kind
+  return CAMEO_RANDOM
+}
 
 /** Susto mais velho do que isso (relógio do servidor) não é executado. */
 export const FX_FRESH_MS = 20_000

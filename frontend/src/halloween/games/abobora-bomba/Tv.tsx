@@ -4,7 +4,7 @@ import { playSfx, speakFestive, useMusic } from '../../audio'
 import { listNames, nameOf } from '../../engine/helpers'
 import type { HPlayer, HalloweenViewProps } from '../../engine/types'
 import { useServerNow } from '../../framework/clockHooks'
-import { triggerScare, useSuppressScares, type ScareKind } from '../../scare'
+import { triggerScare, useSuppressScares, type Cameo } from '../../scare'
 import { CandleTimer, FESTIVE_ROUND_FONT, PlayerBadge } from '../../ui'
 import {
   ARRIVAL_GRACE_MS,
@@ -116,11 +116,12 @@ function useTvSounds(state: AbbState, players: HPlayer[], now: () => number) {
       later(1000 + Math.round(sad * 1000), () => {
         stopVoice = speakFestive(boomLine(round, victimName, eliminated))
       })
-      // Efeito de Natal só nos momentos grandes, depois da tela do POF: o
-      // primeiro boneco de neve ganha nevasca, o POF que decide o jogo chove
-      // presente e, de vez em quando, o zoom 🤨📸 em quem estourou.
-      const effect: ScareKind | null = firstOut ? 'blizzard' : decided ? 'giftRain' : Math.random() < 0.18 ? 'zoom' : null
-      if (effect) later(BOOM_REVEAL_MS + 300, () => triggerScare(effect, { name: victimName }))
+      // Visita de Natal só nos momentos grandes, depois da tela do POF: o
+      // primeiro a sair ganha o boneco de neve acenando do canto, o POF que
+      // decide o jogo traz um presente de paraquedas e, de vez em quando, o
+      // duende desconfiado 🤨 espia quem estourou.
+      const visit: Cameo | null = firstOut ? 'snowman' : decided ? 'parachuteGift' : Math.random() < 0.18 ? 'peek' : null
+      if (visit) later(BOOM_REVEAL_MS + 300, () => triggerScare(visit, { name: victimName }))
     } else if (phase === 'final') {
       playSfx('win')
       playSfx('sleigh', { delay: 0.8 })

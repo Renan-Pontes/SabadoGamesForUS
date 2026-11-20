@@ -104,10 +104,13 @@ no `roster` — quem entrou no meio vê "Partida rolando" (o framework cuida).
 - **Música**: vem do `meta.music` (sem trilha, a TV fica no `'lobby'`; no
   fim, `'victory'`). Para trocar por fase, chame `useMusic('night')` dentro da
   `Tv` — o pedido do jogo vence o da moldura.
-- **Sustos** (`../../scare`), só na TV: `triggerScare('pumpkin')`,
-  `triggerScare('zoom', { name })`; `useSuppressScares(phase === 'reveal')`
-  segura os aleatórios nos momentos importantes. Os nomes da mesa (para o zoom
-  e os olhos) a tela do jogo já informa.
+- **Visitas de Natal** (`../../scare`), só na TV: pequenas, nos cantos e no
+  fundo, som baixinho e sem fala — `triggerScare('cookie')`,
+  `triggerScare('peek', { name })` (duende desconfiado: "Hmm… Ana?"),
+  `triggerScare('cameo')` (sorteada). Nada de tela cheia nem susto nos jogos
+  da temporada (um teste confere). `useSuppressScares(phase === 'reveal')`
+  segura as visitas automáticas nos momentos importantes. Os sustos de
+  Halloween (`'pumpkin'`, `'zoom'`...) ficam só para os jogos "Old".
 - **A tela só desenha.** Quem decide fase, pontos e vencedor é o motor.
 - O fim (`state.over`) é desenhado pelo seu jogo; o framework põe "Jogar de
   novo" e "Voltar à sala" no celular do host. O "⏹ Encerrar" do host põe

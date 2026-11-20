@@ -56,8 +56,8 @@ describe('textos das telas', () => {
   })
 
   it('efeito depois da manchete: "bruh" no inocente, presentes na rodada sem impostor', () => {
-    expect(revealMeme(innocent)).toBe('bruh')
-    expect(revealMeme(nobody)).toBe('giftRain')
+    expect(revealMeme(innocent)).toBe('snowman')
+    expect(revealMeme(nobody)).toBe('parachuteGift')
     expect(revealMeme(caught)).toBeNull()
     expect(revealMeme(tie)).toBeNull()
   })

@@ -114,11 +114,8 @@ function usePhaseSounds(state: DvState, players: HPlayer[], now: () => number) {
         later(DRUM_MS, () => {
           playSfx('boing')
           if (outcome === 'fooled-all') {
-            // Ninguém acertou: zoom suspeito 🤨📸 no mentiroso, com boing.
-            later(900, () => {
-              triggerScare('zoom', { name: author })
-              playSfx('boing', { delay: 0.25 })
-            })
+            // Ninguém acertou: o duende desconfiado 🤨 espia o mentiroso ("Hmm… Ana?").
+            later(900, () => triggerScare('peek', { name: author }))
           } else if (outcome === 'all-right' || outcome === 'no-votes') {
             playSfx('fail', { delay: 0.5 })
           } else {

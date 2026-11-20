@@ -1,41 +1,67 @@
 import { useEffect } from 'react'
 import { getSoundState, setMusicEnabled, setRandomScaresEnabled } from '../audio'
 import {
+  CAMEO_INFO,
   RARE_SCARE,
   SCARES_WITH_NAME,
+  isCameoRequest,
+  isCameoShowing,
   isScareShowing,
   isScareSuppressed,
   pickAutoScare,
+  pickCameo,
+  resolveCameo,
   resolveScareKind,
   scareNames,
   triggerScare,
 } from '../scare'
+import type { Cameo, ConcreteScare } from '../scare'
 import { loadCustomJumpscare } from '../scare/customJumpscare'
+import { ambientCameoDecision, startAmbientCameos } from './ambientCameos'
+import type { AmbientCameoState } from './ambientCameos'
 import { getRoomFx } from './api'
 import type { RoomFx } from './api'
 import { canRollRareScare, isNarrating, randomScareDecision } from './autoScare'
 import type { AutoScareState } from './autoScare'
-import { decideFx } from './decide'
+import { decideFx, seasonFxKind } from './decide'
 import type { FxAction } from './decide'
 import { loadSeenFx, saveSeenFx } from './memory'
 import { roomPlayerNames } from './names'
 import { startRandomScares } from './randomScares'
 import { startRareScare } from './rareScare'
 import TvControl from './TvControl'
-import { AUTO_SCARES } from '../../season'
+import { AMBIENT_CAMEOS, AUTO_SCARES } from '../../season'
 
 /** Consulta leve do `fx` da sala (o host manda susto / liga a música). */
 const POLL_MS = 1500
 
-/** Susto com nome: usa os nomes que o jogo informou ou busca os da sala. */
+/**
+ * Efeito com nome: usa os nomes que o jogo informou ou busca os da sala. No
+ * Natal (AUTO_SCARES desligado), o host só manda visitas de Natal.
+ */
 async function scareWithName(code: string, requested: string, name?: string) {
-  const kind = resolveScareKind(requested)
+  const safe = seasonFxKind(requested, AUTO_SCARES)
+  const cameo = isCameoRequest(safe)
+  const kind = cameo ? resolveCameo(safe) : resolveScareKind(safe)
+  const wantsName = cameo ? Boolean(CAMEO_INFO[kind as Cameo].named) : SCARES_WITH_NAME.includes(kind as ConcreteScare)
   let chosen = name
-  if (!chosen && SCARES_WITH_NAME.includes(kind) && scareNames().length === 0) {
+  if (!chosen && wantsName && scareNames().length === 0) {
     const names = await roomPlayerNames(code)
     if (names.length) chosen = names[Math.floor(Math.random() * names.length)]
   }
   triggerScare(kind, chosen ? { name: chosen } : undefined)
+}
+
+/** O estado do app que decide se uma visita de Natal automática pode sair agora. */
+function ambientCameoState(): AmbientCameoState {
+  return {
+    enabled: AMBIENT_CAMEOS && getSoundState().cameos,
+    hidden: document.hidden,
+    suppressed: isScareSuppressed(),
+    scareShowing: isScareShowing(),
+    cameoShowing: isCameoShowing(),
+    narrating: isNarrating(),
+  }
 }
 
 /** O estado do app que decide se um susto automático pode sair agora. */
@@ -64,9 +90,10 @@ function runAction(action: FxAction, code: string) {
 }
 
 /**
- * Efeitos da sala na TV: executa o que o host manda (susto, música),
- * solta sustos aleatórios de tempos em tempos e mostra o controle discreto
- * do canto. Montado pela camada global só nas rotas de TV.
+ * Efeitos da sala na TV: executa o que o host manda (visita, música),
+ * solta visitas de Natal (e, no Halloween, sustos) de tempos em tempos e
+ * mostra o controle discreto do canto. Montado pela camada global só nas
+ * rotas de TV.
  */
 export default function TvFxLayer({ code }: { code: string }) {
   useEffect(() => {
@@ -110,6 +137,16 @@ export default function TvFxLayer({ code }: { code: string }) {
         fire: () => void scareWithName(code, pickAutoScare()),
       }),
     [code],
+  )
+
+  // Visitas de Natal: uma a cada 60–150 s, esperando revelação, narração e outra visita.
+  useEffect(
+    () =>
+      startAmbientCameos({
+        check: () => ambientCameoDecision(ambientCameoState()),
+        fire: () => triggerScare(pickCameo()),
+      }),
+    [],
   )
 
   // O susto raro: 1 chance em 5000 a cada segundo, por fora dos sustos de 4–9 min.
