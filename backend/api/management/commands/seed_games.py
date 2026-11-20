@@ -13,7 +13,7 @@ class Command(BaseCommand):
             # Nome sem emoji: o ícone de cada jogo vem do frontend.
             {
                 "slug": "espiao-assombrado",
-                "name": "Espião Assombrado",
+                "name": "Espião de Natal",
                 "description": (
                     "Todo mundo sabe o lugar assombrado, menos o espião. "
                     "Perguntem, desconfiem e acusem antes que ele descubra onde está."
@@ -24,7 +24,7 @@ class Command(BaseCommand):
             },
             {
                 "slug": "cidade-dorme",
-                "name": "Cidade Dorme",
+                "name": "Vila Dorme",
                 "description": (
                     "Assassinos, detetive e anjo à solta, e ninguém fecha o olho: "
                     "de noite todos mexem no celular, de dia a cidade vota em quem sai."
@@ -35,7 +35,7 @@ class Command(BaseCommand):
             },
             {
                 "slug": "retrato-assombrado",
-                "name": "Retrato Assombrado",
+                "name": "Retrato de Natal",
                 "description": (
                     "Todos desenham a mesma palavra ao mesmo tempo. "
                     "O impostor só sabe a categoria e precisa disfarçar."
@@ -79,10 +79,10 @@ class Command(BaseCommand):
             },
             {
                 "slug": "abobora-bomba",
-                "name": "Abóbora-Bomba",
+                "name": "Presente-Bomba",
                 "description": (
-                    "Fale uma palavra do tema e passe a abóbora. "
-                    "Seu pavio só queima com ela na mão: acabou, BUM!"
+                    "Batata quente de Natal: fale uma palavra do tema e passe o presente. "
+                    "Seu pavio só queima com ele na mão: acabou, POF!"
                 ),
                 "min_players": 2,
                 "max_players": 15,
@@ -111,6 +111,28 @@ class Command(BaseCommand):
                 "is_active": True,
             },
             {
+                "slug": "pergunta-trocada",
+                "name": "Pergunta Trocada",
+                "description": (
+                    "Um de vocês recebeu a pergunta errada e nem sabe. Ache a resposta "
+                    "que não combina — ou disfarce como se fosse a sua."
+                ),
+                "min_players": 3,
+                "max_players": 15,
+                "is_active": True,
+            },
+            {
+                "slug": "duas-verdades",
+                "name": "Duas Verdades, Uma Mentira",
+                "description": (
+                    "Escreva três frases sobre você — duas verdades e uma mentira. "
+                    "Na sua vez, a mesa conversa e tenta achar a lorota."
+                ),
+                "min_players": 3,
+                "max_players": 15,
+                "is_active": True,
+            },
+            {
                 "slug": "corrida-de-vassouras",
                 "name": "Corrida de Vassouras",
                 "description": (
@@ -124,7 +146,7 @@ class Command(BaseCommand):
             # --- Catálogo de sempre -----------------------------------------
             {
                 "slug": "read-my-mind",
-                "name": "Read My Mind",
+                "name": "Mente Natalina",
                 "description": (
                     "Ordene cartas em silêncio. Co-op: sobrevivam até a rodada 10; "
                     "Versus: elimine quem cortar a sequência."

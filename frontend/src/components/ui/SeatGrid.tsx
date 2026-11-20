@@ -1,6 +1,7 @@
 import { Box, Typography } from '@mui/material'
 import type { Player } from '../../lib/types'
-import { playerColor, playerInitials, playerLabel } from '../../games/utils'
+import { playerLabel } from '../../games/utils'
+import { ChristmasAvatar, useRosterAvatars } from '../../natal/avatars'
 
 type SeatGridProps = {
   players: Player[]
@@ -10,7 +11,7 @@ type SeatGridProps = {
   variant?: 'tv' | 'compact'
 }
 
-/** A mesa da Noite do Terror vai até 15 pessoas. */
+/** A mesa da festa vai até 15 pessoas. */
 const MAX_SEATS = 15
 
 /** Acima disso a TV quebra a mesa em duas fileiras equilibradas (8 + 7). */
@@ -19,7 +20,9 @@ const ONE_ROW_LIMIT = 8
 /**
  * A mesa se enchendo. As cadeiras vazias são desenhadas de propósito: numa
  * TV de sala, ver quantos lugares faltam é mais útil do que só a lista de
- * quem já entrou.
+ * quem já entrou. No Natal cada pessoa é uma bola de árvore (com o
+ * pendurador dourado) que entra quicando, com o avatar de Natal dela dentro
+ * — o mesmo que aparece no celular; a vaga é um presente.
  *
  * Os tamanhos vêm de variáveis CSS (`--seat-w`, `--seat-gap`) calculadas pela
  * largura da tela, e a largura máxima força fileiras equilibradas: 15 pessoas
@@ -34,6 +37,7 @@ export default function SeatGrid({
   const total = Math.max(players.length, Math.min(capacity ?? players.length, MAX_SEATS))
   const emptySeats = Math.max(0, total - players.length)
   const columns = total > ONE_ROW_LIMIT ? Math.ceil(total / 2) : Math.max(total, 1)
+  const avatarOf = useRosterAvatars(players)
 
   return (
     <Box
@@ -52,7 +56,8 @@ export default function SeatGrid({
       }}
     >
       {players.map((player, index) => {
-        const color = playerColor(player.id)
+        const avatar = avatarOf(player)
+        const color = avatar.color
         const online = player.online ?? true
 
         return (
@@ -79,19 +84,36 @@ export default function SeatGrid({
                 borderRadius: '50%',
                 display: 'grid',
                 placeItems: 'center',
-                fontFamily: 'var(--font-numeric)',
-                fontSize: 'calc(var(--seat-w) * 0.24)',
-                letterSpacing: '0.04em',
-                color: '#0a0612',
-                background: `radial-gradient(circle at 32% 28%, ${color}, ${color}b3 70%)`,
+                background: color,
                 border: player.ready ? '3px solid var(--status-ready)' : '3px solid rgba(255,255,255,0.08)',
                 boxShadow: player.ready
                   ? '0 0 26px var(--slime-glow), 0 10px 24px rgba(0,0,0,0.45)'
                   : '0 10px 24px rgba(0,0,0,0.45)',
-                transition: 'all 320ms ease',
+                transition: 'border-color 320ms ease, box-shadow 320ms ease',
+                // Chegou alguém: a bola entra quicando.
+                animation: 'popIn 650ms cubic-bezier(0.2, 1.4, 0.4, 1) both',
+                // Pendurador dourado da bola de Natal.
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: '-13%',
+                  left: '50%',
+                  width: '28%',
+                  height: '14%',
+                  transform: 'translateX(-50%)',
+                  borderRadius: '3px 3px 2px 2px',
+                  background: 'linear-gradient(180deg, #ffd975, #c48a12)',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
+                },
               }}
             >
-              {playerInitials(player)}
+              <ChristmasAvatar
+                avatar={avatar}
+                size="100%"
+                animated={online}
+                frozen={!online}
+                title={`${playerLabel(player)}: ${avatar.label}`}
+              />
 
               {player.is_host && (
                 <Box
@@ -138,7 +160,7 @@ export default function SeatGrid({
                     : 'var(--status-waiting)',
               }}
             >
-              {!online ? 'SUMIU 👻' : player.ready ? '✓ PRONTO' : 'CHEGANDO...'}
+              {!online ? 'SUMIU ❄️' : player.ready ? '✓ PRONTO' : 'CHEGANDO...'}
             </Typography>
           </Box>
         )
@@ -163,7 +185,7 @@ export default function SeatGrid({
               borderRadius: '50%',
               display: 'grid',
               placeItems: 'center',
-              border: '2px dashed rgba(176, 107, 255, 0.35)',
+              border: '2px dashed rgba(127, 196, 255, 0.35)',
               fontSize: 'calc(var(--seat-w) * 0.22)',
               filter: 'grayscale(1)',
               opacity: 0.35,
@@ -171,7 +193,7 @@ export default function SeatGrid({
               animationDelay: `${index * 220}ms`,
             }}
           >
-            🎃
+            🎁
           </Box>
           <Typography
             sx={{
@@ -188,7 +210,7 @@ export default function SeatGrid({
       ))}
 
       {players.length === 0 && emptySeats === 0 && (
-        <Typography sx={{ color: 'var(--text-muted)' }}>Ninguém entrou ainda. Que silêncio assustador...</Typography>
+        <Typography sx={{ color: 'var(--text-muted)' }}>Ninguém entrou ainda. Só o boneco de neve. ☃️</Typography>
       )}
     </Box>
   )

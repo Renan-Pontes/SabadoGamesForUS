@@ -5,7 +5,7 @@ import { ROLE_INFO } from './content'
 import { hasGrace, roleCounts, type Phase, type Role, type State } from './engine'
 
 /**
- * Pecinhas que a TV e o celular do "Cidade Dorme" usam em comum. Moram aqui
+ * Pecinhas que a TV e o celular do "Vila Dorme" usam em comum. Moram aqui
  * (e não nos .tsx) porque `Tv.tsx` e `Phone.tsx` só exportam o componente.
  */
 
@@ -25,7 +25,7 @@ export function graceFor(state: State): number {
 
 /** "NOITE 2", "DIA 2"... para o cabeçalho da TV e do celular. */
 export function phaseLabel(state: State): string {
-  if (state.over) return 'FIM DA CIDADE'
+  if (state.over) return 'FIM DA HISTÓRIA'
   switch (state.phase) {
     case 'roles':
       return 'OS PAPÉIS'
@@ -44,31 +44,34 @@ export function phaseLabel(state: State): string {
   }
 }
 
-/** Trilha de cada fase: noite com órgão, dia com relógio, votação com tensão. */
+/**
+ * Trilha de cada fase: a caixinha de música da Noite Feliz para a noite,
+ * Jingle Bells para a manhã e a conversa, tensão na votação.
+ */
 export function musicFor(phase: Phase): MusicTrack {
   switch (phase) {
     case 'roles':
     case 'night':
-      return 'night'
+      return 'natal'
     case 'morning':
     case 'day':
-      return 'day'
+      return 'jingle'
     default:
       return 'tension'
   }
 }
 
-/** Quantos vivos já agiram (✓) — fantasma não conta. */
+/** Quantos ainda em jogo já agiram (✓) — boneco de neve não conta. */
 export function aliveActed(state: State): number {
   return state.acted.filter((id) => state.alive.includes(id)).length
 }
 
-/** Fantasmas: quem está no roster mas não está vivo. */
-export function ghostsOf(state: State): number[] {
+/** Bonecos de neve: quem está no roster mas já saiu do jogo. */
+export function snowmenOf(state: State): number[] {
   return state.roster.filter((id) => !state.alive.includes(id))
 }
 
-/** Assassinos à solta, se a cidade tem como saber (papéis revelados). */
+/** Duendes à solta, se a vila tem como saber (papéis revelados). */
 export function killersAtLarge(state: State): number | null {
   if (!state.revealRole) return null
   const total = roleCounts(state.roster.length).killer

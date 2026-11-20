@@ -25,12 +25,48 @@ export const SCARE_KINDS = [
  */
 export const RARE_SCARE = 'penetra'
 
-export type ConcreteScare = (typeof SCARE_KINDS)[number] | typeof RARE_SCARE
-/** 'random' = sorteio com peso; 'scary' = só entre os assustadores de verdade. */
-export type ScareKind = 'random' | 'scary' | ConcreteScare
+/**
+ * Efeitos de Natal da TV: momentos de comédia, nada de susto. Ficam fora do
+ * sorteio de Halloween ('random') — os jogos "Old" continuam com os deles.
+ */
+export const XMAS_EFFECTS = [
+  'hohoho',
+  'blizzard',
+  'giftRain',
+  'reindeer',
+  'lightsParty',
+  'secretSanta',
+  'elfChoir',
+] as const
+
+export type XmasEffect = (typeof XMAS_EFFECTS)[number]
+
+/** O sorteio de Natal ('festive'): os efeitos de Natal e o zoom suspeito 🤨📸 (que ganhou gorro). */
+export const FESTIVE_EFFECTS = [...XMAS_EFFECTS, 'zoom'] as const
+
+export type FestiveEffect = (typeof FESTIVE_EFFECTS)[number]
+
+export type ConcreteScare = (typeof SCARE_KINDS)[number] | typeof RARE_SCARE | XmasEffect
+/**
+ * 'random' = sorteio de Halloween com peso; 'scary' = só entre os
+ * assustadores de verdade; 'festive' = um efeito de Natal sorteado.
+ */
+export type ScareKind = 'random' | 'scary' | 'festive' | ConcreteScare
 
 /** Pedido de susto assustador sorteado (botão "Susto" do host, "Testar susto" da TV). */
 export const SCARY_RANDOM = 'scary'
+
+/** Pedido de efeito de Natal sorteado (botão grande do painel do host, "Testar efeito" da TV). */
+export const FESTIVE_RANDOM = 'festive'
+
+export function isXmasEffect(value: unknown): value is XmasEffect {
+  return typeof value === 'string' && (XMAS_EFFECTS as readonly string[]).includes(value)
+}
+
+/** Efeito de Natal (inclui o zoom, que é dos dois mundos). */
+export function isFestiveEffect(value: unknown): value is FestiveEffect {
+  return typeof value === 'string' && (FESTIVE_EFFECTS as readonly string[]).includes(value)
+}
 
 /** Os que assustam de verdade (som alto, sem meme). */
 export const SCARY_SCARES = ['animatronic', 'face', 'scream', 'static'] as const satisfies readonly (typeof SCARE_KINDS)[number][]
@@ -49,8 +85,8 @@ export const SCARY_SHARE = 2 / 3
  */
 export const AUTO_SCARY_GAP_MS = 15 * 60_000
 
-/** Sustos que ficam melhores com o nome de alguém da sala. */
-export const SCARES_WITH_NAME: readonly ConcreteScare[] = ['zoom', 'eyes']
+/** Sustos (e efeitos de Natal) que ficam melhores com o nome de alguém da sala. */
+export const SCARES_WITH_NAME: readonly ConcreteScare[] = ['zoom', 'eyes', 'hohoho', 'secretSanta']
 
 export type ScareRequest = { id: number; kind: ConcreteScare; name?: string }
 
@@ -65,7 +101,7 @@ let showing = false
 const nameSources = new Map<string, string[]>()
 
 export function isConcreteScare(value: unknown): value is ConcreteScare {
-  if (value === RARE_SCARE) return true
+  if (value === RARE_SCARE || isXmasEffect(value)) return true
   return typeof value === 'string' && (SCARE_KINDS as readonly string[]).includes(value)
 }
 
@@ -89,6 +125,11 @@ export function pickScaryScare(random: () => number = Math.random, avoid: Concre
   return pickFrom(SCARY_SCARES, random, avoid)
 }
 
+/** Sorteia um efeito de Natal (ou o zoom suspeito), sem repetir o último. */
+export function pickFestiveEffect(random: () => number = Math.random, avoid: ConcreteScare | null = lastKind) {
+  return pickFrom(FESTIVE_EFFECTS, random, avoid)
+}
+
 /** Assusta de verdade (som alto): os de SCARY_SCARES e o raro. */
 export function isScaryScare(kind: ConcreteScare): boolean {
   return kind === RARE_SCARE || (SCARY_SCARES as readonly string[]).includes(kind)
@@ -109,10 +150,11 @@ export function pickAutoScare(
 
 /**
  * 'random' (ou um nome desconhecido vindo da rede) vira um susto de verdade;
- * 'scary' vira um dos assustadores.
+ * 'scary' vira um dos assustadores; 'festive', um efeito de Natal.
  */
 export function resolveScareKind(kind: unknown, random: () => number = Math.random): ConcreteScare {
   if (isConcreteScare(kind)) return kind
+  if (kind === FESTIVE_RANDOM) return pickFestiveEffect(random)
   return kind === SCARY_RANDOM ? pickScaryScare(random) : pickScare(random)
 }
 

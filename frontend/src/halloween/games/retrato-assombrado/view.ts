@@ -5,7 +5,7 @@ import { MAX_POINTS, countPoints, readDrawing, type Stroke } from './drawing'
 import { ANSWER_PHASES, DRAW_SLOT, PHASE_SECONDS, drawKeys, type RaPhase, type State } from './engine'
 
 /**
- * Peças pequenas que a TV e o celular do "Retrato Assombrado" dividem (as
+ * Peças pequenas que a TV e o celular do "Retrato de Natal" dividem (as
  * telas só exportam o componente — regra do react-refresh).
  */
 
@@ -17,9 +17,13 @@ export type PortraitTone = 'plain' | 'impostor' | 'accused' | 'dim'
 /** Quanto a TV espera, na revelação, entre o rufar e o veredito (ms). */
 export const VERDICT_DELAY_MS = 2600
 
-/** Trilha de cada fase: swing assombrado para desenhar, tensão para votar e revelar. */
+/**
+ * Trilha de cada fase: Jingle Bells para desenhar; para votar e revelar, a
+ * caixinha de música da Noite Feliz — a calmaria fofa contrasta com a mesa
+ * acusando todo mundo (é aí que mora a graça).
+ */
 export function trackFor(phase: RaPhase): MusicTrack {
-  return phase === 'vote' || phase === 'reveal' || phase === 'guess' ? 'tension' : 'party'
+  return phase === 'vote' || phase === 'reveal' || phase === 'guess' ? 'natal' : 'jingle'
 }
 
 /** Fase de resposta? (o prazo tem 2 s de folga escondidos) */
@@ -138,37 +142,39 @@ export function verdictText(state: State, players: readonly HPlayer[]): { icon: 
   const impostorNames = namesOf(players, reveal.impostors)
   const many = reveal.impostors.length > 1
   if (reveal.chaos === 'everyone') {
-    return { icon: '🤡', title: 'TODO MUNDO ERA IMPOSTOR!', detail: 'Ninguém sabia a palavra. Não tinha palavra nenhuma!' }
+    return { icon: '🤡', title: 'TODO MUNDO ERA IMPOSTOR!', detail: 'Ninguém sabia a palavra. Não tinha palavra nenhuma! Feliz Natal, seus duendes mentirosos 🎄' }
   }
   if (reveal.chaos === 'nobody') {
     const top = reveal.top.length ? namesOf(players, reveal.top) : null
     return {
       icon: '😇',
       title: 'NINGUÉM ERA IMPOSTOR!',
-      detail: top ? `Todo mundo sabia a palavra. ${top} leva +2 de consolação.` : 'Todo mundo sabia a palavra. E ninguém votou!',
+      detail: top
+        ? `Todo mundo sabia a palavra. ${top} leva +2 de consolação (e um panetone imaginário).`
+        : 'Todo mundo sabia a palavra. E ninguém votou!',
     }
   }
   if (reveal.accused === null) {
     return {
       icon: '🤝',
       title: reveal.tally.length ? 'EMPATE! Ninguém foi acusado' : 'Ninguém votou!',
-      detail: `${many ? 'Os impostores eram' : 'O impostor era'} ${impostorNames} — ${many ? 'escaparam' : 'escapou'}! 🤫`,
+      detail: `${many ? 'Os impostores eram' : 'O impostor era'} ${impostorNames} — ${many ? 'escaparam' : 'escapou'} de trenó! 🛷`,
     }
   }
   const accused = nameOf(players, reveal.accused)
   if (reveal.caught) {
     const other = reveal.impostors.filter((id) => id !== reveal.accused)
     return {
-      icon: '😱',
+      icon: '🚨',
       title: `${accused} ERA IMPOSTOR!`,
       detail: other.length
-        ? `E ${namesOf(players, other)} também era — e escapou! 🤫`
-        : 'Mas ainda dá para salvar a honra: adivinhando a palavra.',
+        ? `E ${namesOf(players, other)} também era — e escapou de fininho! 🥸`
+        : 'Vai pra lista dos malcriados… a não ser que adivinhe a palavra.',
     }
   }
   return {
     icon: '😇',
     title: `${accused} ERA INOCENTE!`,
-    detail: `${many ? 'Os impostores eram' : 'O impostor era'} ${impostorNames} — ${many ? 'escaparam' : 'escapou'}! 🤫`,
+    detail: `${many ? 'Os impostores eram' : 'O impostor era'} ${impostorNames} — ${many ? 'escaparam' : 'escapou'} de fininho! 🥸`,
   }
 }

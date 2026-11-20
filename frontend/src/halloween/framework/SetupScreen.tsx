@@ -60,7 +60,7 @@ export function TvSetupScreen({
           sx={{
             borderRadius: 'var(--radius-xl)',
             border: `2px solid ${meta.accent.main}55`,
-            background: 'var(--bg-veil-strong, rgba(10, 6, 18, 0.82))',
+            background: 'var(--bg-veil-strong, rgba(6, 16, 31, 0.82))',
             p: { xs: 3, md: 4 },
           }}
         >
@@ -73,7 +73,7 @@ export function TvSetupScreen({
               lineHeight: 1,
             }}
           >
-            Como jogar
+            🎄 Como jogar
           </Typography>
           <Box component="ol" sx={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 2 }}>
             {meta.howTo.map((step, index) => (
@@ -113,6 +113,7 @@ export function TvSetupScreen({
           {players.map((player) => (
             <Box
               key={player.id}
+              className="animate-pop-in"
               sx={{
                 px: 2.5,
                 py: 1,
@@ -229,13 +230,13 @@ export function HostSetupScreen({
           '&:hover': { background: meta.accent.light },
         }}
       >
-        {starting ? 'Começando…' : missing > 0 ? `Faltam ${missing} 👻` : `${meta.icon} Começar`}
+        {starting ? 'Começando…' : missing > 0 ? `Faltam ${missing} ${missing === 1 ? 'rena' : 'renas'} 🦌` : `${meta.icon} Começar`}
       </Button>
       <Typography sx={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
         {online} online · {meta.minPlayers} a {meta.maxPlayers} pessoas · {meta.duration}
       </Typography>
       <Button variant="text" color="inherit" onClick={onBackToRoom} sx={{ color: 'var(--text-secondary)' }}>
-        🚪 Voltar à sala (trocar de jogo)
+        🛷 Voltar à sala (trocar de jogo)
       </Button>
     </Box>
   )
@@ -245,7 +246,7 @@ export function HostSetupScreen({
 export function PlayerSetupScreen({ meta }: { meta: HalloweenGameMeta }) {
   return (
     <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', pt: 4 }}>
-      <Box aria-hidden className="animate-ghost" sx={{ fontSize: '4.5rem', lineHeight: 1 }}>
+      <Box aria-hidden className="animate-hop" sx={{ fontSize: '4.5rem', lineHeight: 1 }}>
         📺
       </Box>
       <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', lineHeight: 1 }}>

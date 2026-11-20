@@ -53,7 +53,7 @@ function ctxAt(
   return makeCtx({ players: makePlayers(Math.max(...state.roster)), now, inputs: full, ...extra })
 }
 
-/** Pula o anúncio do tema: a abóbora acende em `now` (padrão: no prazo do tema). */
+/** Pula o anúncio do tema: o presente acende em `now` (padrão: no prazo do tema). */
 function play(state: AbbState, now = state.deadline!, extra: Partial<EngineCtx> = {}) {
   const next = engine.step(state, ctxAt(state, now, {}, extra))
   expect(next.phase).toBe('play')
@@ -70,7 +70,7 @@ function explode(state: AbbState) {
   return engine.step(state, ctxAt(state, state.deadline!))
 }
 
-/** Faz a abóbora estourar na mão do jogador `victim` na rodada atual. */
+/** Faz o presente estourar na mão do jogador `victim` na rodada atual. */
 function explodeOn(state: AbbState, victim: number) {
   let s = state.phase === 'theme' ? play(state) : state
   let guard = 0
@@ -128,11 +128,11 @@ describe('início', () => {
     expect([defaults.fuseMs, defaults.maxLives, defaults.mode]).toEqual([15_000, 2, 'falar'])
   })
 
-  it('12 temas sem repetir, alternando Halloween e dia a dia', () => {
+  it('12 temas sem repetir, alternando Natal e dia a dia', () => {
     const { state } = start(4)
     expect(state.deck).toHaveLength(MAX_ROUNDS)
     expect(new Set(state.deck).size).toBe(MAX_ROUNDS)
-    state.deck.forEach((id, index) => expect(THEMES[id].spooky).toBe(index % 2 === 0))
+    state.deck.forEach((id, index) => expect(THEMES[id].xmas).toBe(index % 2 === 0))
   })
 })
 
@@ -168,7 +168,7 @@ describe('anúncio do tema', () => {
   })
 })
 
-describe('passar a abóbora', () => {
+describe('passar o presente', () => {
   it('desconta só o que queimou e entrega ao próximo da mesa', () => {
     const { state } = start(4)
     const live = play({ ...state, holder: 2 })
@@ -188,7 +188,7 @@ describe('passar a abóbora', () => {
     expect(fuseLeftAt(next, 3, next.arrivedAt + 3500)).toBe(13_000)
   })
 
-  it('a abóbora dá a volta na mesa (o último passa para o primeiro)', () => {
+  it('o presente dá a volta na mesa (o último passa para o primeiro)', () => {
     const { state } = start(3)
     let s = play({ ...state, holder: 3 })
     s = pass(s, s.arrivedAt + 1200, s.arrivedAt + 1300)
@@ -231,7 +231,7 @@ describe('passar a abóbora', () => {
     expect(pass(live, Number.NaN, seen).fuse[holder]).toBe(11_500)
   })
 
-  it('ignora passe de quem não está com a abóbora, de outra posse e de espectador', () => {
+  it('ignora passe de quem não está com o presente, de outra posse e de espectador', () => {
     const { state } = start(4)
     const live = play({ ...state, holder: 1 })
     const ctx = makeCtx({
@@ -239,7 +239,7 @@ describe('passar a abóbora', () => {
       now: live.arrivedAt + 3000,
       inputs: {
         1: { k: 'pass-1-7', at: live.arrivedAt + 2000 }, // chave de outra posse
-        2: { k: live.inputKey, at: live.arrivedAt + 2000 }, // não está com a abóbora
+        2: { k: live.inputKey, at: live.arrivedAt + 2000 }, // não está com o presente
         5: { k: live.inputKey, at: live.arrivedAt + 2000 }, // espectador
       },
     })
@@ -255,11 +255,11 @@ describe('passar a abóbora', () => {
     expect(engine.step(passed, ctxAt(live, live.arrivedAt + 2000, { [live.holder!]: { at: live.arrivedAt + 2000 } }))).toBe(passed)
   })
 
-  it('pula quem já virou fantasma; quem está offline também recebe (ninguém fica imune)', () => {
+  it('pula quem já virou boneco de neve; quem está offline também recebe (ninguém fica imune)', () => {
     const { state } = start(5)
     const live = play({ ...state, holder: 1, lives: { ...state.lives, 2: 0 } })
     expect(pass(live, live.arrivedAt + 1500).holder).toBe(3)
-    // Celular bloqueado ou no Instagram não é escudo: a abóbora chega nele e
+    // Celular bloqueado ou no Instagram não é escudo: o presente chega nele e
     // o pavio dele queima (a mesa grita o nome, ele volta e passa).
     const players = makePlayers(5, { offline: [3, 4] })
     expect(pass(live, live.arrivedAt + 1500, live.arrivedAt + 1500, {}, { players }).holder).toBe(3)
@@ -282,7 +282,7 @@ describe('BUM', () => {
     expect(boom.fuse['2']).toBe(0)
     expect(boom.boom).toEqual({ victim: 2, livesLeft: 1, eliminated: false, passes: 0 })
     expect(boom.history).toEqual([{ round: 1, theme: state.theme.text, victim: 2, passes: 0 }])
-    // Pavio poupado: quem não pegou a abóbora guardou o pavio inteiro.
+    // Pavio poupado: quem não pegou o presente guardou o pavio inteiro.
     expect(boom.saved).toEqual({ 1: 15_000, 2: 0, 3: 15_000, 4: 15_000 })
     expect(boom.fuseEnd).toBeNull()
   })
@@ -324,7 +324,7 @@ describe('BUM', () => {
     expect(explode(s).boom?.victim).toBe(1)
   })
 
-  it('sem vidas vira fantasma: não recebe mais a abóbora nem começa rodada', () => {
+  it('sem vidas vira boneco de neve: não recebe mais o presente nem começa rodada', () => {
     const { state } = start(3, { lives: 1 })
     const boom = explodeOn({ ...state, holder: 2 }, 2)
     expect(boom.boom).toMatchObject({ victim: 2, livesLeft: 0, eliminated: true })
@@ -391,7 +391,7 @@ describe('"Pular" do host', () => {
   })
 })
 
-describe('a abóbora esquenta', () => {
+describe('o presente esquenta', () => {
   it('a cada 30 s de rodada o pavio de quem pega queima mais rápido (até 3×)', () => {
     expect([0, 1, 2, 3, 4, 9].map(heatRate)).toEqual([1, 1.5, 2, 2.5, 3, 3])
     const { state } = start(2, { fuse: 20 })
@@ -534,7 +534,7 @@ describe('fim', () => {
 })
 
 describe('bot', () => {
-  it('só quem segura a abóbora passa, com o horário do toque', () => {
+  it('só quem segura o presente passa, com o horário do toque', () => {
     const { state, ctx } = start(4)
     const live = play(state)
     const replies = Array.from({ length: 40 }, () => engine.bot(live, live.holder!, { ...ctx, now: 5 }))
@@ -605,7 +605,7 @@ describe('simulações', () => {
   it('quem sai da festa no meio não trava: o pavio dele queima, BUM, e a roda segue', () => {
     const { state } = start(4)
     const live = play({ ...state, holder: 2 })
-    // O 2 some com a abóbora na mão: o pavio dele queima e o prazo traz o BUM.
+    // O 2 some com o presente na mão: o pavio dele queima e o prazo traz o BUM.
     const gone: HPlayer[] = makePlayers(4, { offline: [2] })
     expect(engine.step(live, ctxAt(live, live.deadline! - 1, {}, { players: gone }))).toBe(live)
     const boom = engine.step(live, ctxAt(live, live.deadline!, {}, { players: gone }))
@@ -613,7 +613,7 @@ describe('simulações', () => {
     // A rodada nova não começa com quem sumiu...
     const round2 = engine.step(boom, ctxAt(boom, boom.deadline!, {}, { players: gone }))
     expect(round2.holder).toBe(3)
-    // ...mas a abóbora chega nele de novo na volta da mesa, até virar fantasma.
+    // ...mas o presente chega nele de novo na volta da mesa, até virar boneco de neve.
     let s = play(round2, round2.deadline!, { players: gone })
     s = pass(s, s.arrivedAt + 1200, s.arrivedAt + 1200, {}, { players: gone })
     s = pass(s, s.arrivedAt + 1200, s.arrivedAt + 1200, {}, { players: gone })
@@ -624,7 +624,7 @@ describe('simulações', () => {
     expect(second.boom).toMatchObject({ victim: 2, eliminated: true })
   })
 
-  it('quem some com o celular logo no começo não ganha a partida (vira fantasma)', () => {
+  it('quem some com o celular logo no começo não ganha a partida (vira boneco de neve)', () => {
     // Mesa grande: as 12 rodadas acabam com muita gente viva, e vence quem
     // tem mais vidas. O 8 bloqueou o celular e sumiu; os outros passam 2 s
     // depois de receber. Pulado para sempre, ele terminaria com todas as
@@ -658,12 +658,12 @@ describe('simulações', () => {
 })
 
 describe('conteúdo', () => {
-  it('40+ temas, metade de Halloween e metade do dia a dia, curtos e sem repetir', () => {
+  it('40+ temas, metade de Natal e metade do dia a dia, curtos e sem repetir', () => {
     expect(THEMES.length).toBeGreaterThanOrEqual(40)
     expect(new Set(THEMES.map((theme) => theme.text)).size).toBe(THEMES.length)
-    const spooky = THEMES.filter((theme) => theme.spooky).length
-    expect(spooky).toBeGreaterThanOrEqual(20)
-    expect(THEMES.length - spooky).toBeGreaterThanOrEqual(20)
+    const xmas = THEMES.filter((theme) => theme.xmas).length
+    expect(xmas).toBeGreaterThanOrEqual(20)
+    expect(THEMES.length - xmas).toBeGreaterThanOrEqual(20)
     for (const theme of THEMES) {
       expect(theme.text.length).toBeGreaterThan(3)
       expect(theme.text.length).toBeLessThanOrEqual(40)
@@ -681,6 +681,7 @@ describe('conteúdo', () => {
     expect([meta.minPlayers, meta.maxPlayers]).toEqual([2, 15])
     expect(meta.options.map((option) => option.key)).toEqual(['fuse', 'lives', 'mode'])
     expect(meta.phonePollMs).toBeLessThanOrEqual(800)
-    expect(meta.music).toBe('chase')
+    expect(meta.music).toBe('jingle')
+    expect(meta.victoryMusic).toBe('wish')
   })
 })

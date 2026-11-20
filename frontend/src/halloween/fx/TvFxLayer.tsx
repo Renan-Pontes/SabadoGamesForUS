@@ -22,6 +22,7 @@ import { roomPlayerNames } from './names'
 import { startRandomScares } from './randomScares'
 import { startRareScare } from './rareScare'
 import TvControl from './TvControl'
+import { AUTO_SCARES } from '../../season'
 
 /** Consulta leve do `fx` da sala (o host manda susto / liga a música). */
 const POLL_MS = 1500
@@ -40,7 +41,7 @@ async function scareWithName(code: string, requested: string, name?: string) {
 /** O estado do app que decide se um susto automático pode sair agora. */
 function autoScareState(): AutoScareState {
   return {
-    enabled: getSoundState().randomScares,
+    enabled: AUTO_SCARES && getSoundState().randomScares,
     hidden: document.hidden,
     suppressed: isScareSuppressed(),
     showing: isScareShowing(),

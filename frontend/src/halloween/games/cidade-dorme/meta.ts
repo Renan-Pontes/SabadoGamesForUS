@@ -2,27 +2,27 @@ import type { HalloweenGameMeta } from '../../engine/types'
 
 export const meta: HalloweenGameMeta = {
   slug: 'cidade-dorme',
-  name: 'Cidade Dorme',
-  icon: '🔪',
-  tagline: 'Ninguém fecha o olho. Todo mundo desconfia.',
-  pitch: 'Assassinos à solta, um detetive, um anjo e uma cidade inteira de suspeitos — e ninguém fecha o olho.',
+  name: 'Vila Dorme',
+  icon: '🧝',
+  tagline: 'Duendes travessos à solta na vila. Ninguém fecha o olho!',
+  pitch: 'Duendes travessos estão transformando a Vila do Papai Noel em bonecos de neve. Uma rena detetive, um anjo e a vila inteira desconfiada — e ninguém fecha o olho.',
   howTo: [
-    'Cada um recebe um papel secreto: assassino, detetive, anjo ou cidadão.',
+    'Cada um recebe um papel secreto: duende, rena detetive, anjo ou morador.',
     'De noite TODO MUNDO escolhe alguém no celular — ninguém fecha o olho.',
-    'De manhã a TV conta quem morreu e lê o bilhete do assassino.',
-    'De dia conversem e votem: sai quem tiver 2+ votos, sem empate.',
-    'A cidade vence pegando os assassinos; eles vencem se empatarem em número.',
+    'De manhã a TV conta quem virou boneco de neve e lê o cartãozinho.',
+    'De dia votem: quem tiver 2+ votos (sem empate) vai de trenó pro Polo Norte.',
+    'A vila vence pegando os duendes; eles vencem se empatarem em número.',
   ],
   duration: '20-30 min',
   vibe: 'Dedução',
   minPlayers: 5,
   maxPlayers: 15,
   accent: {
-    main: '#e0213a',
-    light: '#ff8a9a',
-    glow: 'rgba(224, 33, 58, 0.45)',
+    main: '#ff3d5a',
+    light: '#ffa3b1',
+    glow: 'rgba(255, 61, 90, 0.5)',
     contrast: '#1a0306',
-    sigil: '☾',
+    sigil: '❄',
   },
   options: [
     {
@@ -38,7 +38,7 @@ export const meta: HalloweenGameMeta = {
     },
     {
       key: 'revealRole',
-      label: 'Revelar o papel de quem morre',
+      label: 'Revelar o papel de quem sai do jogo',
       choices: [
         { value: true, label: 'Sim' },
         { value: false, label: 'Não' },
@@ -46,5 +46,6 @@ export const meta: HalloweenGameMeta = {
       default: true,
     },
   ],
-  music: 'night',
+  music: 'natal',
+  victoryMusic: 'wish',
 }

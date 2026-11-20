@@ -27,7 +27,7 @@ type AppShellProps = {
  *
  * As telas de jogo usam `games/ui/GameShell`, que é a versão com acento por
  * jogo e relógio; as duas compartilham as mesmas superfícies. O fundo é um
- * véu translúcido: o cenário da Noite do Terror aparece por trás.
+ * véu translúcido: o cenário de Natal (neve, estrelas) aparece por trás.
  */
 export default function AppShell({
   title,
@@ -85,7 +85,7 @@ export default function AppShell({
                   sx={{
                     color: 'var(--text-muted)',
                     border: '1px solid rgba(255,255,255,0.1)',
-                    background: 'rgba(10, 6, 18, 0.4)',
+                    background: 'rgba(6, 16, 31, 0.4)',
                     '&:hover': { color: accent, borderColor: accent },
                   }}
                 >
@@ -134,8 +134,8 @@ export default function AppShell({
               mb: 2.5,
               p: 1.75,
               borderRadius: 'var(--radius-md)',
-              border: '1px solid rgba(224, 33, 58, 0.5)',
-              background: 'rgba(224, 33, 58, 0.15)',
+              border: '1px solid rgba(232, 57, 74, 0.5)',
+              background: 'rgba(232, 57, 74, 0.15)',
             }}
           >
             <Typography sx={{ color: 'var(--accent-red-light)', fontWeight: 600 }}>

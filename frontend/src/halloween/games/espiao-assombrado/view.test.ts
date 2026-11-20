@@ -12,12 +12,12 @@ function result(outcome: Outcome, extra: Partial<RoundResult> = {}): RoundResult
     outcome,
     winner: winnerOf(outcome),
     kind: outcome === 'everyone' ? 'everyone' : outcome.startsWith('nobody') ? 'nobody' : 'normal',
-    place: { name: 'Cemitério', icon: '🪦' },
+    place: { name: 'Presépio Vivo', icon: '🐑' },
     spies: [1, 4],
     convicted: 1,
     via: 'accusation',
     sharp: [],
-    guess: { by: 4, text: 'cemiterio', right: true },
+    guess: { by: 4, text: 'presepio', right: true },
     finalTally: [],
     roles: {},
     gains: {},
@@ -64,18 +64,20 @@ describe('textos das telas', () => {
   it('meme da revelação: inocente condenado, chute errado e todo mundo espião', () => {
     expect(revealMeme('innocent')).toBe('bruh')
     expect(revealMeme('guess-wrong')).toBe('pipe')
-    expect(revealMeme('everyone')).toBe('doot')
+    expect(revealMeme('everyone')).toBe('zoom')
     for (const outcome of ['caught', 'escaped', 'guess-right', 'tie', 'nobody-convicted', 'nobody-free'] as const) {
       expect(revealMeme(outcome), outcome).toBeNull()
     }
   })
 
-  it('narração igual em toda rodada e trilha/sustos por fase', () => {
+  it('narração igual em toda rodada e trilha/piadas por fase', () => {
     expect(revealNarration(2, 1)).toContain('Um de vocês é o espião')
     expect(revealNarration(2, 2)).toContain('Dois de vocês são espiões')
-    expect(trackFor('talk', false)).toBe('tension')
-    expect(trackFor('accuse', false)).toBe('chase')
-    expect(trackFor('accuse', true)).toBe('victory')
+    expect(revealNarration(1, 1)).toContain('Ho ho ho')
+    expect(trackFor('talk', false)).toBe('natal')
+    expect(trackFor('accuse', false)).toBe('jingle')
+    expect(trackFor('reveal', false)).toBe('jingle')
+    expect(trackFor('accuse', true)).toBe('wish')
     expect(holdsScares('talk', false)).toBe(false)
     expect(holdsScares('accuse', false)).toBe(true)
     expect(holdsScares('result', false)).toBe(true)

@@ -1,0 +1,152 @@
+/*
+ * Animações do "Duas Verdades, Uma Mentira" (prefixo dv-): fogo da lareira,
+ * meias balançando no varal, presente pulando da meia, carimbo "MENTIRA!",
+ * cartas tremendo no rufar, brilho dourado nos títulos e a chuva do fim.
+ */
+
+.dv-flame {
+  transform-origin: 50% 100%;
+  animation: dvFlame 0.9s ease-in-out infinite alternate;
+}
+@keyframes dvFlame {
+  0% { transform: scale(1, 1) skewX(0deg); opacity: 0.95; }
+  40% { transform: scale(1.06, 0.92) skewX(-4deg); opacity: 1; }
+  100% { transform: scale(0.94, 1.1) skewX(4deg); opacity: 0.85; }
+}
+
+.dv-glow {
+  animation: dvGlow 2.2s ease-in-out infinite alternate;
+}
+@keyframes dvGlow {
+  from { opacity: 0.55; }
+  to { opacity: 0.95; }
+}
+
+.dv-swing {
+  transform-origin: 50% 0;
+  animation: dvSwing 3s ease-in-out infinite;
+}
+@keyframes dvSwing {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+
+.dv-pop {
+  display: inline-block;
+  animation: dvPop 0.7s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+@keyframes dvPop {
+  0% { transform: translateY(40%) scale(0.2); opacity: 0; }
+  60% { transform: translateY(-12%) scale(1.15); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.dv-bounce {
+  display: inline-block;
+  transform-origin: 50% 100%;
+  animation: dvBounce 1.5s cubic-bezier(0.3, 0.6, 0.4, 1) infinite;
+}
+@keyframes dvBounce {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  35% { transform: translateY(-14%) scale(0.95, 1.05); }
+  55% { transform: translateY(0) scale(1.08, 0.92); }
+}
+
+.dv-wiggle {
+  display: inline-block;
+  animation: dvWiggle 1.4s ease-in-out infinite;
+}
+@keyframes dvWiggle {
+  0%, 100% { transform: rotate(-7deg); }
+  50% { transform: rotate(7deg); }
+}
+
+/* Cartas tremendo enquanto rufam os tambores. */
+.dv-shake {
+  animation: dvShake 0.36s ease-in-out infinite;
+}
+@keyframes dvShake {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  25% { transform: translateX(-6px) rotate(-0.6deg); }
+  75% { transform: translateX(6px) rotate(0.6deg); }
+}
+
+/* Carimbo "MENTIRA!": cai do alto, bate e sacode. */
+.dv-stamp {
+  animation: dvStamp 0.75s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+@keyframes dvStamp {
+  0% { transform: translate(-50%, -50%) rotate(-14deg) scale(3); opacity: 0; }
+  55% { transform: translate(-50%, -50%) rotate(-14deg) scale(0.9); opacity: 1; }
+  75% { transform: translate(-50%, -50%) rotate(-11deg) scale(1.06); }
+  100% { transform: translate(-50%, -50%) rotate(-12deg) scale(1); opacity: 1; }
+}
+
+/* O "boing" de mola das manchetes. */
+.dv-boing {
+  display: inline-block;
+  animation: dvBoing 1s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes dvBoing {
+  0% { transform: scale(0.3, 1.7); }
+  30% { transform: scale(1.3, 0.75); }
+  50% { transform: scale(0.88, 1.14); }
+  70% { transform: scale(1.06, 0.95); }
+  100% { transform: scale(1, 1); }
+}
+
+.dv-sparkle {
+  animation: dvSparkle 1.9s ease-in-out infinite;
+}
+@keyframes dvSparkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.6) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.15) rotate(45deg); }
+}
+
+/* Texto dourado com brilho passando. */
+.dv-gold {
+  background: linear-gradient(100deg, #ffb36b 0%, #ff8a3d 30%, #fffbe8 48%, #ffc83d 66%, #ffb36b 100%);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: dvShine 3.2s linear infinite;
+}
+@keyframes dvShine {
+  to { background-position: -220% center; }
+}
+
+/* Chuva de presentes e flocos (fim da partida). */
+.dv-fall {
+  position: absolute;
+  top: -12vh;
+  line-height: 1;
+  animation: dvFall var(--dv-dur, 5s) linear var(--dv-delay, 0s) infinite;
+  will-change: transform;
+}
+@keyframes dvFall {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(var(--dv-drift, 0px), 125vh) rotate(var(--dv-spin, 0deg)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dv-flame,
+  .dv-glow,
+  .dv-swing,
+  .dv-pop,
+  .dv-bounce,
+  .dv-wiggle,
+  .dv-shake,
+  .dv-boing,
+  .dv-sparkle,
+  .dv-gold {
+    animation: none;
+  }
+  .dv-stamp {
+    animation: none;
+    transform: translate(-50%, -50%) rotate(-12deg);
+  }
+  .dv-fall {
+    display: none;
+  }
+}

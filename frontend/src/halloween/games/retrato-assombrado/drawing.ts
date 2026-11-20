@@ -1,5 +1,5 @@
 /**
- * Os desenhos do "Retrato Assombrado" — formato, redução de pontos e
+ * Os desenhos do "Retrato de Natal" — formato, redução de pontos e
  * leitura tolerante. Tudo puro: roda no celular, na TV e nos testes.
  *
  * Cada desenho viaja no slot 'draw' do celular (`sendSlot('draw', {...})`)
@@ -17,9 +17,9 @@
  * 100 KB por sincronização no pior caso.
  */
 
-/** Paleta do celular: tinta, sangue, abóbora, gosma, noite e poção. */
-export const PALETTE = ['#1c1917', '#e0213a', '#f97316', '#16a34a', '#2563eb', '#9333ea'] as const
-export const COLOR_NAMES = ['Preto', 'Vermelho', 'Laranja', 'Verde', 'Azul', 'Roxo'] as const
+/** Paleta do celular: carvão, vermelho-Noel, laranja, pinheiro, azul-gelo e marrom-rena. */
+export const PALETTE = ['#1c1917', '#e0213a', '#f97316', '#16a34a', '#2563eb', '#8b5a2b'] as const
+export const COLOR_NAMES = ['Preto', 'Vermelho', 'Laranja', 'Verde', 'Azul', 'Marrom'] as const
 
 /** Teto de pontos por desenho (todas as etapas juntas). */
 export const MAX_POINTS = 600

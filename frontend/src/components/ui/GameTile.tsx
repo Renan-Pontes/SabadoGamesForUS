@@ -2,9 +2,8 @@ import { Box, Typography } from '@mui/material'
 import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded'
 import ScheduleRoundedIcon from '@mui/icons-material/ScheduleRounded'
 import type { Game } from '../../lib/types'
-import { getGameColor, getGameMeta } from '../../lib/gameCatalog'
-import { isHalloweenSlug } from '../../halloween/slugs'
-import Cobweb from './Cobweb'
+import { gameName, getGameColor, getGameMeta } from '../../lib/gameCatalog'
+import SnowCap from './SnowCap'
 import { withAlpha } from './surfaces'
 
 type GameTileProps = {
@@ -21,8 +20,8 @@ type GameTileProps = {
 /**
  * Card do catálogo de jogos, usado no lobby e na sala do host.
  *
- * Os jogos da Noite do Terror ganham teia no canto, selo "NOVO" e um brilho
- * de abóbora; os antigos ficam com a moldura simples, na paleta nova.
+ * Natal: todo card tem neve acumulada na borda de cima e um brilho na cor
+ * do jogo; o nome vem do meta do jogo (o do servidor pode estar velho).
  */
 export default function GameTile({
   game,
@@ -34,7 +33,6 @@ export default function GameTile({
 }: GameTileProps) {
   const meta = getGameMeta(game.slug)
   const color = getGameColor(game.slug)
-  const spooky = isHalloweenSlug(game.slug)
   const interactive = Boolean(onSelect) && !disabledReason
   // Jogo sem ficha no catálogo do front: a descrição do servidor diz mais
   // do que o texto genérico de reserva.
@@ -66,12 +64,10 @@ export default function GameTile({
         display: 'flex',
         flexDirection: 'column',
         borderRadius: 'var(--radius-xl)',
-        border: `1px solid ${selected ? color : spooky ? withAlpha(color, 0.38) : 'rgba(72, 48, 108, 0.7)'}`,
+        border: `1px solid ${selected ? color : withAlpha(color, 0.38)}`,
         background: selected
-          ? `linear-gradient(155deg, ${withAlpha(color, 0.2)} 0%, rgba(12, 7, 22, 0.94) 70%)`
-          : spooky
-            ? `radial-gradient(ellipse 90% 70% at 0% 0%, ${withAlpha(color, 0.14)}, transparent 60%), linear-gradient(160deg, rgba(34, 19, 58, 0.92) 0%, rgba(12, 7, 22, 0.94) 100%)`
-            : 'linear-gradient(160deg, rgba(31, 18, 54, 0.88) 0%, rgba(12, 7, 22, 0.92) 100%)',
+          ? `linear-gradient(155deg, ${withAlpha(color, 0.2)} 0%, rgba(8, 18, 36, 0.94) 70%)`
+          : `radial-gradient(ellipse 90% 70% at 0% 0%, ${withAlpha(color, 0.14)}, transparent 60%), linear-gradient(160deg, rgba(18, 38, 68, 0.92) 0%, rgba(8, 18, 36, 0.94) 100%)`,
         boxShadow: selected
           ? `0 18px 44px rgba(0,0,0,0.5), 0 0 34px ${withAlpha(color, 0.3)}`
           : '0 14px 34px rgba(0,0,0,0.42)',
@@ -85,7 +81,7 @@ export default function GameTile({
             borderColor: color,
             boxShadow: `0 22px 50px rgba(0,0,0,0.5), 0 0 34px ${withAlpha(color, 0.3)}`,
           },
-          '&:hover .tile-icon': { animation: 'wobble 1.2s ease-in-out infinite' },
+          '&:hover .tile-icon': { animation: 'hop 1.2s ease-in-out infinite' },
         }),
       }}
     >
@@ -103,9 +99,9 @@ export default function GameTile({
         }}
       />
 
-      {spooky && <Cobweb corner="top-right" size={featured ? 78 : 64} opacity={0.15} />}
+      <SnowCap height={featured ? 12 : 10} />
 
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1.5, position: 'relative' }}>
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1.5, mt: 1, position: 'relative' }}>
         <Box
           className="tile-icon"
           sx={{
@@ -118,13 +114,13 @@ export default function GameTile({
             fontSize: featured ? '2rem' : '1.6rem',
             background: withAlpha(color, 0.13),
             border: `1px solid ${withAlpha(color, 0.3)}`,
-            boxShadow: spooky ? `0 0 18px ${withAlpha(color, 0.25)}` : 'none',
+            boxShadow: `0 0 18px ${withAlpha(color, 0.25)}`,
           }}
         >
           {meta.icon}
         </Box>
 
-        <Box sx={{ minWidth: 0, flex: 1, pr: spooky ? 1.5 : 0 }}>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography
             sx={{
               fontFamily: 'var(--font-display)',
@@ -136,7 +132,7 @@ export default function GameTile({
               overflowWrap: 'break-word',
             }}
           >
-            {game.name}
+            {gameName(game)}
           </Typography>
           {/* Selo na linha do clima, e não ao lado do título: lá ele espremia
               o nome até quebrar letra por letra. */}
@@ -163,31 +159,13 @@ export default function GameTile({
                   fontWeight: 900,
                   letterSpacing: '0.12em',
                   lineHeight: 1.6,
-                  color: '#0a0612',
+                  color: '#06101f',
                   background: color,
                 }}
               >
                 ✓ ESCOLHIDO
               </Box>
-            ) : (
-              spooky && (
-                <Box
-                  component="span"
-                  sx={{
-                    px: 0.75,
-                    borderRadius: 'var(--radius-full)',
-                    fontSize: '0.55rem',
-                    fontWeight: 900,
-                    letterSpacing: '0.12em',
-                    lineHeight: 1.6,
-                    color: '#1a0b02',
-                    background: 'linear-gradient(120deg, var(--pumpkin-light), var(--pumpkin))',
-                  }}
-                >
-                  NOVO
-                </Box>
-              )
-            )}
+            ) : null}
           </Box>
         </Box>
       </Box>

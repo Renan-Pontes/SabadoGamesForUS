@@ -1,14 +1,15 @@
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { Box, Typography } from '@mui/material'
-import { playSfx, speakSpooky, useMusic, type MusicTrack } from '../../audio'
+import { playSfx, speakFestive, useMusic, type MusicTrack } from '../../audio'
 import { nameOf, type RankEntry } from '../../engine/helpers'
 import type { HPlayer, HalloweenViewProps } from '../../engine/types'
 import { useCountdown } from '../../framework/clockHooks'
 import { triggerScare, useSuppressScares } from '../../scare'
-import { CandleTimer, CandyRain, HauntedTitle, PlayerBadge, SPOOKY_COLORS } from '../../ui'
+import { CandleTimer, FESTIVE_ROUND_FONT, HauntedTitle, PlayerBadge, XMAS_COLORS } from '../../ui'
 import { categoryAt } from './content'
 import { finalAwards, type State } from './engine'
+import GiftRain from './GiftRain'
 import { meta } from './meta'
 import Portrait from './Portrait'
 import {
@@ -28,16 +29,17 @@ import {
 } from './view'
 
 /**
- * TV do "Retrato Assombrado". Só desenha o estado (quem decide fase, votos
- * e pontos é o motor) e os desenhos, que chegam pelos slots de cada um.
- * Letras para 3 metros: texto de 28 px para cima, títulos de 64 px para
- * cima, vela-cronômetro sempre à vista.
+ * TV do "Retrato de Natal": a mesa e o apresentador. Só desenha o estado
+ * (quem decide fase, votos e pontos é o motor) e os desenhos, que chegam
+ * pelos slots de cada um, como quadros de uma exposição de Natal. Letras
+ * para 3 metros: texto de 28 px para cima, títulos de 64 px para cima,
+ * vela-cronômetro sempre à vista.
  */
 
 type Slots = HalloweenViewProps<State>['slots']
 
 const ACCENT = meta.accent
-/** Fases em que susto aleatório atrapalharia. */
+/** Fases em que uma surpresa aleatória da TV atrapalharia. */
 const SUSPENSE_PHASES: readonly string[] = ['vote', 'reveal', 'guess', 'result']
 
 export default function Tv({ state, players, now, slots }: HalloweenViewProps<State>) {
@@ -69,7 +71,7 @@ export default function Tv({ state, players, now, slots }: HalloweenViewProps<St
         </>
       )}
 
-      <CandyRain active={state.over} kind="mixed" />
+      <GiftRain active={state.over} />
     </Box>
   )
 }
@@ -81,10 +83,11 @@ function PhaseMusic({ track }: { track: MusicTrack }) {
 }
 
 /**
- * Som de cada momento (rodada + fase), uma vez só — nunca a cada poll — e
- * os dois sustos da partida: o zoom no primeiro impostor que escapa e o
- * esqueleto do "doot" quando todo mundo era impostor. (O tique-taque mora
- * no Timer, que já redesenha a cada segundo — a galeria não precisa.)
+ * Som de cada momento (rodada + fase), uma vez só — nunca a cada poll —, a
+ * narração animada do apresentador e as piadas da partida: o "boing" 🤨 de
+ * mola quando o impostor é desmascarado e o zoom suspeito no primeiro
+ * impostor que escapa. (O tique-taque mora no Timer, que já redesenha a cada
+ * segundo — a galeria não precisa.)
  */
 function useTvSounds(state: State, players: HPlayer[]) {
   const phase = state.over ? 'final' : state.phase
@@ -109,73 +112,94 @@ function useTvSounds(state: State, players: HPlayer[]) {
     let hush: (() => void) | null = null
     const say = (text: string) => {
       hush?.()
-      hush = speakSpooky(text)
+      hush = speakFestive(text)
     }
 
     switch (phase) {
       case 'show':
-        playSfx('gong', { volume: 0.7 })
-        later(600, () => say(`Rodada ${round}. Categoria: ${categoryName}.`))
+        playSfx('sleigh', { volume: 0.8 })
+        later(700, () => say(`Rodada ${round}! A categoria é: ${categoryName}.`))
         break
       case 'draw1':
+        playSfx('chime')
+        later(400, () => say('Mãos à obra, artistas! Desenhem!'))
+        break
       case 'draw2':
         playSfx('bell', { volume: 0.7 })
+        later(400, () => say('Últimos retoques!'))
         break
       case 'peek':
-        playSfx('creak')
-        playSfx('whoosh', { delay: 0.3 })
-        later(400, () => say('Espiadinha!'))
+        playSfx('whoosh')
+        playSfx('boing', { delay: 0.35 })
+        later(600, () => say('Espiadinha! Olho vivo, que tem gente copiando.'))
         break
       case 'gallery':
-        playSfx('organ', { volume: 0.8 })
-        later(1200, () => say('Quem desenhou sem saber a palavra?'))
+        playSfx('chime')
+        playSfx('sleigh', { delay: 0.5, volume: 0.6 })
+        later(1100, () => say('Bem-vindos à exposição de Natal! Quem desenhou sem saber a palavra?'))
         break
       case 'vote':
-        playSfx('heartbeat')
+        // O "hmmm…" da mesa: todo mundo olhando torto para todo mundo 🤨.
+        playSfx('boing')
+        later(500, () => say('Hora de votar! Quem é o impostor?'))
         break
       case 'reveal': {
         playSfx('drumroll')
         later(VERDICT_DELAY_MS, () => {
           if (verdict === 'caught') {
-            playSfx('scream')
-            playSfx('thunder', { volume: 0.7 })
+            playSfx('boing')
+            playSfx('win', { delay: 0.45 })
+            playSfx('giggle', { delay: 1 })
+            say(`${accusedName} era o impostor! Direto pra lista dos malcriados!`)
           } else if (verdict === 'everyone') {
-            triggerScare('doot')
+            playSfx('boing')
+            playSfx('boing', { delay: 0.32 })
+            playSfx('giggle', { delay: 0.7 })
+            say('Todo mundo era impostor! Que Natal é esse, gente?')
           } else if (verdict === 'nobody') {
-            playSfx('ding')
-            playSfx('laugh', { delay: 0.4 })
+            playSfx('chime')
+            playSfx('giggle', { delay: 0.5 })
+            say('Ninguém era impostor! Milagre de Natal!')
           } else {
             playSfx('fail')
-            playSfx('laugh', { delay: 0.5 })
+            playSfx('giggle', { delay: 0.5 })
+            say(verdict === 'tie' ? 'Empate! E o impostor fugiu de trenó!' : `${accusedName} era inocente! O impostor fugiu de trenó!`)
           }
         })
         // O primeiro impostor que escapa na partida ganha o zoom suspeito 🤨.
         if ((verdict === 'innocent' || verdict === 'tie') && firstEscape && sneaky) {
-          later(VERDICT_DELAY_MS + 1800, () => triggerScare('zoom', { name: sneaky }))
+          later(VERDICT_DELAY_MS + 2600, () => {
+            playSfx('boing')
+            triggerScare('zoom', { name: sneaky })
+          })
         }
         break
       }
       case 'guess':
-        playSfx('heartbeat')
-        later(500, () => say(`${accusedName}, qual é a palavra?`))
+        playSfx('chime')
+        later(500, () => say(`${accusedName}, última chance! Qual é a palavra?`))
         break
       case 'result':
         if (guess === 'right') {
           playSfx('win')
-          playSfx('laugh', { delay: 0.6 })
+          playSfx('sleigh', { delay: 0.5 })
+          if (word) later(900, () => say(`Acertou! A palavra era ${word}!`))
         } else if (guess === 'wrong') {
           playSfx('buzzer')
+          playSfx('giggle', { delay: 0.5 })
+          if (word) later(1100, () => say(`Errou feio! A palavra era ${word}.`))
         } else {
           playSfx('reveal')
+          if (word) later(900, () => say(`A palavra era: ${word}!`))
         }
-        if (word) later(900, () => say(`A palavra era: ${word}.`))
         break
       case 'scores':
         playSfx('ding')
         break
       case 'final':
-        playSfx('organ')
+        playSfx('sleigh')
         playSfx('win', { delay: 1.2 })
+        later(1800, () => say('Fim da exposição de Natal! Palmas para os artistas!'))
         break
     }
     return () => {
@@ -192,8 +216,8 @@ function useTvSounds(state: State, players: HPlayer[]) {
 /** Título da fase que vai no meio da barra do topo (só nas fases de galeria: sobra altura para os retratos). */
 function barTitle(state: State): string | null {
   if (state.phase === 'peek') return '👀 Espiadinha!'
-  if (state.phase === 'gallery') return '🖼️ A galeria'
-  if (state.phase === 'vote') return '🗳️ Quem é o impostor?'
+  if (state.phase === 'gallery') return '🖼️ Exposição de Natal'
+  if (state.phase === 'vote') return '🤨 Quem é o impostor?'
   return null
 }
 
@@ -262,8 +286,8 @@ function Timer({ state, now }: { state: State; now: () => number }) {
           lineHeight: 1,
           minWidth: '2ch',
           textAlign: 'right',
-          color: urgent ? SPOOKY_COLORS.blood : 'var(--text-primary)',
-          textShadow: urgent ? '0 0 22px rgba(224, 33, 58, 0.6)' : 'none',
+          color: urgent ? XMAS_COLORS.red : 'var(--text-primary)',
+          textShadow: urgent ? '0 0 22px rgba(232, 57, 74, 0.6)' : 'none',
         }}
       >
         {seconds ?? ''}
@@ -291,13 +315,24 @@ function ShowBoard({ state }: { state: State }) {
       className="animate-pop-in"
       sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 2.5 }}
     >
-      <Box className="animate-ghost" sx={{ fontSize: 'clamp(5rem, 9vw, 9rem)', lineHeight: 1 }}>
+      <Box
+        sx={{
+          fontSize: 'clamp(5rem, 9vw, 9rem)',
+          lineHeight: 1,
+          animation: 'raHop 1.6s ease-in-out infinite',
+          '@keyframes raHop': {
+            '0%, 100%': { transform: 'translateY(0) rotate(-6deg)' },
+            '50%': { transform: 'translateY(-18px) rotate(6deg)' },
+          },
+          '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+        }}
+      >
         {category.icon}
       </Box>
       <Typography sx={{ fontSize: 'clamp(1.8rem, 2.4vw, 2.6rem)', color: 'var(--text-secondary)', letterSpacing: '0.24em' }}>
         A CATEGORIA É
       </Typography>
-      <HauntedTitle size="clamp(4rem, 8vw, 8.5rem)" color={ACCENT.main} drip>
+      <HauntedTitle size="clamp(4rem, 8vw, 8.5rem)" color={ACCENT.main} glow={XMAS_COLORS.gold}>
         {category.name}
       </HauntedTitle>
       <Typography sx={{ fontWeight: 800, fontSize: 'clamp(2.2rem, 3.4vw, 3.6rem)', lineHeight: 1.15, mt: 2 }}>
@@ -305,8 +340,8 @@ function ShowBoard({ state }: { state: State }) {
       </Typography>
       <Subtitle>
         {state.impostorCount > 1
-          ? 'Há 2 impostores na mesa: eles só sabem a categoria.'
-          : 'Há 1 impostor na mesa: ele só sabe a categoria.'}
+          ? 'Há 2 impostores disfarçados na mesa: eles só sabem a categoria.'
+          : 'Há 1 impostor disfarçado na mesa: ele só sabe a categoria.'}
       </Subtitle>
     </Box>
   )
@@ -324,14 +359,14 @@ function StudioBoard({ state, players, slots }: { state: State; players: HPlayer
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: { xs: 3, md: 5 } }}>
       <Box sx={{ textAlign: 'center' }}>
         <Box className="hw-float" sx={{ fontSize: 'clamp(4rem, 7vw, 7rem)', lineHeight: 1 }}>
-          {first ? '🎨' : '🖌️'}
+          {first ? '🎅🎨' : '🖌️🎄'}
         </Box>
         <HauntedTitle size="clamp(4rem, 7vw, 7.5rem)" color={ACCENT.main}>
-          {first ? 'Desenhem!' : 'Últimos retoques!'}
+          {first ? 'Mãos à obra!' : 'Últimos retoques!'}
         </HauntedTitle>
         <Box sx={{ mt: 1 }}>
           <Subtitle>
-            {first ? 'Etapa 1 de 2 — já já tem espiadinha na TV 👀' : 'Etapa 2 de 2 — continuem o MESMO desenho'}
+            {first ? 'Etapa 1 de 2 — já já tem espiadinha na TV 👀' : 'Etapa 2 de 2 — continuem o MESMO desenho e caprichem no enfeite ✨'}
           </Subtitle>
         </Box>
       </Box>
@@ -385,20 +420,20 @@ function Gallery({
 }) {
   const cols = galleryColumns(ids.length)
   const rows = Math.max(1, Math.ceil(ids.length / cols))
-  // Retratos 16:10 + moldura + plaquinha + espaço entre linhas (~78 px por linha):
-  // a largura máxima com que a galeria ainda cabe na altura da tela.
-  const fit = `calc(${cols} * 1.6 * ((100vh - ${reserve}px) / ${rows} - 78px) + ${(cols - 1) * 24}px)`
+  // Quadros 16:10 + moldura + fita do nome + laço + espaço entre linhas (~92 px por
+  // linha): a largura máxima com que a galeria ainda cabe na altura da tela.
+  const fit = `calc(${cols} * 1.6 * ((100vh - ${reserve}px) / ${rows} - 92px) + ${(cols - 1) * 24}px)`
   return (
     <Box
       sx={{
         width: '100%',
         maxWidth: `max(520px, ${fit})`,
         mx: 'auto',
-        pt: 1.5,
+        pt: 3,
         display: 'grid',
         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
         columnGap: 3,
-        rowGap: 2.5,
+        rowGap: 4,
       }}
     >
       {ids.map((id, index) => (
@@ -420,9 +455,9 @@ function GalleryBoard({ state, players, slots }: { state: State; players: HPlaye
   const voted = new Set(voting ? state.acted : [])
   const sub =
     state.phase === 'peek'
-      ? 'Guardem na memória… alguém aqui não sabe a palavra e está copiando!'
+      ? 'Guardem na memória… tem um espertinho aqui copiando tudo! 👀'
       : state.phase === 'gallery'
-        ? 'Quem desenhou sem saber a palavra? Discutam!'
+        ? 'Quem desenhou sem saber a palavra? Discutam! 🗣️'
         : `Votem no celular · ${voted.size}/${state.roster.length} já votaram`
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, minHeight: 0 }}>
@@ -451,13 +486,13 @@ function RevealBoard({ state, players, slots }: { state: State; players: HPlayer
   const verdict = verdictText(state, players)
   const counts = new Map(reveal.tally.map((entry) => [entry.id, entry.count]))
   const best = reveal.tally[0]?.count ?? 0
-  const bloody = reveal.caught || reveal.chaos === 'everyone'
+  const busted = reveal.caught || reveal.chaos === 'everyone'
   const look = (id: number): Look => {
     const votes = counts.get(id)
     const badge = votes ? `🗳️${votes}` : undefined
     if (reveal.chaos === 'everyone') return { badge, tone: 'impostor', ribbon: '🤡 IMPOSTOR' }
     if (reveal.chaos === 'nobody') return reveal.top.includes(id) ? { badge, tone: 'accused', ribbon: '😇 INOCENTE' } : { badge }
-    if (reveal.impostors.includes(id)) return { badge, tone: 'impostor', ribbon: '🤫 IMPOSTOR' }
+    if (reveal.impostors.includes(id)) return { badge, tone: 'impostor', ribbon: '🥸 IMPOSTOR' }
     if (id === reveal.accused) return { badge, tone: 'accused', ribbon: '😇 INOCENTE' }
     return { badge }
   }
@@ -500,7 +535,7 @@ function RevealBoard({ state, players, slots }: { state: State; players: HPlayer
         )}
         <Box className="animate-pop-in" style={{ animationDelay: `${VERDICT_DELAY_MS}ms` }} sx={{ mt: 1 }}>
           <Box sx={{ fontSize: 'clamp(4rem, 6vw, 6.5rem)', lineHeight: 1 }}>{verdict.icon}</Box>
-          <HauntedTitle size="clamp(4rem, 5vw, 5.8rem)" color={bloody ? SPOOKY_COLORS.blood : SPOOKY_COLORS.ghost}>
+          <HauntedTitle size="clamp(4rem, 5vw, 5.8rem)" color={busted ? XMAS_COLORS.red : XMAS_COLORS.snow}>
             {verdict.title}
           </HauntedTitle>
           <Typography sx={{ mt: 1.5, fontWeight: 700, fontSize: 'clamp(1.9rem, 2.5vw, 2.7rem)', lineHeight: 1.2 }}>
@@ -523,14 +558,14 @@ function GuessBoard({ state, players, slots }: { state: State; players: HPlayer[
   return (
     <Box sx={{ flex: 1, display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1.1fr)' }, gap: 5, alignItems: 'center' }}>
       <Box sx={{ width: '100%', maxWidth: 680, mx: 'auto' }}>
-        <Portrait strokes={drawingOf(slots, accused, state.round)} name={name} tone="impostor" ribbon="🤫 IMPOSTOR" strokeWidth={11} />
+        <Portrait strokes={drawingOf(slots, accused, state.round)} name={name} tone="impostor" ribbon="🥸 IMPOSTOR" strokeWidth={11} />
       </Box>
       <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <HauntedTitle size="clamp(4rem, 6.4vw, 7rem)" color={SPOOKY_COLORS.blood}>
+        <HauntedTitle size="clamp(4rem, 6.4vw, 7rem)" color={XMAS_COLORS.red}>
           🎯 Última chance!
         </HauntedTitle>
         <Typography sx={{ fontWeight: 900, fontSize: 'clamp(2.4rem, 3.6vw, 4rem)', lineHeight: 1.1 }}>{name} foi pego…</Typography>
-        <Subtitle>…mas se adivinhar a palavra pelo celular, leva +2.</Subtitle>
+        <Subtitle>…mas se adivinhar a palavra pelo celular, leva +2 e sai da lista dos malcriados.</Subtitle>
         <Typography sx={{ fontSize: 'clamp(2rem, 2.6vw, 2.8rem)', mt: 2 }}>
           Dica: <b>{state.category}</b>
         </Typography>
@@ -549,10 +584,10 @@ function ResultBoard({ state, players }: { state: State; players: HPlayer[] }) {
   if (!outcome || !reveal) return null
   const accused = reveal.accused
   const reason = (id: number) => {
-    if (outcome.escaped.includes(id)) return '🤫 escapou'
+    if (outcome.escaped.includes(id)) return '🥸 escapou'
     if (outcome.guessRight && id === accused) return '🎯 acertou a palavra'
     if (reveal.chaos === 'nobody') return '😇 consolação'
-    return '🦅 votou certo'
+    return '🔍 votou certo'
   }
   const gains = state.roster.filter((id) => (outcome.gains[String(id)] ?? 0) > 0)
   return (
@@ -565,8 +600,13 @@ function ResultBoard({ state, players }: { state: State; players: HPlayer[] }) {
           <Typography sx={{ fontSize: 'clamp(1.9rem, 2.6vw, 2.8rem)', letterSpacing: '0.24em', color: 'var(--text-secondary)' }}>
             A PALAVRA ERA
           </Typography>
-          <HauntedTitle size="clamp(5rem, 9vw, 10rem)" color={ACCENT.main} drip>
-            {outcome.word}
+          <HauntedTitle
+            size="clamp(5rem, 9vw, 10rem)"
+            color={ACCENT.main}
+            glow={XMAS_COLORS.gold}
+            sx={{ fontFamily: FESTIVE_ROUND_FONT, fontWeight: 700, letterSpacing: '0.02em' }}
+          >
+            🎁 {outcome.word}
           </HauntedTitle>
         </>
       ) : (
@@ -575,7 +615,7 @@ function ResultBoard({ state, players }: { state: State; players: HPlayer[] }) {
           <HauntedTitle size="clamp(4rem, 7vw, 7.5rem)" color={ACCENT.main}>
             Não tinha palavra!
           </HauntedTitle>
-          <Subtitle>Todo mundo só sabia a categoria — e desenhou mesmo assim.</Subtitle>
+          <Subtitle>Todo mundo só sabia a categoria — e desenhou mesmo assim. Que espírito natalino! 🎄</Subtitle>
         </>
       )}
 
@@ -620,7 +660,7 @@ function Scoreboard({ state, players }: { state: State; players: HPlayer[] }) {
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
       <HauntedTitle size="clamp(4rem, 5.4vw, 6rem)" color={ACCENT.main} align="left">
-        Placar da galeria
+        Placar do ateliê do Noel
       </HauntedTitle>
       <RankList entries={ranking} players={players} gains={state.outcome?.gains ?? {}} />
     </Box>
@@ -684,29 +724,29 @@ function FinalBoard({ state, players }: { state: State; players: HPlayer[] }) {
   const names = (ids: number[]) => namesOf(players, ids)
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <HauntedTitle size="clamp(4.4rem, 6vw, 6.6rem)" color={ACCENT.main} drip>
-        Fim da exposição
+      <HauntedTitle size="clamp(4.4rem, 6vw, 6.6rem)" color={ACCENT.main} glow={XMAS_COLORS.gold}>
+        🎄 Fim da exposição de Natal 🎄
       </HauntedTitle>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }, gap: 3 }}>
         <AwardCard
           icon="🏆"
-          title="Artista da noite"
+          title="Picasso do Polo Norte"
           names={awards.champions.length ? names(awards.champions) : 'Ninguém pontuou'}
-          detail={awards.champions.length ? plural(awards.topScore, 'ponto', 'pontos') : 'a galeria ficou vazia'}
+          detail={awards.champions.length ? plural(awards.topScore, 'ponto', 'pontos') : 'a exposição ficou vazia'}
           delay={0}
         />
         <AwardCard
-          icon="🎭"
-          title="Mestre do disfarce"
+          icon="🥸"
+          title="Duende disfarçado"
           names={awards.disguise.length ? names(awards.disguise) : 'Nenhum impostor escapou'}
           detail={awards.disguise.length ? `escapou ${plural(awards.maxEscapes, 'vez', 'vezes')}` : 'a mesa é afiada'}
           delay={500}
         />
         <AwardCard
-          icon="🦅"
-          title="Olho de lince"
+          icon="🔍"
+          title="Olho de Papai Noel"
           names={awards.eagle.length ? names(awards.eagle) : 'Ninguém acertou'}
-          detail={awards.eagle.length ? `votou certo ${plural(awards.maxHits, 'vez', 'vezes')}` : 'os impostores agradecem'}
+          detail={awards.eagle.length ? `sabe quem foi malcriado: ${plural(awards.maxHits, 'acerto', 'acertos')}` : 'os impostores agradecem'}
           delay={1000}
         />
       </Box>

@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import { Box, Typography } from '@mui/material'
 import type { Player } from '../../lib/types'
-import { playerColor, playerInitials, playerLabel } from '../utils'
+import { playerLabel } from '../utils'
+import { ChristmasAvatar, useRosterAvatars } from '../../natal/avatars'
 
 export type RailInfo = {
   /** Valor grande sob o nome (pontos, palpite revelado). */
@@ -10,7 +11,7 @@ export type RailInfo = {
   caption?: ReactNode
   eliminated?: boolean
   highlight?: boolean
-  /** Emblema no canto do avatar (💀, 👑, ✓). */
+  /** Emblema no canto do avatar (☃️, 👑, ✓). */
   badge?: string
 }
 
@@ -28,6 +29,7 @@ type PlayerRailProps = {
  */
 export default function PlayerRail({ players, accent = 'var(--accent-gold)', describe }: PlayerRailProps) {
   const crowded = players.length > 10
+  const avatarOf = useRosterAvatars(players)
 
   return (
     <Box
@@ -40,7 +42,7 @@ export default function PlayerRail({ players, accent = 'var(--accent-gold)', des
     >
       {players.map((player, index) => {
         const info = describe(player)
-        const color = playerColor(player.id)
+        const avatar = avatarOf(player)
 
         return (
           <Box
@@ -64,19 +66,18 @@ export default function PlayerRail({ players, accent = 'var(--accent-gold)', des
                 width: crowded ? { xs: 50, md: 62 } : { xs: 56, md: 72 },
                 height: crowded ? { xs: 50, md: 62 } : { xs: 56, md: 72 },
                 borderRadius: '50%',
-                display: 'grid',
-                placeItems: 'center',
-                fontFamily: 'var(--font-numeric)',
-                fontSize: crowded ? { xs: '1.25rem', md: '1.5rem' } : { xs: '1.35rem', md: '1.7rem' },
-                letterSpacing: '0.04em',
-                color: '#0a0612',
-                background: `radial-gradient(circle at 32% 28%, ${color}, ${color}99 72%)`,
                 border: info.highlight ? `3px solid ${accent}` : '3px solid transparent',
                 boxShadow: info.highlight ? `0 0 28px ${accent}` : '0 8px 20px rgba(0,0,0,0.45)',
                 transition: 'all 320ms ease',
               }}
             >
-              {playerInitials(player)}
+              <ChristmasAvatar
+                avatar={avatar}
+                size="100%"
+                animated={!info.eliminated}
+                frozen={info.eliminated}
+                title={avatar.label}
+              />
               {info.badge && (
                 <Box
                   sx={{
@@ -87,7 +88,7 @@ export default function PlayerRail({ players, accent = 'var(--accent-gold)', des
                     height: 26,
                     borderRadius: '50%',
                     background: 'var(--bg-card)',
-                    border: '1px solid rgba(176, 107, 255, 0.4)',
+                    border: '1px solid rgba(127, 196, 255, 0.4)',
                     display: 'grid',
                     placeItems: 'center',
                     fontSize: '0.85rem',

@@ -1,18 +1,28 @@
 /* ============================================
    SABADO GAMES - Design System
-   Tema: Noite do Terror (Halloween 2026)
+   Tema: Noite Feliz (Natal 2026)
 
    Os NOMES das variáveis são os mesmos da época Kakegurui: os 25 jogos
    antigos pintam tudo com --accent-red, --accent-gold, --neon-* e --bg-*,
-   então trocar só os valores aqui já veste o app inteiro de Halloween.
-   - vermelho  → vermelho-sangue
-   - dourado   → laranja-abóbora
-   - verde     → verde-gosma
-   - fundos    → roxo-noite
+   então trocar só os valores aqui já veste o app inteiro de Natal.
+   - vermelho  → vermelho-Papai-Noel
+   - dourado   → dourado de estrela
+   - verde     → verde-pinheiro
+   - fundos    → azul de noite de neve
+
+   As variáveis com nome de Halloween (--pumpkin, --witch, --slime...) as
+   telas fora de jogo ainda usam; no Natal elas viram as cores natalinas
+   (abóbora → vermelho, bruxa → azul-gelo, gosma → verde-pinheiro).
+
+   Os jogos também vestem Natal: eles usam as mesmas variáveis.
    ============================================ */
 
 @import '@fontsource/creepster/400.css';
 @import '@fontsource/nosifer/400.css';
+@import '@fontsource/fredoka/500.css';
+@import '@fontsource/fredoka/600.css';
+@import '@fontsource/fredoka/700.css';
+@import '@fontsource/mountains-of-christmas/700.css';
 @import '@fontsource/bebas-neue/400.css';
 @import '@fontsource/rajdhani/400.css';
 @import '@fontsource/rajdhani/500.css';
@@ -26,69 +36,82 @@
 :root {
   color-scheme: dark;
 
-  /* Backgrounds: roxo-noite, do mais fundo ao mais alto */
-  --bg-void: #0a0612;
-  --bg-card: #130b20;
-  --bg-surface: #1b1030;
-  --bg-elevated: #251640;
-  /* Fundo de página translúcido: deixa o cenário (neblina, morcegos) aparecer */
-  --bg-veil: rgba(10, 6, 18, 0.6);
-  --bg-veil-strong: rgba(10, 6, 18, 0.82);
+  /* Backgrounds: azul de noite de neve, do mais fundo ao mais alto */
+  --bg-void: #06101f;
+  --bg-card: #0c1a2f;
+  --bg-surface: #12233d;
+  --bg-elevated: #1a2f50;
+  /* Fundo de página translúcido: deixa o cenário (neve, estrelas) aparecer */
+  --bg-veil: rgba(6, 16, 31, 0.56);
+  --bg-veil-strong: rgba(6, 16, 31, 0.82);
 
-  /* Accent - Vermelho-sangue */
-  --accent-red: #e0213a;
-  --accent-red-light: #ff4d63;
-  --accent-red-dark: #8f0b1d;
-  --accent-red-glow: rgba(224, 33, 58, 0.45);
+  /* Accent - Vermelho do Papai Noel */
+  --accent-red: #e8394a;
+  --accent-red-light: #ff6b78;
+  --accent-red-dark: #9e1424;
+  --accent-red-glow: rgba(232, 57, 74, 0.45);
 
-  /* Accent - Laranja-abóbora (o antigo dourado) */
-  --accent-gold: #ff7b1c;
-  --accent-gold-light: #ffa24a;
-  --accent-gold-dark: #c2410c;
-  --accent-gold-glow: rgba(255, 123, 28, 0.42);
+  /* Accent - Dourado de estrela */
+  --accent-gold: #f5c242;
+  --accent-gold-light: #ffd975;
+  --accent-gold-dark: #c48a12;
+  --accent-gold-glow: rgba(245, 194, 66, 0.42);
 
-  /* Neon de Halloween */
-  --neon-cyan: #4fe6d0;   /* ectoplasma */
-  --neon-purple: #b06bff; /* bruxa */
-  --neon-green: #8cf045;  /* gosma */
+  /* Neon de inverno */
+  --neon-cyan: #7fd8ff;   /* gelo */
+  --neon-purple: #a9b8ff; /* aurora */
+  --neon-green: #4fd67e;  /* pinheiro */
 
-  /* Nomes próprios da Noite do Terror, para código novo */
-  --pumpkin: #ff7b1c;
-  --pumpkin-light: #ffa24a;
-  --pumpkin-dark: #c2410c;
-  --pumpkin-glow: rgba(255, 123, 28, 0.42);
-  --slime: #8cf045;
-  --slime-dark: #4d9e1d;
-  --slime-glow: rgba(140, 240, 69, 0.4);
-  --witch: #8b3fd9;
-  --witch-light: #b06bff;
-  --witch-glow: rgba(139, 63, 217, 0.45);
-  --ghost: #f3eeff;
-  --blood: #e0213a;
-  --blood-dark: #8f0b1d;
-  --night: #1a0d2e;
+  /* Nomes próprios do Natal, para código novo */
+  --xmas-red: #e8394a;
+  --xmas-red-light: #ff6b78;
+  --xmas-green: #1f9d55;
+  --xmas-green-light: #4fd67e;
+  --xmas-gold: #f5c242;
+  --snow: #f4f8ff;
+  --ice: #7fd8ff;
+  --night-blue: #0b1a33;
 
-  /* Text: branco-fantasma e lavandas */
-  --text-primary: #f3eeff;
-  --text-secondary: #bcb0d4;
-  --text-muted: #8c7fa8;
+  /* Nomes da Noite do Terror, repintados de Natal (as telas fora de jogo usam) */
+  --pumpkin: #ff5a66;       /* vermelho-bala */
+  --pumpkin-light: #ff8c95;
+  --pumpkin-dark: #c21f33;
+  --pumpkin-glow: rgba(255, 90, 102, 0.42);
+  --slime: #4fd67e;         /* pinheiro */
+  --slime-dark: #1f8f4a;
+  --slime-glow: rgba(79, 214, 126, 0.4);
+  --witch: #2f7fd9;         /* azul-gelo */
+  --witch-light: #7fc4ff;
+  --witch-glow: rgba(47, 127, 217, 0.45);
+  --ghost: #f4f8ff;         /* neve */
+  --blood: #e8394a;
+  --blood-dark: #9e1424;
+  --night: #0b1a33;
+
+  /* Text: branco-neve e azuis */
+  --text-primary: #f4f8ff;
+  --text-secondary: #b6c6de;
+  --text-muted: #7f93b3;
   --text-accent: var(--accent-gold);
 
   /* Status */
-  --status-ready: #8cf045;      /* gosma = pronto */
-  --status-waiting: #ffc94a;    /* chama de vela */
-  --status-eliminated: #e0213a;
-  --status-offline: #6b6380;
+  --status-ready: #4fd67e;      /* pinheiro = pronto */
+  --status-waiting: #f5c242;    /* estrela */
+  --status-eliminated: #e8394a;
+  --status-offline: #5f6f88;
 
   /* Borders */
-  --border-subtle: #2c1d45;
-  --border-medium: #3f2b5e;
+  --border-subtle: #1b2e4d;
+  --border-medium: #2a4570;
 
   /* Typography */
-  --font-display: 'Creepster', 'Bebas Neue', cursive;
-  /* Números (placar, relógio, código): a Creepster escorre demais para ler de longe */
+  /* Redonda e fofinha, e lê bem de longe na TV */
+  --font-display: 'Fredoka', 'Rajdhani', sans-serif;
+  /* Letra de cartão de Natal: só na marca e em títulos grandes */
+  --font-festive: 'Mountains of Christmas', 'Fredoka', cursive;
+  /* Números (placar, relógio, código) */
   --font-numeric: 'Bebas Neue', 'Rajdhani', sans-serif;
-  /* Só para efeito, em tamanho grande: é larga e quase ilegível em texto corrido */
+  /* Da Noite do Terror: só os jogos de Halloween usam */
   --font-horror: 'Nosifer', 'Creepster', cursive;
   --font-body: 'Rajdhani', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -140,16 +163,16 @@ html {
   background: var(--bg-void);
 }
 
-/* O céu da noite fica no body; o cenário animado (HalloweenLayer) passa por
+/* O céu da noite fica no body; o cenário animado (neve, estrelas) passa por
    cima dele e por baixo das páginas, que têm fundo translúcido. */
 body {
   font-family: var(--font-body);
   font-weight: 500;
   background:
-    radial-gradient(1100px circle at 86% -12%, rgba(176, 107, 255, 0.18), transparent 60%),
-    radial-gradient(900px circle at 8% 112%, rgba(255, 123, 28, 0.14), transparent 60%),
-    radial-gradient(800px circle at 60% 120%, rgba(140, 240, 69, 0.06), transparent 62%),
-    linear-gradient(180deg, #140b25 0%, #0a0612 55%, #07040d 100%);
+    radial-gradient(1100px circle at 86% -12%, rgba(127, 196, 255, 0.16), transparent 60%),
+    radial-gradient(900px circle at 8% 112%, rgba(232, 57, 74, 0.1), transparent 60%),
+    radial-gradient(800px circle at 60% 120%, rgba(79, 214, 126, 0.07), transparent 62%),
+    linear-gradient(180deg, #0f2140 0%, #081429 55%, #050c19 100%);
   background-attachment: fixed;
   background-color: var(--bg-void);
   color: var(--text-primary);
@@ -170,7 +193,7 @@ body {
    ============================================ */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
   letter-spacing: 2px;
   line-height: 1.1;
 }
@@ -204,6 +227,7 @@ a:hover {
 .text-muted { color: var(--text-muted); }
 
 .font-display { font-family: var(--font-display); }
+.font-festive { font-family: var(--font-festive); font-weight: 700; }
 .font-numeric { font-family: var(--font-numeric); font-variant-numeric: tabular-nums; }
 .font-horror { font-family: var(--font-horror); }
 .font-mono { font-family: var(--font-mono); }
@@ -332,6 +356,41 @@ a:hover {
 .animate-wobble  { animation: wobble 2.4s ease-in-out infinite; }
 
 /* ============================================
+   Natal: movimentos pequenos e reaproveitáveis
+   (a neve que cai é do cenário global, SnowBackdrop)
+   ============================================ */
+
+/* Estrelinha/pisca-pisca: acende e apaga devagar */
+@keyframes twinkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.82); }
+}
+
+/* Enfeite pendurado que balança no galho */
+@keyframes ornamentSwing {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
+}
+
+/* Pulinho alegre (boneco de neve, presente) */
+@keyframes hop {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  40% { transform: translateY(-12px) scale(0.97, 1.03); }
+  55% { transform: translateY(0) scale(1.04, 0.96); }
+  65% { transform: translateY(0) scale(1, 1); }
+}
+
+/* "Ola" das letras da marca: sobe, inclina e volta (cada letra com atraso) */
+@keyframes letterWave {
+  0%, 60%, 100% { transform: translateY(0) rotate(0deg); }
+  20% { transform: translateY(-0.12em) rotate(-4deg); }
+  40% { transform: translateY(0.02em) rotate(3deg); }
+}
+
+.animate-twinkle { animation: twinkle 2.6s ease-in-out infinite; }
+.animate-hop     { animation: hop 2.4s ease-in-out infinite; }
+
+/* ============================================
    App Shell
    ============================================ */
 .app-content {
@@ -358,7 +417,7 @@ a:hover {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--witch);
+  background: var(--xmas-green);
 }
 
 /* ============================================
@@ -373,7 +432,7 @@ a:hover {
    Selection
    ============================================ */
 ::selection {
-  background: var(--witch);
+  background: var(--xmas-green);
   color: var(--text-primary);
 }
 
@@ -407,8 +466,8 @@ a:hover {
 }
 
 @keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 0 0 var(--pulse-color, rgba(255, 123, 28, 0.55)); }
-  50%      { box-shadow: 0 0 26px 6px var(--pulse-color, rgba(255, 123, 28, 0.55)); }
+  0%, 100% { box-shadow: 0 0 0 0 var(--pulse-color, rgba(255, 90, 102, 0.55)); }
+  50%      { box-shadow: 0 0 26px 6px var(--pulse-color, rgba(255, 90, 102, 0.55)); }
 }
 
 @keyframes sweep {
@@ -523,10 +582,10 @@ a:hover {
 /* "E a sua vez": borda que respira, para nao passar batido no celular */
 @keyframes turnBreath {
   0%, 100% {
-    box-shadow: 0 20px 50px rgba(0,0,0,0.45), 0 0 0 0 var(--turn-color, rgba(255,123,28,0.5));
+    box-shadow: 0 20px 50px rgba(0,0,0,0.45), 0 0 0 0 var(--turn-color, rgba(255,90,102,0.5));
   }
   50% {
-    box-shadow: 0 20px 50px rgba(0,0,0,0.45), 0 0 34px 6px var(--turn-color, rgba(255,123,28,0.5));
+    box-shadow: 0 20px 50px rgba(0,0,0,0.45), 0 0 34px 6px var(--turn-color, rgba(255,90,102,0.5));
   }
 }
 
@@ -537,5 +596,5 @@ a:hover {
 /* Contagem regressiva urgente aplicada a um bloco inteiro */
 @keyframes urgentEdge {
   0%, 100% { border-color: var(--accent-red); }
-  50%      { border-color: rgba(224, 33, 58, 0.35); }
+  50%      { border-color: rgba(232, 57, 74, 0.35); }
 }

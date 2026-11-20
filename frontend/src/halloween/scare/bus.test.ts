@@ -1,18 +1,26 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  FESTIVE_EFFECTS,
+  FESTIVE_RANDOM,
   RARE_SCARE,
+  SCARES_WITH_NAME,
   SCARE_KINDS,
+  XMAS_EFFECTS,
   clearScareNames,
   emitScare,
+  isConcreteScare,
+  isFestiveEffect,
   isScareSuppressed,
+  isXmasEffect,
   onScare,
+  pickFestiveEffect,
   pickScare,
   randomScareName,
   resolveScareKind,
   setScareNames,
   suppressScares,
 } from './bus'
-import type { ScareRequest } from './bus'
+import type { ConcreteScare, ScareRequest } from './bus'
 
 const cleanups: (() => void)[] = []
 afterEach(() => {
@@ -101,6 +109,56 @@ describe('barramento de sustos', () => {
     expect(received[0].kind).toBe(RARE_SCARE)
     // Depois dele o sorteio volta a usar a lista inteira.
     expect(SCARE_KINDS).toContain(pickScare(() => 0.999999))
+  })
+})
+
+describe('efeitos de Natal', () => {
+  it('são tipos válidos que chegam como pedidos', () => {
+    const received = listen()
+    for (const kind of XMAS_EFFECTS) {
+      expect(isConcreteScare(kind)).toBe(true)
+      expect(isXmasEffect(kind)).toBe(true)
+      expect(resolveScareKind(kind)).toBe(kind)
+      emitScare(kind)
+    }
+    expect(received.map((request) => request.kind)).toEqual([...XMAS_EFFECTS])
+  })
+
+  it("'festive' sorteia só entre os de Natal e o zoom, sem repetir o último", () => {
+    expect(FESTIVE_EFFECTS).toContain('zoom')
+    const seen = new Set<string>()
+    let previous: ConcreteScare | null = null
+    for (let i = 0; i < 3000; i += 1) {
+      const kind = pickFestiveEffect(Math.random, previous)
+      expect(isFestiveEffect(kind)).toBe(true)
+      expect(kind).not.toBe(previous)
+      seen.add(kind)
+      previous = kind
+      expect(isFestiveEffect(resolveScareKind(FESTIVE_RANDOM))).toBe(true)
+    }
+    expect([...seen].sort()).toEqual([...FESTIVE_EFFECTS].sort())
+    // Com random() no limite, continua dentro da lista.
+    expect(FESTIVE_EFFECTS).toContain(pickFestiveEffect(() => 0.999999, null))
+  })
+
+  it("o sorteio de Halloween ('random') nunca solta um efeito de Natal (os jogos Old não mudam)", () => {
+    for (let i = 0; i < 1000; i += 1) {
+      const roll = i / 1000
+      expect(isXmasEffect(pickScare(() => roll, null))).toBe(false)
+      expect(isXmasEffect(resolveScareKind('random', () => roll))).toBe(false)
+    }
+    for (const kind of XMAS_EFFECTS) expect(SCARE_KINDS as readonly string[]).not.toContain(kind)
+  })
+
+  it('Papai Noel e o amigo secreto pegam um nome da mesa quando ninguém informou', () => {
+    const received = listen()
+    setScareNames('teste-natal', ['Ana'])
+    cleanups.push(() => clearScareNames('teste-natal'))
+    emitScare('hohoho')
+    emitScare('secretSanta')
+    emitScare('blizzard')
+    expect(received.map((request) => request.name)).toEqual(['Ana', 'Ana', undefined])
+    expect(SCARES_WITH_NAME).toEqual(expect.arrayContaining(['zoom', 'hohoho', 'secretSanta']))
   })
 })
 

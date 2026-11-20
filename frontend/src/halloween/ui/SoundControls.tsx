@@ -34,10 +34,10 @@ export function SoundToggle({ size = 40 }: SoundToggleProps) {
       sx={{
         width: size,
         height: size,
-        color: sound.muted ? 'var(--text-muted)' : '#ff7a18',
-        background: 'rgba(12, 6, 20, 0.7)',
-        border: `1px solid ${sound.muted ? 'rgba(255,255,255,0.14)' : 'rgba(255, 122, 24, 0.55)'}`,
-        '&:hover': { background: 'rgba(12, 6, 20, 0.92)' },
+        color: sound.muted ? 'var(--text-muted)' : '#f5c242',
+        background: 'rgba(6, 16, 31, 0.7)',
+        border: `1px solid ${sound.muted ? 'rgba(255,255,255,0.14)' : 'rgba(245, 194, 66, 0.55)'}`,
+        '&:hover': { background: 'rgba(6, 16, 31, 0.92)' },
       }}
     >
       {sound.muted ? <VolumeOffRoundedIcon fontSize="small" /> : <VolumeUpRoundedIcon fontSize="small" />}
@@ -83,11 +83,11 @@ function FloatingToggle({ muted }: { muted: boolean }) {
       sx={{
         width: 38,
         height: 38,
-        color: muted ? 'rgba(245,245,245,0.75)' : '#ff7a18',
-        background: 'rgba(12, 6, 20, 0.78)',
-        border: `1px solid ${muted ? 'rgba(255,255,255,0.18)' : 'rgba(255, 122, 24, 0.6)'}`,
+        color: muted ? 'rgba(245,245,245,0.75)' : '#f5c242',
+        background: 'rgba(6, 16, 31, 0.78)',
+        border: `1px solid ${muted ? 'rgba(255,255,255,0.18)' : 'rgba(245, 194, 66, 0.6)'}`,
         boxShadow: '0 4px 14px rgba(0,0,0,0.45)',
-        '&:hover': { background: 'rgba(12, 6, 20, 0.95)' },
+        '&:hover': { background: 'rgba(6, 16, 31, 0.95)' },
       }}
     >
       {muted ? <VolumeOffRoundedIcon sx={{ fontSize: 20 }} /> : <VolumeUpRoundedIcon sx={{ fontSize: 20 }} />}
@@ -96,8 +96,8 @@ function FloatingToggle({ muted }: { muted: boolean }) {
 }
 
 /**
- * Aviso da TV enquanto o navegador segura o som: "Clique para acordar os
- * mortos". Qualquer clique/tecla em qualquer lugar destrava; o aviso some.
+ * Aviso da TV enquanto o navegador segura o som: "Clique para soltar os
+ * sinos". Qualquer clique/tecla em qualquer lugar destrava; o aviso some.
  * Fica no alto, no centro: embaixo a TV mostra quem já entrou na sala.
  */
 export function AudioUnlockPrompt() {
@@ -128,13 +128,13 @@ export function AudioUnlockPrompt() {
           borderRadius: 999,
           fontSize: { xs: '1rem', md: '1.35rem' },
           fontWeight: 800,
-          color: '#fff7ed',
-          background: 'linear-gradient(135deg, rgba(194, 65, 12, 0.92), rgba(88, 28, 135, 0.92))',
-          border: '1px solid rgba(255, 122, 24, 0.7)',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.5), 0 0 24px rgba(255, 122, 24, 0.35)',
+          color: '#fff6dc',
+          background: 'linear-gradient(135deg, rgba(194, 31, 51, 0.94), rgba(20, 96, 58, 0.94))',
+          border: '1px solid rgba(245, 194, 66, 0.75)',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.5), 0 0 24px rgba(245, 194, 66, 0.35)',
         }}
       >
-        🔊 Clique para acordar os mortos
+        🔔 Clique para soltar os sinos
       </Box>
     </Box>
   )

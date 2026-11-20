@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Box, TextField, Typography } from '@mui/material'
+import { Snowman } from '../../../components/ui/LoadingScreen'
 import { listNames, nameOf } from '../../engine/helpers'
 import type { HPlayer, HalloweenViewProps } from '../../engine/types'
 import { useCountdown, useServerNow } from '../../framework/clockHooks'
@@ -22,30 +23,34 @@ import {
   type AbbState,
 } from './engine'
 import FuseRope from './FuseRope'
+import GiftBox from './GiftBox'
 import HoldButton from './HoldButton'
 import { meta } from './meta'
-import { TICK_FROM_MS, buzz, fuseFraction, heartsText, heatLabel, savedText, secondsOf } from './view'
+import { TICK_FROM_MS, buzz, fuseFraction, heartsText, heatLabel, moodFor, prizeFor, savedText, secondsOf, shakeLevel } from './view'
 import { useWakeLock } from './wakeLock'
 
 /**
- * Celular da Abóbora-Bomba: uma ação clara por tela. Com a abóbora na mão,
- * a tela fica laranja com o tema, o pavio gigante e o botão "SEGURE PARA
- * PASSAR"; sem ela, quem está com a abóbora e o meu pavio.
+ * Celular do Presente-Bomba: a sua mão. Com o presente na mão, a tela vira
+ * papel de presente vermelho com fita dourada, o presente tremendo, o pavio
+ * gigante e a bola de árvore "SEGURE PARA PASSAR"; sem ele, quem está com o
+ * presente e o meu pavio.
  */
 
 const ACCENT = meta.accent
+const GOLD = '#ffd166'
+const CREAM = '#fff6dc'
 
 type Props = HalloweenViewProps<AbbState>
 
 export default function Phone(props: Props) {
   const { state, me } = props
-  // Tela acesa a partida inteira: celular bloqueado não vê a abóbora chegar.
+  // Tela acesa a partida inteira: celular bloqueado não vê o presente chegar.
   useWakeLock(me !== null && !state.over)
   if (!me) return null
   if (state.over) return <FinalPanel {...props} />
   if (state.phase === 'theme') return <ThemePanel {...props} />
   if (state.phase === 'boom') return <BoomPanel {...props} />
-  if (!isAlive(state, me.id)) return <GhostPanel {...props} />
+  if (!isAlive(state, me.id)) return <SnowmanPanel {...props} />
   // Uma tela nova por posse: o rascunho e o aperto não passam de uma para outra.
   if (state.holder === me.id) return <HolderPanel key={state.inputKey} {...props} />
   return <WaitPanel {...props} />
@@ -59,7 +64,7 @@ function Header({ state, me }: { state: AbbState; me: HPlayer }) {
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
       <Typography sx={{ color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.08em' }}>
-        RODADA {state.round}/{state.totalRounds}
+        🎁 RODADA {state.round}/{state.totalRounds}
       </Typography>
       <Typography sx={{ fontSize: '1.25rem', letterSpacing: '0.04em' }}>
         {heartsText(livesOf(state, me.id), state.maxLives)}
@@ -68,7 +73,7 @@ function Header({ state, me }: { state: AbbState; me: HPlayer }) {
   )
 }
 
-function ThemeLine({ state, onOrange = false }: { state: AbbState; onOrange?: boolean }) {
+function ThemeLine({ state, onPaper = false }: { state: AbbState; onPaper?: boolean }) {
   return (
     <Box sx={{ textAlign: 'center' }}>
       <Typography
@@ -76,12 +81,12 @@ function ThemeLine({ state, onOrange = false }: { state: AbbState; onOrange?: bo
           fontSize: '0.8rem',
           letterSpacing: '0.24em',
           fontWeight: 800,
-          color: onOrange ? 'rgba(31, 13, 2, 0.7)' : ACCENT.main,
+          color: onPaper ? 'rgba(255, 246, 220, 0.8)' : GOLD,
         }}
       >
-        TEMA
+        ✦ TEMA ✦
       </Typography>
-      <Typography sx={{ fontWeight: 800, fontSize: '1.6rem', lineHeight: 1.15, wordBreak: 'break-word' }}>
+      <Typography sx={{ fontWeight: 800, fontSize: '1.6rem', lineHeight: 1.15, wordBreak: 'break-word', color: onPaper ? CREAM : 'var(--text-primary)' }}>
         {state.theme.icon} {state.theme.text}
       </Typography>
     </Box>
@@ -96,9 +101,11 @@ function Card({ children, accent = false, glow = false }: { children: ReactNode;
         p: 2,
         borderRadius: 'var(--radius-lg)',
         textAlign: 'center',
-        border: `2px solid ${accent ? ACCENT.main : 'var(--border-medium)'}`,
-        background: accent ? ACCENT.main : 'rgba(255, 255, 255, 0.03)',
-        color: accent ? ACCENT.contrast : 'var(--text-primary)',
+        border: `2px solid ${accent ? GOLD : 'var(--border-medium)'}`,
+        background: accent ? `linear-gradient(160deg, ${ACCENT.main}, #b81d33)` : 'rgba(255, 255, 255, 0.04)',
+        color: accent ? CREAM : 'var(--text-primary)',
+        // O <p> do Typography pega a cor global; no cartão vermelho, vale o creme.
+        ...(accent ? { '& p': { color: 'inherit' } } : {}),
       }}
     >
       {children}
@@ -111,10 +118,10 @@ function MyFuse({ state, me, now }: { state: AbbState; me: HPlayer; now: () => n
   const t = useServerNow(now, 250)
   const ms = realMsLeft(state, me.id, t)
   return (
-    <Box sx={{ p: 1.5, borderRadius: 'var(--radius-lg)', border: '2px solid var(--border-medium)', background: 'rgba(255, 255, 255, 0.03)' }}>
+    <Box sx={{ p: 1.5, borderRadius: 'var(--radius-lg)', border: '2px solid var(--border-medium)', background: 'rgba(255, 255, 255, 0.04)' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 1, gap: 1 }}>
         <Typography sx={{ color: 'var(--text-secondary)', fontWeight: 700 }}>Seu pavio</Typography>
-        <Typography sx={{ fontFamily: 'var(--font-numeric)', fontSize: '1.6rem', lineHeight: 1, color: ACCENT.main }}>
+        <Typography sx={{ fontFamily: 'var(--font-numeric)', fontSize: '1.6rem', lineHeight: 1, color: GOLD }}>
           {secondsOf(ms)} s{state.phase === 'play' && state.heat > 0 ? ` · 🔥 ${heatLabel(state.heat)}` : ''}
         </Typography>
       </Box>
@@ -142,36 +149,36 @@ function LastWords({ state }: { state: AbbState }) {
 function ThemePanel({ state, players, me, now }: Props) {
   const { seconds } = useCountdown(state.deadline, now)
   if (!me) return null
-  const ghost = !isAlive(state, me.id)
+  const out = !isAlive(state, me.id)
   const starts = state.holder === me.id
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Header state={state} me={me} />
       <ThemeLine state={state} />
-      {ghost ? (
+      {out ? (
         <Card>
-          <Typography sx={{ fontSize: '2.6rem', lineHeight: 1 }}>👻</Typography>
-          <Typography sx={{ fontWeight: 700 }}>Você é fantasma: assista pela TV e assombre a mesa.</Typography>
+          <Typography sx={{ fontSize: '2.6rem', lineHeight: 1 }}>☃️</Typography>
+          <Typography sx={{ fontWeight: 700 }}>Você é boneco de neve: assista pela TV e torça (ou zoe) a mesa.</Typography>
         </Card>
       ) : starts ? (
         <Card accent glow>
-          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2rem', lineHeight: 1 }}>🎃 VOCÊ COMEÇA!</Typography>
+          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2rem', lineHeight: 1 }}>🎁 VOCÊ COMEÇA!</Typography>
           <Typography sx={{ fontWeight: 700, mt: 0.5 }}>Já pense numa palavra do tema.</Typography>
         </Card>
       ) : (
         <Card>
-          <Typography sx={{ color: 'var(--text-muted)', fontWeight: 700 }}>🎃 A abóbora começa com</Typography>
+          <Typography sx={{ color: 'var(--text-muted)', fontWeight: 700 }}>🎁 O presente começa com</Typography>
           <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2rem', lineHeight: 1.05, color: ACCENT.main, wordBreak: 'break-word' }}>
             {nameOf(players, state.holder)}
           </Typography>
         </Card>
       )}
-      {!ghost && state.mode === 'digitar' && (
+      {!out && state.mode === 'digitar' && (
         <Typography sx={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
           ✍️ Para passar, escreva uma palavra nova do tema.
         </Typography>
       )}
-      {!ghost && <MyFuse state={state} me={me} now={now} />}
+      {!out && <MyFuse state={state} me={me} now={now} />}
       <Typography sx={{ textAlign: 'center', color: 'var(--text-muted)', fontWeight: 700 }}>
         Valendo em {seconds ?? 0} s…
       </Typography>
@@ -179,7 +186,7 @@ function ThemePanel({ state, players, me, now }: Props) {
   )
 }
 
-/** O pavio gigante de quem segura: segundos até o BUM e a corda queimando. */
+/** O pavio gigante de quem segura: o presente tremendo, segundos até o POF e a corda queimando. */
 function BigFuse({ state, me, now, frozenAt }: { state: AbbState; me: HPlayer; now: () => number; frozenAt: number | null }) {
   const live = useServerNow(now, 100)
   // Depois do passe o pavio para no horário do toque (é ele que vale).
@@ -188,29 +195,42 @@ function BigFuse({ state, me, now, frozenAt }: { state: AbbState; me: HPlayer; n
   const out = msLeft <= 0
   const urgent = !out && frozenAt === null && msLeft <= TICK_FROM_MS
   const burning = !out && frozenAt === null && t >= holdStartOf(state)
+  const level = shakeLevel(burning, msLeft)
   return (
     <Box sx={{ width: '100%' }}>
-      <Typography
-        className={urgent ? 'animate-urgent' : undefined}
-        sx={{
-          fontFamily: 'var(--font-numeric)',
-          fontSize: '3.9rem',
-          lineHeight: 0.9,
-          color: urgent || out ? '#7f1d1d' : ACCENT.contrast,
-        }}
-      >
-        {secondsOf(msLeft)}
-      </Typography>
-      <FuseRope fraction={fuseFraction(state, me.id, t)} burning={burning} width="100%" height={20} color="#fff1c2" />
-      <Typography sx={{ fontWeight: 700, mt: 0.5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
+        <GiftBox
+          size={56}
+          fuse={fuseFraction(state, me.id, t)}
+          lit={burning}
+          mood={frozenAt !== null ? 'happy' : out ? 'surprised' : moodFor(level)}
+          shake={level}
+          paper="#1f9d55"
+        />
+        <Typography
+          className={urgent ? 'animate-urgent' : undefined}
+          sx={{
+            fontFamily: 'var(--font-numeric)',
+            fontSize: '3.9rem',
+            lineHeight: 0.9,
+            minWidth: '1.6ch',
+            color: urgent || out ? GOLD : CREAM,
+            textShadow: '0 3px 0 rgba(42, 5, 9, 0.55)',
+          }}
+        >
+          {secondsOf(msLeft)}
+        </Typography>
+      </Box>
+      <FuseRope fraction={fuseFraction(state, me.id, t)} burning={burning} width="100%" height={20} color="#1f9d55" />
+      <Typography sx={{ fontWeight: 700, mt: 0.5, color: CREAM }}>
         {frozenAt !== null
           ? '⏸ seu pavio parou'
           : out
-            ? '💥 sem pavio'
+            ? '🎊 sem pavio…'
             : burning
               ? '🔥 seu pavio está queimando'
               : '⏳ o pavio já vai acender'}
-        {state.heat > 0 ? ` · abóbora quente ${heatLabel(state.heat)}` : ''}
+        {state.heat > 0 ? ` · presente quente ${heatLabel(state.heat)}` : ''}
       </Typography>
     </Box>
   )
@@ -219,7 +239,7 @@ function BigFuse({ state, me, now, frozenAt }: { state: AbbState; me: HPlayer; n
 function HolderPanel({ state, me, myInput, send, now }: Props) {
   const t = useServerNow(now, 250)
   const [draft, setDraft] = useState('')
-  // A abóbora chegou: o celular avisa na mão.
+  // O presente chegou: o celular avisa na mão.
   useEffect(() => {
     buzz([90, 60, 90])
   }, [])
@@ -241,9 +261,9 @@ function HolderPanel({ state, me, myInput, send, now }: Props) {
     buzz([40, 40, 140])
   }
 
-  const label = sent ? '✓ PASSOU!' : out ? '💥 ACABOU' : typed && !word ? 'ESCREVA UMA PALAVRA' : 'SEGURE PARA PASSAR'
+  const label = sent ? '✓ PASSOU!' : out ? '🎊 POF!' : typed && !word ? 'ESCREVA UMA PALAVRA' : 'SEGURE PARA PASSAR'
   const hint = sent
-    ? 'Passando a abóbora…'
+    ? 'Lá vai o presente… ufa!'
     : out
       ? 'O pavio acabou…'
       : typed
@@ -253,6 +273,7 @@ function HolderPanel({ state, me, myInput, send, now }: Props) {
   return (
     <Box
       sx={{
+        position: 'relative',
         mx: -2,
         mt: -0.5,
         px: 2,
@@ -260,9 +281,15 @@ function HolderPanel({ state, me, myInput, send, now }: Props) {
         pb: 3,
         minHeight: '80vh',
         borderRadius: '28px 28px 0 0',
-        background: `linear-gradient(180deg, ${ACCENT.light} 0%, ${ACCENT.main} 40%, #c2410c 100%)`,
+        // Papel de presente: vermelho com bolinhas creme e uma fita dourada descendo pelo meio.
+        background: [
+          'linear-gradient(90deg, transparent calc(50% - 16px), rgba(255, 209, 102, 0.28) calc(50% - 16px), rgba(255, 209, 102, 0.28) calc(50% + 16px), transparent calc(50% + 16px))',
+          'radial-gradient(circle, rgba(255, 246, 220, 0.16) 3px, transparent 3.5px) 0 0 / 26px 26px',
+          'radial-gradient(circle, rgba(255, 246, 220, 0.16) 3px, transparent 3.5px) 13px 13px / 26px 26px',
+          `linear-gradient(180deg, #ff5a6b 0%, ${ACCENT.main} 35%, #b81d33 100%)`,
+        ].join(', '),
         boxShadow: `0 0 60px ${ACCENT.glow}`,
-        color: ACCENT.contrast,
+        color: CREAM,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -272,13 +299,26 @@ function HolderPanel({ state, me, myInput, send, now }: Props) {
       }}
     >
       <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography sx={{ fontWeight: 800, letterSpacing: '0.08em', opacity: 0.8 }}>
+        <Typography sx={{ fontWeight: 800, letterSpacing: '0.08em', opacity: 0.85, color: CREAM }}>
           RODADA {state.round}/{state.totalRounds}
         </Typography>
         <Typography sx={{ fontSize: '1.2rem' }}>{heartsText(livesOf(state, me.id), state.maxLives)}</Typography>
       </Box>
-      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1.95rem', lineHeight: 1 }}>🎃 A ABÓBORA É SUA!</Typography>
-      <ThemeLine state={state} onOrange />
+      {/* A fita dourada atravessando: "o presente é seu!" */}
+      <Box
+        className="animate-pop-in"
+        sx={{
+          alignSelf: 'stretch',
+          mx: -2,
+          py: 0.5,
+          background: 'linear-gradient(180deg, #ffe08a, #f5c242 55%, #d39b1c)',
+          color: '#2a0509',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
+        }}
+      >
+        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1.95rem', lineHeight: 1, color: '#2a0509' }}>🎁 O PRESENTE É SEU!</Typography>
+      </Box>
+      <ThemeLine state={state} onPaper />
 
       <BigFuse state={state} me={me} now={now} frozenAt={sentAt} />
 
@@ -309,32 +349,34 @@ function HolderPanel({ state, me, myInput, send, now }: Props) {
             }}
             sx={{
               '& .MuiInputBase-root': {
-                background: '#fff7ed',
-                color: '#1f0d02',
+                background: CREAM,
+                color: '#2a0509',
                 fontSize: '1.4rem',
                 fontWeight: 700,
                 borderRadius: 2,
               },
-              '& .MuiOutlinedInput-notchedOutline': { borderColor: repeated ? '#7f1d1d' : 'rgba(31, 13, 2, 0.35)', borderWidth: 2 },
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: repeated ? GOLD : 'rgba(42, 5, 9, 0.35)', borderWidth: repeated ? 3 : 2 },
             }}
           />
           {repeated && (
-            <Typography sx={{ fontWeight: 800, color: '#7f1d1d', mt: 0.5 }}>Essa já foi! Pense em outra.</Typography>
+            <Typography sx={{ fontWeight: 800, color: GOLD, mt: 0.5 }}>Essa já foi! Pense em outra.</Typography>
           )}
         </Box>
       )}
 
-      <HoldButton
-        holdMs={typed ? HOLD_TO_PASS_TYPED_MS : HOLD_TO_PASS_MS}
-        disabled={!ready && !sent}
-        done={sent}
-        onComplete={pass}
-        label={label}
-        holdingLabel={typed ? 'PASSANDO…' : 'FALA A PALAVRA!'}
-        // No digitar o teclado ocupa a tela (e o Enter também passa): botão menor.
-        size={typed ? 150 : 180}
-      />
-      <Typography sx={{ fontWeight: 700, fontSize: '1.05rem' }}>{hint}</Typography>
+      <Box sx={{ mt: 0.75 }}>
+        <HoldButton
+          holdMs={typed ? HOLD_TO_PASS_TYPED_MS : HOLD_TO_PASS_MS}
+          disabled={!ready && !sent}
+          done={sent}
+          onComplete={pass}
+          label={label}
+          holdingLabel={typed ? 'PASSANDO…' : 'FALA A PALAVRA!'}
+          // No digitar o teclado ocupa a tela (e o Enter também passa): botão menor.
+          size={typed ? 150 : 180}
+        />
+      </Box>
+      <Typography sx={{ fontWeight: 700, fontSize: '1.05rem', color: CREAM }}>{hint}</Typography>
       <LastWords state={state} />
     </Box>
   )
@@ -354,7 +396,7 @@ function WaitPanel({ state, players, me, now }: Props) {
       <Header state={state} me={me} />
       <ThemeLine state={state} />
       <Card>
-        <Typography sx={{ color: 'var(--text-muted)', fontWeight: 700 }}>🎃 A abóbora está com</Typography>
+        <Typography sx={{ color: 'var(--text-muted)', fontWeight: 700 }}>🎁 O presente está com</Typography>
         <Typography
           key={state.inputKey}
           className="animate-pop-in"
@@ -365,12 +407,12 @@ function WaitPanel({ state, players, me, now }: Props) {
       </Card>
       {isNext ? (
         <Card accent glow>
-          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1.7rem', lineHeight: 1.05 }}>⚡ VOCÊ É O PRÓXIMO!</Typography>
+          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1.7rem', lineHeight: 1.05 }}>🔔 VOCÊ É O PRÓXIMO!</Typography>
           <Typography sx={{ fontWeight: 700 }}>Já pense na sua palavra.</Typography>
         </Card>
       ) : (
-        <Typography sx={{ textAlign: 'center', fontWeight: 700, color: iPassed ? 'var(--status-ready, #8cf045)' : 'var(--text-secondary)' }}>
-          {iPassed ? '✓ Você passou! Respira…' : 'Prepare uma palavra: a abóbora pode vir rápido.'}
+        <Typography sx={{ textAlign: 'center', fontWeight: 700, color: iPassed ? 'var(--status-ready, #4fd67e)' : 'var(--text-secondary)' }}>
+          {iPassed ? '✓ Você passou! Respira, toma um gole de chocolate quente…' : 'Prepare uma palavra: o presente pode vir rápido.'}
         </Typography>
       )}
       <MyFuse state={state} me={me} now={now} />
@@ -379,18 +421,18 @@ function WaitPanel({ state, players, me, now }: Props) {
   )
 }
 
-function GhostPanel({ state, players, me }: Props) {
+function SnowmanPanel({ state, players, me }: Props) {
   if (!me) return null
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'center' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'center', alignItems: 'stretch' }}>
       <Header state={state} me={me} />
-      <Typography className="hw-float" sx={{ fontSize: '4.5rem', lineHeight: 1 }}>
-        👻
-      </Typography>
-      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', lineHeight: 1.05 }}>Você virou fantasma</Typography>
-      <Typography sx={{ color: 'var(--text-secondary)' }}>Assista pela TV e torça (ou assombre) a mesa.</Typography>
+      <Box className="hw-float" sx={{ display: 'flex', justifyContent: 'center' }}>
+        <Snowman size={110} />
+      </Box>
+      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', lineHeight: 1.05 }}>Você virou boneco de neve</Typography>
+      <Typography sx={{ color: 'var(--text-secondary)' }}>Assista pela TV e torça (ou zoe) quem ainda está com o presente.</Typography>
       <Card>
-        <Typography sx={{ color: 'var(--text-muted)', fontWeight: 700 }}>🎃 A abóbora está com</Typography>
+        <Typography sx={{ color: 'var(--text-muted)', fontWeight: 700 }}>🎁 O presente está com</Typography>
         <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2rem', color: ACCENT.main, wordBreak: 'break-word' }}>
           {nameOf(players, state.holder)}
         </Typography>
@@ -403,39 +445,42 @@ function BoomPanel({ state, players, me, now }: Props) {
   const { seconds } = useCountdown(state.deadline, now)
   const victim = state.boom?.victim ?? null
   const mine = me !== null && victim === me.id
-  // Explodiu na minha mão: vibração comprida.
+  // Estourou na minha mão: vibração comprida.
   useEffect(() => {
     if (mine) buzz([350, 120, 350])
   }, [mine])
   if (!me) return null
   const boom = state.boom
   const decided = gameDecided(state)
+  const prize = prizeFor(state.round)
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'center' }}>
       <Header state={state} me={me} />
       <Box className="animate-pop-in">
-        <Typography sx={{ fontSize: '4.5rem', lineHeight: 1 }}>{victim === null ? '🧯' : mine && boom?.eliminated ? '👻' : '💥'}</Typography>
+        <Typography sx={{ fontSize: '4.5rem', lineHeight: 1 }}>
+          {victim === null ? '🎅' : mine && boom?.eliminated ? '☃️' : mine ? prize : '🎊'}
+        </Typography>
         <Typography
           sx={{
             fontFamily: 'var(--font-display)',
             fontSize: '2.3rem',
             lineHeight: 1.05,
             mt: 1,
-            color: mine ? 'var(--blood, #e0213a)' : 'var(--text-primary)',
+            color: mine ? ACCENT.main : 'var(--text-primary)',
             wordBreak: 'break-word',
           }}
         >
-          {victim === null ? 'Ufa! Pavio apagado.' : mine ? 'VOCÊ EXPLODIU!' : `BUM! Explodiu com ${nameOf(players, victim)}`}
+          {victim === null ? 'Ufa! Pavio apagado.' : mine ? 'POF! ESTOUROU NA SUA MÃO!' : `POF! Estourou com ${nameOf(players, victim)}`}
         </Typography>
         <Typography sx={{ color: 'var(--text-secondary)', mt: 1, fontSize: '1.1rem' }}>
           {victim === null
-            ? 'O host encerrou a rodada: ninguém perde vida.'
+            ? 'O host salvou o Natal: ninguém perde vida.'
             : mine
               ? boom?.eliminated
-                ? 'Acabaram suas vidas: agora você é fantasma.'
-                : `Perdeu uma vida. Sobrou ${boom?.livesLeft ?? 0}.`
+                ? 'Acabaram suas vidas: agora você é boneco de neve ☃️'
+                : `Perdeu uma vida (e ganhou ${prize} de presente). Sobrou ${boom?.livesLeft ?? 0}.`
               : boom?.eliminated
-                ? 'Virou fantasma 👻'
+                ? 'Virou boneco de neve ☃️'
                 : 'Perdeu uma vida.'}
         </Typography>
       </Box>
@@ -460,7 +505,7 @@ function FinalPanel({ state, players, me }: Props) {
   const names = (ids: number[]) => listNames(ids.map((id) => nameOf(players, id)))
   return (
     <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Typography sx={{ fontSize: '4rem', lineHeight: 1 }}>{iWon ? '🏆' : '🎃'}</Typography>
+      <Typography sx={{ fontSize: '4rem', lineHeight: 1 }}>{iWon ? '🏆' : '🎁'}</Typography>
       <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2.4rem', lineHeight: 1 }}>
         {iWon ? 'Você sobreviveu!' : 'Fim de jogo'}
       </Typography>
@@ -470,17 +515,18 @@ function FinalPanel({ state, players, me }: Props) {
         </Typography>
       )}
       <Card accent>
-        <Typography sx={{ fontWeight: 700, opacity: 0.8 }}>🏆 {champs.length > 1 ? 'Sobreviventes' : 'Último de pé'}</Typography>
+        <Typography sx={{ fontWeight: 700, opacity: 0.85 }}>🏆 {champs.length > 1 ? 'Sobreviventes' : 'Último de pé'}</Typography>
         <Typography sx={{ fontWeight: 800, fontSize: '1.4rem', wordBreak: 'break-word' }}>
           {champs.length ? names(champs) : 'Ninguém sobrou'}
         </Typography>
       </Card>
       <Card>
-        <Typography sx={{ color: 'var(--text-muted)', fontWeight: 700 }}>💥 Explodiu mais</Typography>
+        <Typography sx={{ color: 'var(--text-muted)', fontWeight: 700 }}>🎊 Ímã de presente-bomba</Typography>
         <Typography sx={{ fontWeight: 800, fontSize: '1.3rem', wordBreak: 'break-word' }}>
-          {worst.ids.length ? `${names(worst.ids)} (${worst.count}×)` : 'Ninguém explodiu'}
+          {worst.ids.length ? `${names(worst.ids)} (${worst.count}×)` : 'Ninguém fez POF'}
         </Typography>
       </Card>
+      <Typography sx={{ color: 'var(--text-muted)', fontWeight: 700 }}>Feliz Natal! 🎄</Typography>
     </Box>
   )
 }

@@ -5,21 +5,26 @@ import './spooky.css'
 
 type CandyRainProps = {
   active?: boolean
-  /** 'candy' (doces), 'bats' (morcegos) ou 'mixed' (doces, morcegos e fantasmas). */
-  kind?: 'candy' | 'bats' | 'mixed'
+  /**
+   * 'mixed' (a festa de Natal: presentes, estrelas, flocos, sinos), 'candy'
+   * (doces de Natal), 'snow' (só flocos e estrelinhas) ou 'bats' (morcegos,
+   * para os jogos Old de Halloween).
+   */
+  kind?: 'candy' | 'bats' | 'mixed' | 'snow'
   /** Quantas peças caindo ao mesmo tempo (padrão 40). */
   count?: number
   zIndex?: number
 }
 
 const PIECES: Record<NonNullable<CandyRainProps['kind']>, string[]> = {
-  candy: ['🍬', '🍭', '🍫', '🍬', '🍩', '🎃'],
+  candy: ['🍬', '🍭', '🍪', '🧁', '🍫', '🥧'],
   bats: ['🦇'],
-  mixed: ['🍬', '🦇', '🍭', '👻', '🍫', '🎃'],
+  mixed: ['🎁', '⭐', '❄️', '🔔', '🍪', '🎄', '🍬', '🦌'],
+  snow: ['❄️', '✨', '❄️', '⭐'],
 }
 
 /**
- * Chuva de doces (ou morcegos) para a vitória. Tela cheia, por cima de tudo,
+ * Chuva de presentes e flocos (ou doces) para a vitória. Tela cheia, por cima de tudo,
  * sem receber clique. Some com "reduzir movimento".
  *
  *   <CandyRain active={state.over} kind="mixed" />

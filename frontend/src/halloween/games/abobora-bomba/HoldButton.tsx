@@ -101,16 +101,41 @@ export default function HoldButton({
         border: 'none',
         borderRadius: '50%',
         cursor: locked ? 'default' : 'pointer',
-        color: '#ffe8cc',
+        color: '#fff6dc',
+        // Bola de árvore de Natal: verde-pinheiro com brilho, tampinha dourada em cima.
         background: active
-          ? 'radial-gradient(circle at 50% 40%, #5a1f05 0%, #2a0d02 70%)'
-          : 'radial-gradient(circle at 50% 35%, #3a1404 0%, #1f0d02 72%)',
+          ? 'radial-gradient(circle at 38% 30%, #3fcf7a 0%, #1f9d55 38%, #0b4d2a 78%)'
+          : 'radial-gradient(circle at 35% 28%, #2fb56a 0%, #157a41 42%, #083a20 80%)',
         boxShadow: active
-          ? '0 0 0 6px rgba(255, 247, 194, 0.35), 0 12px 40px rgba(0, 0, 0, 0.55)'
+          ? '0 0 0 6px rgba(255, 217, 117, 0.45), 0 0 36px rgba(255, 217, 117, 0.55), 0 12px 40px rgba(0, 0, 0, 0.55)'
           : '0 10px 30px rgba(0, 0, 0, 0.45)',
-        transform: active ? 'scale(0.96)' : 'none',
+        transform: active ? 'scale(0.96) rotate(-3deg)' : 'none',
         transition: 'transform 120ms ease, box-shadow 120ms ease',
         opacity: disabled && !done ? 0.45 : 1,
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          left: '50%',
+          top: -12,
+          width: '24%',
+          height: 18,
+          transform: 'translateX(-50%)',
+          borderRadius: '6px 6px 3px 3px',
+          background: 'linear-gradient(90deg, #b8860b, #ffd975 45%, #b8860b)',
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.35)',
+        },
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          left: '18%',
+          top: '12%',
+          width: '26%',
+          height: '16%',
+          borderRadius: '50%',
+          background: 'rgba(255, 255, 255, 0.28)',
+          transform: 'rotate(-30deg)',
+          pointerEvents: 'none',
+        },
         // Toque longo sem menu, sem seleção de texto e sem rolar a página.
         touchAction: 'none',
         userSelect: 'none',
@@ -118,7 +143,7 @@ export default function HoldButton({
         WebkitTouchCallout: 'none',
         WebkitTapHighlightColor: 'transparent',
         outline: 'none',
-        '&:focus-visible': { boxShadow: '0 0 0 4px #fff7c2' },
+        '&:focus-visible': { boxShadow: '0 0 0 4px #ffd975' },
       }}
     >
       <svg
@@ -128,13 +153,13 @@ export default function HoldButton({
         aria-hidden
         style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
       >
-        <circle cx="50" cy="50" r={RADIUS} fill="none" stroke="rgba(255, 232, 204, 0.18)" strokeWidth={6} />
+        <circle cx="50" cy="50" r={RADIUS} fill="none" stroke="rgba(255, 246, 220, 0.2)" strokeWidth={6} />
         <circle
           cx="50"
           cy="50"
           r={RADIUS}
           fill="none"
-          stroke={done ? '#8cf045' : '#fde047'}
+          stroke={done ? '#fff6dc' : '#ffd166'}
           strokeWidth={6}
           strokeLinecap="round"
           strokeDasharray={LENGTH}
@@ -158,6 +183,7 @@ export default function HoldButton({
           lineHeight: 1.05,
           letterSpacing: '0.04em',
           textAlign: 'center',
+          textShadow: '0 2px 6px rgba(0, 0, 0, 0.45)',
           pointerEvents: 'none',
         }}
       >

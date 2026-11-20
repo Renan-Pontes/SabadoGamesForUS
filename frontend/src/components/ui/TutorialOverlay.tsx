@@ -97,7 +97,7 @@ export default function TutorialOverlay({
           borderRadius: 'var(--radius-xl)',
           border: `1px solid ${accent}`,
           background:
-            'radial-gradient(ellipse 120% 70% at 50% -20%, rgba(139, 63, 217, 0.24), transparent 60%), linear-gradient(165deg, rgba(31,18,54,0.97), rgba(10,6,18,0.98))',
+            'radial-gradient(ellipse 120% 70% at 50% -20%, rgba(47, 127, 217, 0.24), transparent 60%), linear-gradient(165deg, rgba(16,34,62,0.97), rgba(6,16,31,0.98))',
           boxShadow: `0 30px 90px rgba(0,0,0,0.7), 0 0 70px ${withAlpha(accent, 0.27)}`,
           p: { xs: 3, md: big ? 6 : 4 },
           position: 'relative',

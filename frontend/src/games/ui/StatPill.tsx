@@ -45,10 +45,10 @@ export default function StatPill({
         px: dims.px,
         py: dims.py,
         borderRadius: 'var(--radius-lg)',
-        border: `1px solid ${filled ? accent : 'rgba(176, 107, 255, 0.2)'}`,
+        border: `1px solid ${filled ? accent : 'rgba(127, 196, 255, 0.2)'}`,
         background: filled
           ? `linear-gradient(140deg, ${withAlpha(accent, 0.18)}, ${withAlpha(accent, 0.07)})`
-          : 'rgba(16, 9, 28, 0.55)',
+          : 'rgba(9, 22, 42, 0.55)',
         boxShadow: filled ? `0 0 24px ${withAlpha(accent, 0.15)}` : 'none',
         minWidth: size === 'lg' ? 140 : 76,
         ...sx,

@@ -14,7 +14,7 @@ const ALL_PHASES = ['show', 'draw1', 'peek', 'draw2', 'gallery', 'vote', 'reveal
 /** Desenhar 15 celulares em cada momento é pesado: com a suíte toda em paralelo, 5 s não bastam. */
 const SLOW = 60_000
 
-describe('telas do Retrato Assombrado em todas as fases', () => {
+describe('telas do Retrato de Natal em todas as fases', () => {
   it.each([3, 8, 15])(
     'desenha TV e celulares com %i jogadores',
     (players) => {
@@ -141,8 +141,8 @@ describe('telas em momentos especiais', { timeout: 60_000 }, () => {
     const vote = phaseOf(5, 'vote')
     const cases: [string, (id: number) => RaSecret][] = [
       ['TODO MUNDO ERA IMPOSTOR', () => ({ role: 'impostor', word: null })],
-      ['NINGUÉM ERA IMPOSTOR', () => ({ role: 'artist', word: 'Vassoura' })],
-      ['ERA IMPOSTOR', (id) => (id === 2 ? { role: 'impostor', word: null } : { role: 'artist', word: 'Vassoura' })],
+      ['NINGUÉM ERA IMPOSTOR', () => ({ role: 'artist', word: 'Rena' })],
+      ['ERA IMPOSTOR', (id) => (id === 2 ? { role: 'impostor', word: null } : { role: 'artist', word: 'Rena' })],
     ]
     for (const [title, secrets] of cases) {
       const state = { ...vote, private: Object.fromEntries(vote.roster.map((id) => [String(id), secrets(id)])) }
@@ -161,7 +161,7 @@ describe('telas em momentos especiais', { timeout: 60_000 }, () => {
       draw(Tv, next, makePlayers(5), { slots: drawingsFor(next) })
       for (const player of makePlayers(5)) {
         const mine = next.private[String(player.id)]
-        draw(Phone, next, makePlayers(5), { view: 'player', me: player, mine, myInput: { k: next.inputKey, guess: 'vassoura' } })
+        draw(Phone, next, makePlayers(5), { view: 'player', me: player, mine, myInput: { k: next.inputKey, guess: 'rena' } })
       }
     }
   })

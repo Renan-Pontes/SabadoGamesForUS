@@ -75,7 +75,7 @@ export default function CountdownRing({
             position: 'absolute',
             inset: 0,
             transform: 'rotate(-90deg)',
-            filter: `drop-shadow(0 0 12px ${urgent ? 'rgba(224,33,58,0.6)' : 'rgba(0,0,0,0.5)'})`,
+            filter: `drop-shadow(0 0 12px ${urgent ? 'rgba(232,57,74,0.6)' : 'rgba(0,0,0,0.5)'})`,
           }}
         >
           <circle
@@ -83,7 +83,7 @@ export default function CountdownRing({
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="rgba(176, 107, 255, 0.14)"
+            stroke="rgba(127, 196, 255, 0.14)"
             strokeWidth={stroke}
           />
           <circle
@@ -108,7 +108,7 @@ export default function CountdownRing({
               fontSize: size * 0.3,
               lineHeight: 1,
               color: urgent ? 'var(--accent-red)' : 'var(--text-primary)',
-              textShadow: urgent ? '0 0 24px rgba(224,33,58,0.65)' : '0 0 18px rgba(176, 107, 255, 0.35)',
+              textShadow: urgent ? '0 0 24px rgba(232,57,74,0.65)' : '0 0 18px rgba(127, 196, 255, 0.35)',
               transition: 'color 300ms ease',
               fontVariantNumeric: 'tabular-nums',
             }}

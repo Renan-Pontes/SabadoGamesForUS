@@ -1,4 +1,14 @@
 import { request } from '../../lib/api'
+import { AUTO_SCARES } from '../../season'
+
+/** Pedido de efeito de Natal sorteado (a TV escolhe; o botão grande do painel do host). */
+export { FESTIVE_RANDOM } from '../scare/bus'
+
+/**
+ * O painel do host só mostra o liga/desliga dos sustos aleatórios quando eles
+ * existem na temporada (no Natal, AUTO_SCARES = false: o botão some).
+ */
+export const RANDOM_SCARES_TOGGLE = AUTO_SCARES
 
 /**
  * Efeitos da sala: o host manda um susto ou liga/desliga a música, e a TV
@@ -41,7 +51,10 @@ export function getRoomFx(code: string) {
   return request<{ fx: RoomFx | Record<string, never>; t: number }>(`/rooms/${code}/fx/`)
 }
 
-/** Host: "😱 Assustar a TV" (sem tipo = a TV sorteia; `name` para o zoom/olhos). */
+/**
+ * Host: manda um efeito para a TV ('random' = susto de Halloween sorteado,
+ * 'festive' = efeito de Natal sorteado; `name` para o zoom, Papai Noel, amigo secreto...).
+ */
 export function scareRoomTv(code: string, kind = 'random', name?: string) {
   return sendRoomFx(code, name ? { scare: kind, name } : { scare: kind })
 }

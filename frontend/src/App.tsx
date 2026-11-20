@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
@@ -52,12 +53,18 @@ import HalloweenGameScreen from './halloween/HalloweenGameScreen'
  * Troca de tela com uma entrada curta. A `key` na rota faz o React remontar
  * o container a cada navegação, que é o que dispara a animação de novo.
  */
+// Prévia dos jogos com partidas simuladas: só existe no `npm run dev`.
+const DevPreview = import.meta.env.DEV ? lazy(() => import('./dev/Preview')) : null
+
 function AnimatedRoutes() {
   const location = useLocation()
   return (
     <div className="app-content page-enter" key={location.pathname}>
       <Routes location={location}>
               <Route path="/" element={<Landing />} />
+              {DevPreview && (
+                <Route path="/dev/preview" element={<Suspense fallback={null}><DevPreview /></Suspense>} />
+              )}
               <Route path="/lobby" element={<Lobby />} />
               <Route path="/profile" element={<Profile />} />
 

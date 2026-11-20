@@ -3,23 +3,30 @@ import { Box, Button, TextField, Typography } from '@mui/material'
 import { GRACE_MS, nameOf } from '../../engine/helpers'
 import type { HPlayer, HalloweenViewProps } from '../../engine/types'
 import { useCountdown } from '../../framework/clockHooks'
-import { SPOOKY_COLORS, withAlpha } from '../../ui'
+import { FESTIVE_ROUND_FONT, XMAS_COLORS, withAlpha } from '../../ui'
+import { SpyMascot } from './Decor'
 import { finalAwards, type EspiaoState } from './engine'
 import { meta } from './meta'
 import { GUESS_MAX, asCard, cleanGuess, type SpyCard } from './rules'
 import { buzz, clock, gainOf, myOutcome, namesOf, spiesLabel } from './view'
 
 /**
- * Celular do "Espião Assombrado": uma ação clara por tela, 360 px.
+ * Celular do "Espião de Natal" — a mão do jogador: uma ação clara por
+ * tela, 360 px, botões grandes para o dedão.
  *
- * A carta fica virada para baixo até a pessoa tocar (o vizinho não espia).
+ * A carta vem embrulhada para presente até a pessoa tocar (o vizinho não
+ * espia); aberta, é uma etiqueta de presente com o lugar e o papel.
  * Na conversa, todo mundo vê a mesma tela — "Ver minha carta" e "Acusar
  * alguém" —; o "Chutar o lugar" do espião mora DENTRO da carta aberta, então
  * nem de relance dá para saber quem é espião pelo celular dos outros.
  */
 
 const ACCENT = meta.accent
-const BLOOD = SPOOKY_COLORS.blood
+const RED = XMAS_COLORS.red
+const GREEN = XMAS_COLORS.pine
+/** Papel da etiqueta de presente e a tinta escura que vai nele. */
+const PAPER = '#fff8ea'
+const INK = '#2b1608'
 
 type Props = HalloweenViewProps<EspiaoState>
 /** O rascunho do chute, guardado na raiz: sobrevive a uma acusação no meio e chega pronto na última chance. */
@@ -63,10 +70,10 @@ function Header({ state, now, grace = false, minutes = false }: { state: EspiaoS
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, mb: 1.5 }}>
       <Typography sx={{ color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.06em', fontSize: '0.9rem' }}>
-        RODADA {state.round}/{state.totalRounds} · 🕵️ {spiesLabel(state.spyCount)}
+        🎄 RODADA {state.round}/{state.totalRounds} · 🕵️ {spiesLabel(state.spyCount)}
       </Typography>
       {seconds !== null && (
-        <Typography sx={{ fontFamily: 'var(--font-numeric)', fontSize: '1.7rem', lineHeight: 1, color: urgent ? BLOOD : ACCENT.main, flexShrink: 0 }}>
+        <Typography sx={{ fontFamily: FESTIVE_ROUND_FONT, fontWeight: 700, fontSize: '1.7rem', lineHeight: 1, color: urgent ? RED : ACCENT.main, flexShrink: 0 }}>
           ⏳ {minutes ? clock(ms) : seconds}
         </Typography>
       )}
@@ -107,16 +114,18 @@ function BigButton({
       disabled={disabled}
       onClick={onClick}
       sx={{
-        minHeight: 60,
+        minHeight: 64,
         mt: 1.25,
-        fontSize: '1.15rem',
+        borderRadius: 'var(--radius-lg)',
+        fontSize: '1.2rem',
         fontWeight: 800,
         textTransform: 'none',
         lineHeight: 1.15,
         borderWidth: 2,
         borderColor: color,
-        color: filled ? '#0b0614' : 'var(--text-primary)',
+        color: filled ? inkOn(color) : 'var(--text-primary)',
         background: filled ? color : withAlpha(color, 0.08),
+        boxShadow: filled ? `0 4px 0 ${withAlpha('#000000', 0.35)}, 0 0 18px ${withAlpha(color, 0.35)}` : 'none',
         '&:hover': { background: filled ? color : withAlpha(color, 0.2), borderWidth: 2, borderColor: color },
         '&.Mui-disabled': { color: 'var(--text-muted)', borderColor: 'var(--border-medium)', background: 'transparent' },
       }}
@@ -124,6 +133,11 @@ function BigButton({
       {children}
     </Button>
   )
+}
+
+/** Tinta legível em cima de um botão cheio (branco no vermelho, escuro no dourado/verde). */
+function inkOn(color: string): string {
+  return color === RED ? '#ffffff' : '#1a1000'
 }
 
 /** Uma pessoa por botão, em duas colunas. */
@@ -138,7 +152,7 @@ function PeopleGrid({ ids, players, selected, onPick }: { ids: number[]; players
             variant={on ? 'contained' : 'outlined'}
             onClick={() => onPick(id)}
             sx={{
-              minHeight: 56,
+              minHeight: 60,
               fontSize: '1.05rem',
               fontWeight: 700,
               textTransform: 'none',
@@ -159,7 +173,7 @@ function PeopleGrid({ ids, players, selected, onPick }: { ids: number[]; players
   )
 }
 
-/** A carta secreta: virada para baixo até tocar. */
+/** A carta secreta: embrulhada para presente até tocar; aberta, uma etiqueta de presente. */
 function SecretCard({
   card,
   spyCount,
@@ -176,31 +190,50 @@ function SecretCard({
   children?: ReactNode
 }) {
   if (!open) {
+    const ribbon = XMAS_COLORS.gold
     return (
       <Box
         component="button"
         type="button"
         onClick={onToggle}
         sx={{
+          position: 'relative',
           width: '100%',
-          minHeight: big ? 250 : 112,
+          minHeight: big ? 260 : 124,
           p: 2,
           borderRadius: 'var(--radius-xl)',
-          border: `3px dashed ${withAlpha(ACCENT.main, 0.8)}`,
-          background: `repeating-linear-gradient(45deg, ${withAlpha(ACCENT.main, 0.12)} 0 14px, rgba(10, 6, 18, 0.88) 14px 28px)`,
-          color: 'var(--text-primary)',
+          border: `3px solid ${withAlpha('#ffffff', 0.3)}`,
+          // Papel de presente listrado + fita dourada em cruz.
+          background: [
+            `linear-gradient(90deg, transparent calc(50% - 13px), ${ribbon} calc(50% - 13px), ${ribbon} calc(50% + 13px), transparent calc(50% + 13px))`,
+            `linear-gradient(0deg, transparent calc(50% - 13px), ${ribbon} calc(50% - 13px), ${ribbon} calc(50% + 13px), transparent calc(50% + 13px))`,
+            'repeating-linear-gradient(45deg, #c21f33 0 16px, #e8394a 16px 32px)',
+          ].join(', '),
+          boxShadow: `0 6px 0 rgba(0, 0, 0, 0.35), 0 0 26px ${withAlpha(RED, 0.4)}`,
+          color: INK,
           font: 'inherit',
           cursor: 'pointer',
           display: 'grid',
           placeItems: 'center',
+          overflow: 'hidden',
         }}
       >
-        <Box>
-          <Typography aria-hidden sx={{ fontSize: big ? '3.6rem' : '2rem', lineHeight: 1 }}>
-            👁️
+        <Box
+          sx={{
+            position: 'relative',
+            px: 2.25,
+            py: big ? 1.75 : 1,
+            borderRadius: '14px',
+            background: PAPER,
+            border: `2px dashed ${withAlpha(XMAS_COLORS.green, 0.8)}`,
+            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
+          }}
+        >
+          <Typography aria-hidden className={big ? 'ep-bounce' : undefined} sx={{ fontSize: big ? '3.4rem' : '1.9rem', lineHeight: 1 }}>
+            🎁
           </Typography>
-          <Typography sx={{ fontWeight: 800, fontSize: big ? '1.35rem' : '1.1rem', mt: 0.75 }}>Toque para ver sua carta</Typography>
-          <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>escondido de quem está do lado 🤫</Typography>
+          <Typography sx={{ fontWeight: 800, fontSize: big ? '1.35rem' : '1.1rem', mt: 0.5, color: INK }}>Toque para ver sua carta</Typography>
+          <Typography sx={{ color: '#8a5a3a', fontSize: '0.95rem', fontWeight: 600 }}>escondido de quem está do lado 🤫</Typography>
         </Box>
       </Box>
     )
@@ -211,47 +244,62 @@ function SecretCard({
     <Box
       className="animate-deal-in"
       sx={{
+        position: 'relative',
         p: 2.25,
-        borderRadius: 'var(--radius-xl)',
-        border: `3px solid ${spy ? BLOOD : ACCENT.main}`,
-        background: `radial-gradient(ellipse at top, ${withAlpha(spy ? BLOOD : ACCENT.main, 0.22)}, rgba(10, 6, 18, 0.92) 70%)`,
-        boxShadow: `0 0 28px ${withAlpha(spy ? BLOOD : ACCENT.main, 0.35)}`,
+        pt: 4,
+        borderRadius: '22px',
         textAlign: 'center',
+        color: spy ? '#ffffff' : INK,
+        background: spy
+          ? 'radial-gradient(ellipse at top, #ff5a66 0%, #b3182c 55%, #6e0b19 100%)'
+          : `linear-gradient(170deg, #fffdf6 0%, ${PAPER} 60%, #f4e2c0 100%)`,
+        border: `4px solid ${spy ? XMAS_COLORS.gold : RED}`,
+        outline: `2px dashed ${spy ? withAlpha('#ffffff', 0.7) : withAlpha(XMAS_COLORS.green, 0.85)}`,
+        outlineOffset: '-11px',
+        boxShadow: `0 6px 0 rgba(0, 0, 0, 0.35), 0 0 30px ${withAlpha(spy ? RED : ACCENT.main, 0.4)}`,
       }}
     >
-      <Typography sx={{ fontSize: '0.72rem', letterSpacing: '0.24em', fontWeight: 800, color: 'var(--text-muted)' }}>SÓ VOCÊ VÊ ISTO</Typography>
+      {/* Furo da etiqueta e os raminhos dos cantos */}
+      <Box aria-hidden sx={{ position: 'absolute', top: 12, left: '50%', width: 16, height: 16, ml: '-8px', borderRadius: '50%', background: '#06101f', border: `3px solid ${XMAS_COLORS.gold}` }} />
+      <Typography aria-hidden sx={{ position: 'absolute', top: 10, left: 16, fontSize: '1.3rem', lineHeight: 1 }}>
+        🎄
+      </Typography>
+      <Typography aria-hidden sx={{ position: 'absolute', top: 10, right: 16, fontSize: '1.3rem', lineHeight: 1 }}>
+        ⭐
+      </Typography>
+      <Typography sx={{ fontSize: '0.72rem', letterSpacing: '0.24em', fontWeight: 800, color: spy ? 'rgba(255, 255, 255, 0.75)' : '#9a6a4a' }}>SÓ VOCÊ VÊ ISTO</Typography>
       {card === null ? (
-        <Note>Sua carta está chegando…</Note>
+        <Note color={INK}>Sua carta está chegando…</Note>
       ) : card.spy ? (
         <>
-          <Typography aria-hidden sx={{ fontSize: '3.2rem', lineHeight: 1.15 }}>
-            🕵️
+          <Box sx={{ mt: 2.5, mb: 0.5 }}>
+            <SpyMascot size="3.4rem" />
+          </Box>
+          <Title color="#ffffff">VOCÊ É O ESPIÃO</Title>
+          <Typography sx={{ color: 'rgba(255, 255, 255, 0.92)', mt: 1, lineHeight: 1.35, fontWeight: 600 }}>
+            Você é o penetra da festa: não sabe o lugar. Descubra pelas perguntas — e não se entregue!
           </Typography>
-          <Title color={BLOOD}>VOCÊ É O ESPIÃO</Title>
-          <Typography sx={{ color: 'var(--text-secondary)', mt: 1, lineHeight: 1.35 }}>
-            Você não sabe o lugar. Descubra pelas perguntas — e não se entregue!
-          </Typography>
-          <Typography sx={{ color: 'var(--text-muted)', mt: 0.75, fontSize: '0.95rem', lineHeight: 1.3 }}>
-            Na conversa, o botão 🔮 Chutar o lugar fica aqui na carta. Só uma chance!
+          <Typography sx={{ color: 'rgba(255, 255, 255, 0.75)', mt: 0.75, fontSize: '0.95rem', lineHeight: 1.3 }}>
+            Na conversa, o botão ✨ Chutar o lugar fica aqui na carta. Só uma chance!
           </Typography>
           {spyCount > 1 && (
-            <Typography sx={{ color: 'var(--text-muted)', mt: 0.75, fontSize: '0.95rem' }}>Tem outro espião na mesa — vocês não sabem quem é.</Typography>
+            <Typography sx={{ color: 'rgba(255, 255, 255, 0.75)', mt: 0.75, fontSize: '0.95rem' }}>Tem outro espião na mesa — vocês não sabem quem é.</Typography>
           )}
         </>
       ) : (
         <>
-          <Typography aria-hidden sx={{ fontSize: '3.2rem', lineHeight: 1.15 }}>
+          <Typography aria-hidden sx={{ fontSize: '3.2rem', lineHeight: 1.15, mt: 0.5 }}>
             {card.icon}
           </Typography>
-          <Typography sx={{ fontSize: '0.8rem', letterSpacing: '0.18em', color: 'var(--text-muted)', fontWeight: 800 }}>O LUGAR</Typography>
-          <Title color={ACCENT.main}>{card.place}</Title>
-          <Typography sx={{ mt: 1, fontSize: '1.15rem' }}>
-            Seu papel: <b style={{ color: ACCENT.light }}>{card.role}</b>
+          <Typography sx={{ fontSize: '0.8rem', letterSpacing: '0.18em', color: '#9a6a4a', fontWeight: 800 }}>O LUGAR</Typography>
+          <Title color="#b0182c">{card.place}</Title>
+          <Typography sx={{ mt: 1, fontSize: '1.15rem', color: INK }}>
+            Seu papel: <b style={{ color: '#17703c' }}>{card.role}</b>
           </Typography>
         </>
       )}
       {children}
-      <Button onClick={onToggle} sx={{ mt: 1, minHeight: 44, color: 'var(--text-muted)', textTransform: 'none', fontWeight: 700 }}>
+      <Button onClick={onToggle} sx={{ mt: 1, minHeight: 48, color: spy ? 'rgba(255, 255, 255, 0.85)' : '#7a4a2a', textTransform: 'none', fontWeight: 700 }}>
         🙈 Esconder a carta
       </Button>
     </Box>
@@ -285,7 +333,7 @@ function RevealPanel({ state, now, mine }: Props) {
     <Box>
       <Header state={state} now={now} />
       <Box sx={{ mb: 1.5 }}>
-        <Title>Olhe sua carta 🤫</Title>
+        <Title>Abra seu presente 🤫</Title>
       </Box>
       <SecretCard
         card={asCard(mine)}
@@ -297,7 +345,7 @@ function RevealPanel({ state, now, mine }: Props) {
           setOpen(!open)
         }}
       />
-      <Note>Guarde o lugar e o papel. Dá para olhar de novo durante a conversa.</Note>
+      <Note>Guarde o lugar e o papel. Dá para olhar de novo durante a conversa. 🎄</Note>
     </Box>
   )
 }
@@ -319,9 +367,9 @@ function TalkPanel({ state, players, me, mine, myInput, send, now, draft, setDra
     return (
       <Box sx={{ textAlign: 'center' }}>
         {header}
-        <Typography sx={{ fontSize: '3.5rem', lineHeight: 1 }}>🔮</Typography>
+        <Typography className="ep-bounce" sx={{ fontSize: '3.5rem', lineHeight: 1 }}>✨</Typography>
         <Title>Chute enviado!</Title>
-        <Note>“{sentGuess}” — segura o coração e olhe a TV…</Note>
+        <Note>“{sentGuess}” — dedos cruzados 🤞 e olhe a TV…</Note>
       </Box>
     )
   }
@@ -331,7 +379,7 @@ function TalkPanel({ state, players, me, mine, myInput, send, now, draft, setDra
         {header}
         <Typography sx={{ fontSize: '3.5rem', lineHeight: 1 }}>🫵</Typography>
         <Title>Você acusou {nameOf(players, sentAccuse)}</Title>
-        <Note>A votação já vai abrir na TV…</Note>
+        <Note>A votação já vai abrir na TV… 🍿</Note>
       </Box>
     )
   }
@@ -341,7 +389,7 @@ function TalkPanel({ state, players, me, mine, myInput, send, now, draft, setDra
       <Box>
         {header}
         <Box sx={{ mb: 1.5 }}>
-          <Title>Quem é o espião?</Title>
+          <Title>Quem é o penetra? 🕵️</Title>
         </Box>
         <PeopleGrid ids={others} players={players} selected={null} onPick={(target) => setMode({ kind: 'confirm-accuse', target })} />
         <BigButton onClick={() => setMode({ kind: 'main' })}>Voltar</BigButton>
@@ -355,16 +403,16 @@ function TalkPanel({ state, players, me, mine, myInput, send, now, draft, setDra
         {header}
         <Typography sx={{ fontSize: '3.5rem', lineHeight: 1 }}>🫵</Typography>
         <Title color={ACCENT.main}>Acusar {nameOf(players, mode.target)}?</Title>
-        <Note>Todo mundo vota SIM ou NÃO. Você só acusa uma vez por rodada.</Note>
+        <Note>Todo mundo vota SIM ou NÃO. Você só acusa uma vez por rodada — escolha bem! 🤨</Note>
         <BigButton
           filled
-          color={BLOOD}
+          color={RED}
           onClick={() => {
             buzz(60)
             send({ accuse: mode.target, at: now() })
           }}
         >
-          Acusar!
+          🫵 Acusar!
         </BigButton>
         <BigButton onClick={() => setMode({ kind: 'pick' })}>Voltar</BigButton>
       </Box>
@@ -379,7 +427,7 @@ function TalkPanel({ state, players, me, mine, myInput, send, now, draft, setDra
     return (
       <Box>
         {header}
-        <Title>Onde vocês estão?</Title>
+        <Title>Onde é a festa? 🎄</Title>
         <Note>Digite o lugar. Vale sem acento e com erro pequeno.</Note>
         <GuessField value={draft} onChange={setDraft} onSubmit={next} />
         <BigButton filled disabled={!ready} onClick={next}>
@@ -395,11 +443,11 @@ function TalkPanel({ state, players, me, mine, myInput, send, now, draft, setDra
       <Box sx={{ textAlign: 'center' }}>
         {header}
         <Typography sx={{ fontSize: '3.5rem', lineHeight: 1 }}>⚠️</Typography>
-        <Title color={BLOOD}>Só tem UMA chance!</Title>
+        <Title color={RED}>Só tem UMA chance!</Title>
         <Note>Chutar “{mode.text}”? Acertou, você vence. Errou, a mesa vence.</Note>
         <BigButton
           filled
-          color={BLOOD}
+          color={RED}
           onClick={() => {
             buzz([70, 50, 70])
             send({ guess: mode.text, at: now() })
@@ -425,8 +473,8 @@ function TalkPanel({ state, players, me, mine, myInput, send, now, draft, setDra
         }}
       >
         {card?.spy && (
-          <BigButton filled color={BLOOD} onClick={() => setMode({ kind: 'type' })}>
-            🔮 Chutar o lugar
+          <BigButton filled color={ACCENT.main} onClick={() => setMode({ kind: 'type' })}>
+            ✨ Chutar o lugar
           </BigButton>
         )}
       </SecretCard>
@@ -434,7 +482,7 @@ function TalkPanel({ state, players, me, mine, myInput, send, now, draft, setDra
         {used ? 'Você já acusou nesta rodada' : '🫵 Acusar alguém'}
       </BigButton>
       <Note>
-        🎤 {nameOf(players, state.starter, 'Qualquer um')} começa perguntando. Pergunte sobre o lugar sem entregar!
+        🎤 {nameOf(players, state.starter, 'Qualquer um')} começa perguntando. Pergunte sobre o lugar sem entregar o presente!
       </Note>
     </Box>
   )
@@ -458,11 +506,11 @@ function AccusePanel({ state, players, me, myInput, send, now }: Props) {
     return (
       <Box sx={{ textAlign: 'center' }}>
         <Header state={state} now={now} grace />
-        <Typography className="animate-shake" sx={{ fontSize: '4rem', lineHeight: 1 }}>
-          😱
+        <Typography className="ep-boing" sx={{ fontSize: '4rem', lineHeight: 1 }}>
+          🤨
         </Typography>
-        <Title color={BLOOD}>{accuser} acusou você!</Title>
-        <Note>Defenda-se em voz alta! A mesa está votando ({progress}).</Note>
+        <Title color={RED}>{accuser} acusou você!</Title>
+        <Note>Defenda-se em voz alta! Jure pelo panetone da vó. A mesa está votando ({progress}).</Note>
         <Note color={ACCENT.light}>{tally}</Note>
       </Box>
     )
@@ -489,8 +537,8 @@ function AccusePanel({ state, players, me, myInput, send, now }: Props) {
       </Typography>
       <Title color={ACCENT.main}>{target} é o espião?</Title>
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.25, mt: 1 }}>
-        <VoteButton label="👍 SIM" on={vote === true} color="#22c55e" onClick={() => send({ yes: true })} />
-        <VoteButton label="👎 NÃO" on={vote === false} color={BLOOD} onClick={() => send({ yes: false })} />
+        <VoteButton label="👍 SIM" on={vote === true} color={GREEN} onClick={() => send({ yes: true })} />
+        <VoteButton label="👎 NÃO" on={vote === false} color={RED} onClick={() => send({ yes: false })} />
       </Box>
       <Note color={vote === null ? undefined : ACCENT.light}>
         {vote === null ? 'A maioria decide. Quem não vota não conta.' : `✓ Você votou ${vote ? 'SIM' : 'NÃO'} — dá pra trocar. Esperando os outros (${progress})`}
@@ -510,7 +558,7 @@ function VoteButton({ label, on, color, onClick }: { label: string; on: boolean;
         fontWeight: 900,
         borderWidth: 3,
         borderColor: color,
-        color: on ? '#0b0614' : 'var(--text-primary)',
+        color: on ? inkOn(color) : 'var(--text-primary)',
         background: on ? color : withAlpha(color, 0.1),
         '&:hover': { background: on ? color : withAlpha(color, 0.22), borderWidth: 3, borderColor: color },
       }}
@@ -527,8 +575,8 @@ function FinalVotePanel({ state, players, me, myInput, send, now }: Props) {
     <Box>
       <Header state={state} now={now} grace />
       <Box sx={{ mb: 1.5 }}>
-        <Title color={BLOOD}>⏰ Acabou o tempo!</Title>
-        <Note>Quem é o espião? O mais votado é condenado.</Note>
+        <Title color={RED}>🔔 Acabou o tempo!</Title>
+        <Note>Quem é o penetra da festa? O mais votado é condenado.</Note>
       </Box>
       <PeopleGrid
         ids={state.roster.filter((id) => id !== me.id)}
@@ -562,8 +610,8 @@ function LastChancePanel({ state, players, me, myInput, send, now, draft, setDra
       <Box sx={{ textAlign: 'center' }}>
         <Header state={state} now={now} grace />
         <Typography sx={{ fontSize: '3.5rem', lineHeight: 1 }}>🎯</Typography>
-        <Title color={BLOOD}>{caught} é espião!</Title>
-        <Note>Última chance: se adivinhar o lugar, os espiões vencem. Nada de soprar! 🤐</Note>
+        <Title color={RED}>{caught} é espião!</Title>
+        <Note>Pego com a mão no panetone! Se adivinhar o lugar, os espiões vencem. Nada de soprar! 🤐</Note>
       </Box>
     )
   }
@@ -573,9 +621,9 @@ function LastChancePanel({ state, players, me, myInput, send, now, draft, setDra
     return (
       <Box sx={{ textAlign: 'center' }}>
         <Header state={state} now={now} grace />
-        <Typography sx={{ fontSize: '3.5rem', lineHeight: 1 }}>🔮</Typography>
+        <Typography className="ep-bounce" sx={{ fontSize: '3.5rem', lineHeight: 1 }}>✨</Typography>
         <Title>Chute enviado!</Title>
-        <Note>“{sent}” — olhe a TV…</Note>
+        <Note>“{sent}” — dedos cruzados 🤞 e olhe a TV…</Note>
       </Box>
     )
   }
@@ -584,11 +632,11 @@ function LastChancePanel({ state, players, me, myInput, send, now, draft, setDra
     return (
       <Box sx={{ textAlign: 'center' }}>
         <Header state={state} now={now} grace />
-        <Title color={BLOOD}>Só tem UMA chance!</Title>
+        <Title color={RED}>Só tem UMA chance!</Title>
         <Note>Chutar “{confirming}”?</Note>
         <BigButton
           filled
-          color={BLOOD}
+          color={RED}
           onClick={() => {
             buzz([70, 50, 70])
             send({ guess: confirming, at: now() })
@@ -610,10 +658,10 @@ function LastChancePanel({ state, players, me, myInput, send, now, draft, setDra
       <Header state={state} now={now} grace />
       <Box sx={{ textAlign: 'center' }}>
         <Typography className="animate-shake" sx={{ fontSize: '3.5rem', lineHeight: 1 }}>
-          🎯
+          📸
         </Typography>
-        <Title color={BLOOD}>Você foi pego!</Title>
-        <Note>Última chance: digite o lugar. Acertou, os espiões vencem!</Note>
+        <Title color={RED}>Você foi pego!</Title>
+        <Note>Última chance: onde é a festa? Acertou, os espiões vencem!</Note>
       </Box>
       <GuessField value={draft} onChange={setDraft} onSubmit={next} />
       <BigButton filled disabled={!ready} onClick={next}>
@@ -637,23 +685,23 @@ function ResultPanel({ state, players, me, mine, now }: Props) {
       <Typography className="animate-pop-in" sx={{ fontSize: '4rem', lineHeight: 1 }}>
         {outcome.icon}
       </Typography>
-      <Title color={outcome.good === true ? ACCENT.main : outcome.good === false ? BLOOD : undefined}>{outcome.title}</Title>
+      <Title color={outcome.good === true ? ACCENT.main : outcome.good === false ? RED : undefined}>{outcome.title}</Title>
       {gain > 0 && (
         <Typography sx={{ fontFamily: 'var(--font-numeric)', fontSize: '2.6rem', lineHeight: 1.1, color: ACCENT.main }}>+{gain}</Typography>
       )}
-      <Box sx={{ mt: 2, p: 2, borderRadius: 'var(--radius-lg)', border: `2px solid ${ACCENT.main}` }}>
-        <Typography sx={{ color: 'var(--text-muted)', fontWeight: 700 }}>O lugar era</Typography>
+      <Box sx={{ mt: 2, p: 2, borderRadius: 'var(--radius-lg)', border: `3px solid ${RED}`, outline: `2px dashed ${withAlpha(XMAS_COLORS.green, 0.85)}`, outlineOffset: '-9px', background: PAPER, color: INK }}>
+        <Typography sx={{ color: '#9a6a4a', fontWeight: 700 }}>O lugar era</Typography>
         <Typography sx={{ fontWeight: 800, fontSize: '1.4rem' }}>
           {result.place.icon} {result.place.name}
         </Typography>
         <Typography sx={{ mt: 1, fontWeight: 700 }}>{spies}</Typography>
         {card && (
-          <Typography sx={{ mt: 0.5, color: 'var(--text-secondary)' }}>
+          <Typography sx={{ mt: 0.5, color: '#5a3a22' }}>
             {card.spy ? 'Você era espião 🕵️' : `Você era: ${card.role}`}
           </Typography>
         )}
       </Box>
-      <Note>Olhe a TV 📺</Note>
+      <Note>Olhe a TV 📺🎄</Note>
     </Box>
   )
 }
@@ -666,10 +714,10 @@ function ScorePanel({ state, players, me, now }: Props) {
     <Box sx={{ textAlign: 'center' }}>
       <Header state={state} now={now} />
       <Title>Placar</Title>
-      <Typography sx={{ fontSize: '4rem', fontFamily: 'var(--font-numeric)', lineHeight: 1, color: ACCENT.main }}>{mine?.score ?? 0}</Typography>
+      <Typography className="ep-bounce" sx={{ fontSize: '4rem', fontFamily: FESTIVE_ROUND_FONT, fontWeight: 700, lineHeight: 1, color: ACCENT.main }}>{mine?.score ?? 0}</Typography>
       <Typography sx={{ color: 'var(--text-secondary)', fontSize: '1.15rem' }}>{mine ? `${mine.place}º lugar` : 'fora do placar'}</Typography>
       <Note>
-        {state.round + 1 >= state.totalRounds ? 'Agora vem a última rodada! 😱' : 'Próxima rodada já vem — prepare a cara de paisagem 😐'}{' '}
+        {state.round + 1 >= state.totalRounds ? 'Agora vem a última rodada! 🎁' : 'Próxima rodada já vem — prepare a cara de paisagem 😐'}{' '}
         {nameOf(players, ranking[0]?.id)} lidera.
       </Note>
     </Box>
@@ -687,11 +735,14 @@ function FinalPanel({ state, players, me }: Props) {
       label: 'Mestre do disfarce',
       value: awards.masterSpies.length ? `${namesOf(players, awards.masterSpies)} (${awards.maxSpyWins})` : 'Ninguém',
     },
-    { icon: '🔎', label: 'Faro fino', value: awards.detectives.length ? `${namesOf(players, awards.detectives)} (${awards.maxSharp})` : 'Ninguém' },
+    { icon: '🦌', label: 'Nariz de Rena', value: awards.detectives.length ? `${namesOf(players, awards.detectives)} (${awards.maxSharp})` : 'Ninguém' },
   ]
   return (
     <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-      <Title>Fim da noite</Title>
+      <Typography aria-hidden className="ep-bounce" sx={{ fontSize: '3.4rem', lineHeight: 1 }}>
+        🎅
+      </Typography>
+      <Title>Fim da noite 🎄</Title>
       {mine && (
         <Typography sx={{ fontSize: '1.3rem', fontWeight: 700 }}>
           Você ficou em {mine.place}º com {mine.score} {mine.score === 1 ? 'ponto' : 'pontos'}

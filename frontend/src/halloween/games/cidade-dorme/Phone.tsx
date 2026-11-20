@@ -3,15 +3,16 @@ import { Box, Button, Chip, TextField, Typography } from '@mui/material'
 import { nameOf } from '../../engine/helpers'
 import type { HPlayer, HalloweenViewProps } from '../../engine/types'
 import { useCountdown, useServerNow } from '../../framework/clockHooks'
-import { SPOOKY_COLORS, withAlpha } from '../../ui'
-import { CITY_NOTES, GHOST_INFO, KILLER_NOTES, NOBODY_OUT, ROLE_INFO } from './content'
+import { SPOOKY_COLORS, XMAS_COLORS, withAlpha } from '../../ui'
+import { GiftTag, WrappedGift } from './art'
+import { CITY_NOTES, KILLER_NOTES, NOBODY_OUT, ROLE_INFO, SNOWMAN_INFO } from './content'
 import { MIN_VOTES, NOTE_MAX, blockedGuard, cleanNote, type Role, type Secret, type State } from './engine'
 import { meta } from './meta'
 import { SUSPENSE_MS } from './narration'
 import { REVEAL_SLOT, aliveActed, buzz, graceFor, namesOf, phaseLabel, plural } from './screens'
 
 /**
- * Celular do "Cidade Dorme": uma ação clara por tela, 360 px. À noite a tela
+ * Celular do "Vila Dorme": uma ação clara por tela, 360 px. À noite a tela
  * é IGUAL para todo mundo ("Escolha alguém" + recado opcional) — só a
  * linhazinha de baixo muda com o papel. Segredo (papel, pistas, recados)
  * fica atrás de um toque, para o vizinho não espiar.
@@ -19,10 +20,10 @@ import { REVEAL_SLOT, aliveActed, buzz, graceFor, namesOf, phaseLabel, plural } 
 
 const ACCENT = meta.accent
 const YOU_ARE: Record<Role, string> = {
-  killer: 'Você é ASSASSINO',
-  detective: 'Você é o DETETIVE',
-  angel: 'Você é o ANJO',
-  citizen: 'Você é CIDADÃO',
+  killer: 'Você é DUENDE TRAVESSO',
+  detective: 'Você é a RENA DETETIVE',
+  angel: 'Você é o ANJO DO NATAL',
+  citizen: 'Você é MORADOR DA VILA',
 }
 
 type Props = HalloweenViewProps<State>
@@ -45,7 +46,7 @@ export default function Phone(props: Props) {
         (ghost ? <HauntPanel key={state.inputKey} {...panel} /> : <NightPanel key={state.inputKey} {...panel} />)}
       {state.phase === 'morning' && <MorningPanel {...panel} ghost={ghost} />}
       {state.phase === 'day' && <DayPanel {...panel} ghost={ghost} />}
-      {state.phase === 'vote' && (ghost ? <GhostNote text="Fantasma não vota. Assista à TV e torça 👻" /> : <VotePanel {...panel} />)}
+      {state.phase === 'vote' && (ghost ? <SnowmanNote text="Boneco de neve não vota. Assista à TV e torça ⛄" /> : <VotePanel {...panel} />)}
       {state.phase === 'verdict' && <VerdictPanel {...panel} />}
     </Box>
   )
@@ -124,13 +125,14 @@ function Card({ icon, title, color, children }: { icon: string; title: ReactNode
   )
 }
 
-function GhostNote({ text }: { text: string }) {
+/** Quem saiu do jogo vira boneco de neve: não vota, não fala, mas joga bola de neve à noite. */
+function SnowmanNote({ text }: { text: string }) {
   return (
     <Box sx={{ textAlign: 'center' }}>
       <Typography className="hw-float" sx={{ fontSize: '3.5rem', lineHeight: 1 }}>
-        👻
+        ⛄
       </Typography>
-      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2rem' }}>Você é fantasma</Typography>
+      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2rem' }}>Você virou boneco de neve</Typography>
       <Typography sx={{ color: 'var(--text-secondary)' }}>{text}</Typography>
     </Box>
   )
@@ -206,7 +208,7 @@ function RolePeek({ state, players, me, secret, ghost }: PanelProps & { ghost: b
           px: 2,
         }}
       >
-        <span>{open ? `${info.icon} ${info.name}${ghost ? ' 👻' : ''}` : '👁 Meu papel e minhas pistas'}</span>
+        <span>{open ? `${info.icon} ${info.name}${ghost ? ' ⛄' : ''}` : '👁 Meu papel e minhas pistas'}</span>
         <span>{open ? 'esconder' : 'ver'}</span>
       </Button>
       {open && (
@@ -222,29 +224,16 @@ function RolePeek({ state, players, me, secret, ghost }: PanelProps & { ghost: b
 function RoleCard({ secret, players, me, compact = false }: { secret: Secret; players: HPlayer[]; me: HPlayer; compact?: boolean }) {
   const info = ROLE_INFO[secret.role]
   const partners = (secret.team ?? []).filter((id) => id !== me.id)
+  // O papel é uma etiqueta de presente: "Para: você · De: Papai Noel".
   return (
-    <Box
-      className="animate-pop-in"
-      sx={{
-        p: compact ? 2 : 3,
-        textAlign: 'center',
-        borderRadius: 'var(--radius-xl)',
-        border: `3px solid ${info.color}`,
-        background: `linear-gradient(180deg, ${withAlpha(info.color, 0.2)}, rgba(10, 6, 18, 0.9))`,
-        boxShadow: `0 0 30px ${withAlpha(info.color, 0.35)}`,
-      }}
-    >
-      <Typography sx={{ fontSize: compact ? '2.8rem' : '4.5rem', lineHeight: 1 }}>{info.icon}</Typography>
-      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: compact ? '1.9rem' : '2.6rem', color: info.color, lineHeight: 1.05, mt: 1 }}>
-        {YOU_ARE[secret.role]}
-      </Typography>
-      <Typography sx={{ mt: 1, fontSize: '1.05rem', color: 'var(--text-secondary)' }}>{info.mission}</Typography>
+    <GiftTag role={secret.role} to={me.name} icon={info.icon} title={YOU_ARE[secret.role]} color={info.color} compact={compact}>
+      <Typography sx={{ fontSize: '1.05rem', color: 'inherit' }}>{info.mission}</Typography>
       {secret.role === 'killer' && (
-        <Typography sx={{ mt: 1.5, fontWeight: 800, color: info.color }}>
-          {partners.length ? `🤝 Parceiros: ${namesOf(players, partners)}` : '🐺 Você age sozinho.'}
+        <Typography sx={{ mt: 1.5, fontWeight: 800, color: '#c21f33' }}>
+          {partners.length ? `🤝 Parceiros: ${namesOf(players, partners)}` : '🤫 Você age sozinho.'}
         </Typography>
       )}
-    </Box>
+    </GiftTag>
   )
 }
 
@@ -260,7 +249,7 @@ function Intel({ state, players, me, secret }: { state: State; players: HPlayer[
         <Box sx={{ p: 1.5, borderRadius: 'var(--radius-lg)', background: 'rgba(255, 255, 255, 0.04)' }}>
           {partners.length > 0 && (
             <Typography sx={line}>
-              🤝 {partners.map((id) => `${name(id)}${state.alive.includes(id) ? '' : ' 👻'}`).join(', ')}
+              🤝 {partners.map((id) => `${name(id)}${state.alive.includes(id) ? '' : ' ⛄'}`).join(', ')}
             </Typography>
           )}
           <Inbox notes={secret.inbox ?? []} />
@@ -275,7 +264,7 @@ function Intel({ state, players, me, secret }: { state: State; players: HPlayer[
           {clues.map((clue) => (
             <Typography key={clue.round} sx={line}>
               Noite {clue.round}: {name(clue.target)} —{' '}
-              {clue.killer ? <b style={{ color: SPOOKY_COLORS.blood }}>ASSASSINO 🔪</b> : 'inocente ✅'}
+              {clue.killer ? <b style={{ color: SPOOKY_COLORS.blood }}>DUENDE TRAVESSO 🧝</b> : 'inocente ✅'}
             </Typography>
           ))}
         </Box>
@@ -359,23 +348,23 @@ function RolesPanel({ state, players, me, secret, myInput, send }: PanelProps) {
           sx={{
             minHeight: 280,
             borderRadius: 'var(--radius-xl)',
-            border: `3px dashed ${ACCENT.main}`,
+            border: `3px dashed ${XMAS_COLORS.gold}`,
             display: 'flex',
             flexDirection: 'column',
             gap: 1,
             color: 'var(--text-primary)',
             textTransform: 'none',
-            background: `repeating-linear-gradient(45deg, ${withAlpha(ACCENT.main, 0.1)} 0 14px, rgba(10, 6, 18, 0.65) 14px 28px)`,
+            background: `repeating-linear-gradient(45deg, ${withAlpha(ACCENT.main, 0.14)} 0 14px, rgba(6, 16, 31, 0.7) 14px 28px)`,
           }}
         >
-          <Typography sx={{ fontSize: '4rem', lineHeight: 1 }}>🃏</Typography>
-          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2rem', lineHeight: 1.1 }}>Toque para ver seu papel</Typography>
-          <Typography sx={{ color: 'var(--text-muted)' }}>Esconda a tela dos vizinhos 👀</Typography>
+          <WrappedGift />
+          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2rem', lineHeight: 1.1 }}>Toque para abrir seu presente</Typography>
+          <Typography sx={{ color: 'var(--text-muted)' }}>Dentro tem seu papel secreto. Esconda a tela 👀</Typography>
         </Button>
       ) : secret ? (
         <RoleCard secret={secret} players={players} me={me} />
       ) : (
-        <Typography sx={{ textAlign: 'center', color: 'var(--text-muted)' }}>Buscando seu papel no além…</Typography>
+        <Typography sx={{ textAlign: 'center', color: 'var(--text-muted)' }}>Buscando seu presente no Polo Norte…</Typography>
       )}
       {flipped && (
         <BigButton
@@ -535,9 +524,9 @@ function NightTip({ state, players, me, secret }: { state: State; players: HPlay
       </Typography>
     )
   } else if (role === 'detective') {
-    body = <Typography sx={line}>🤫 De manhã você descobre, em segredo, se é assassino.</Typography>
+    body = <Typography sx={line}>🤫 De manhã você descobre, em segredo, se é duende travesso.</Typography>
   } else {
-    body = <Typography sx={line}>🤫 Acertou o assassino? Vale ponto de faro no fim.</Typography>
+    body = <Typography sx={line}>🤫 Acertou o duende? Vale ponto de faro no fim.</Typography>
   }
   return (
     <Box
@@ -559,7 +548,7 @@ function HauntPanel({ state, players, me, myInput, send }: PanelProps) {
   const target = typeof myInput?.target === 'number' ? myInput.target : null
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-      <Title sub={`${GHOST_INFO.icon} ${GHOST_INFO.night}`} color={SPOOKY_COLORS.ghost}>
+      <Title sub={`${SNOWMAN_INFO.icon} ${SNOWMAN_INFO.night}`} color={XMAS_COLORS.ice}>
         Escolha alguém
       </Title>
       <NameGrid
@@ -574,11 +563,11 @@ function HauntPanel({ state, players, me, myInput, send }: PanelProps) {
         }}
       />
       {target !== null && (
-        <Typography sx={{ textAlign: 'center', fontWeight: 700, color: SPOOKY_COLORS.ghost }}>
-          ✓ Assombrando {nameOf(players, target)} — dá para trocar.
+        <Typography sx={{ textAlign: 'center', fontWeight: 700, color: XMAS_COLORS.ice }}>
+          ✓ Bola de neve em {nameOf(players, target)} ❄️ — dá para trocar.
         </Typography>
       )}
-      <Waiting done={aliveActed(state)} total={state.alive.length} text="Os vivos estão escolhendo" />
+      <Waiting done={aliveActed(state)} total={state.alive.length} text="A vila está escolhendo" />
     </Box>
   )
 }
@@ -591,7 +580,7 @@ function MorningPanel({ state, players, me, secret, ghost }: PanelProps & { ghos
   const [open, setOpen] = useState(false)
   const news = state.news
   const iDied = news !== null && news.killed === me.id
-  // Morreu: o celular treme (uma vez, ao abrir a manhã).
+  // Virou boneco de neve: o celular treme (uma vez, ao abrir a manhã).
   useEffect(() => {
     if (iDied) buzz([200, 100, 300])
   }, [iDied])
@@ -599,12 +588,12 @@ function MorningPanel({ state, players, me, secret, ghost }: PanelProps & { ghos
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Box sx={{ textAlign: 'center' }}>
         <Typography sx={{ fontSize: '3rem', lineHeight: 1 }}>☀️</Typography>
-        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2.3rem', lineHeight: 1 }}>Amanheceu</Typography>
+        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2.3rem', lineHeight: 1 }}>Bom dia, vila!</Typography>
         <Typography sx={{ color: 'var(--text-secondary)' }}>Olhe a TV 📺</Typography>
       </Box>
       {iDied && news && (
-        <Card icon="💀" title="Você morreu esta noite!" color={SPOOKY_COLORS.blood}>
-          “{news.epitaph}” — agora você é fantasma: não vota e não fala 🤫, mas assombra à noite.
+        <Card icon="⛄" title="Você virou boneco de neve!" color={XMAS_COLORS.ice}>
+          “{news.epitaph}” — agora você não vota e não fala 🤫, mas joga bola de neve à noite.
         </Card>
       )}
       {/* Todo mundo tem a mesma "manhã secreta" — o vizinho não sabe quem tem pista. */}
@@ -650,11 +639,11 @@ function SecretMorning({ state, players, me, secret, ghost }: { state: State; pl
     blocks.push(
       <Card
         key="clue"
-        icon="🔎"
-        title={clue.killer ? `${name(clue.target)} É ASSASSINO!` : `${name(clue.target)} não é assassino`}
+        icon="🦌"
+        title={clue.killer ? `${name(clue.target)} É DUENDE TRAVESSO!` : `${name(clue.target)} não é duende`}
         color={clue.killer ? SPOOKY_COLORS.blood : SPOOKY_COLORS.toxic}
       >
-        {clue.killer ? 'Convença a cidade sem se entregar.' : 'Pode riscar da lista.'}
+        {clue.killer ? 'Convença a vila sem se entregar.' : 'Pode riscar da lista.'}
       </Card>,
     )
   }
@@ -662,7 +651,7 @@ function SecretMorning({ state, players, me, secret, ghost }: { state: State; pl
   if (guard) {
     blocks.push(
       <Card key="guard" icon="😇" title={`Você protegeu ${name(guard.target)}`} color={ROLE_INFO.angel.color}>
-        {news.saved ? 'E salvou! Os assassinos foram nele.' : 'Amanhã escolha outra pessoa.'}
+        {news.saved ? 'E salvou! Os duendes foram nele.' : 'Amanhã escolha outra pessoa.'}
       </Card>,
     )
   }
@@ -677,7 +666,7 @@ function SecretMorning({ state, players, me, secret, ghost }: { state: State; pl
   if (!blocks.length) {
     blocks.push(
       <Typography key="nothing" sx={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-        {ghost ? '👻 Fantasmas não têm segredos. Só saudade.' : 'Nada de novo para você. 😴'}
+        {ghost ? '⛄ Boneco de neve não tem segredo. Só frio.' : 'Nada de novo para você. 😴'}
       </Typography>,
     )
   }
@@ -685,13 +674,13 @@ function SecretMorning({ state, players, me, secret, ghost }: { state: State; pl
 }
 
 function DayPanel({ state, myInput, send, ghost }: PanelProps & { ghost: boolean }) {
-  if (ghost) return <GhostNote text="Fantasma não vota nem fala 🤫 — mas pode fazer careta." />
+  if (ghost) return <SnowmanNote text="Boneco de neve não vota nem fala 🤫 — mas pode fazer careta." />
   const ready = myInput !== null
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Box sx={{ textAlign: 'center' }}>
         <Typography sx={{ fontSize: '3rem', lineHeight: 1 }}>🗣️</Typography>
-        <Title sub="Quem tem cara de assassino? Acuse, defenda, blefe.">Conversem!</Title>
+        <Title sub="Quem tem cara de duende travesso? Acuse, defenda, blefe.">Conversem!</Title>
       </Box>
       {ready ? (
         <Waiting done={aliveActed(state)} total={state.alive.length} text="Pronto para votar! Esperando os outros" />
@@ -726,7 +715,7 @@ function VotePanel({ state, players, me, myInput, send }: PanelProps) {
   }
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-      <Title sub={`Precisa de ${MIN_VOTES} votos · empate: ninguém sai`}>Quem sai da cidade?</Title>
+      <Title sub={`Precisa de ${MIN_VOTES} votos · empate: ninguém sai`}>Quem vai pro Polo Norte? 🛷</Title>
       <NameGrid
         ids={others}
         players={players}
@@ -747,7 +736,7 @@ function VotePanel({ state, players, me, myInput, send }: PanelProps) {
       <Typography sx={{ textAlign: 'center', fontWeight: 700, color: voted ? ACCENT.light : 'var(--text-secondary)' }}>
         {voted
           ? `✓ ${typeof choice === 'number' ? `Voto em ${nameOf(players, choice)}` : 'Voto: ninguém sai'} — dá para trocar. (${aliveActed(state)}/${state.alive.length} votaram)`
-          : 'Toque em quem você quer expulsar.'}
+          : 'Toque em quem vai de trenó.'}
       </Typography>
     </Box>
   )
@@ -766,10 +755,10 @@ function VerdictPanel({ state, players, me, now }: PanelProps) {
       headline = 'Ninguém saiu'
       detail = NOBODY_OUT[verdict.reason === 'out' ? 'few' : verdict.reason]
     } else if (verdict.out === me.id) {
-      headline = '💀 Você foi expulso!'
-      detail = 'Agora você é fantasma: não vota, mas assombra à noite.'
+      headline = '🛷 Você foi pro Polo Norte!'
+      detail = 'Lá você virou boneco de neve: não vota, mas joga bola de neve à noite.'
     } else {
-      headline = `${nameOf(players, verdict.out)} saiu da cidade`
+      headline = `${nameOf(players, verdict.out)} foi pro Polo Norte`
       detail = verdict.role ? `${ROLE_INFO[verdict.role].icon} ${ROLE_INFO[verdict.role].was}` : 'Papel: segredo 🤫'
     }
   }
@@ -820,14 +809,14 @@ function EndPanel({ state, players, me, secret, slots, sendSlot }: PanelProps) {
   const place = faro ? final.faro.findIndex((entry) => entry.hits === faro.hits) + 1 : 0
   return (
     <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Typography sx={{ fontSize: '4rem', lineHeight: 1 }}>{won ? '🏆' : '💀'}</Typography>
+      <Typography sx={{ fontSize: '4rem', lineHeight: 1 }}>{won ? '🏆' : '🥶'}</Typography>
       <Typography
         sx={{ fontFamily: 'var(--font-display)', fontSize: '2.6rem', lineHeight: 1, color: won ? SPOOKY_COLORS.toxic : SPOOKY_COLORS.blood }}
       >
         {won ? 'Você venceu!' : 'Você perdeu…'}
       </Typography>
       <Typography sx={{ fontSize: '1.2rem', fontWeight: 700 }}>
-        {final.winner === 'killers' ? '🔪 Os assassinos venceram' : '🏘️ A cidade venceu'}
+        {final.winner === 'killers' ? '🧝 Os duendes travessos venceram' : '🎄 A vila venceu'}
       </Typography>
       {info && (
         <Box sx={{ p: 2, borderRadius: 'var(--radius-lg)', border: `2px solid ${info.color}` }}>
@@ -838,7 +827,7 @@ function EndPanel({ state, players, me, secret, slots, sendSlot }: PanelProps) {
         </Box>
       )}
       <Box sx={{ p: 2, borderRadius: 'var(--radius-lg)', border: '2px solid var(--border-medium)' }}>
-        <Typography sx={{ color: 'var(--text-muted)' }}>{killers.length > 1 ? 'Os assassinos eram' : 'O assassino era'}</Typography>
+        <Typography sx={{ color: 'var(--text-muted)' }}>{killers.length > 1 ? 'Os duendes eram' : 'O duende era'}</Typography>
         <Typography sx={{ fontWeight: 800, fontSize: '1.3rem', color: SPOOKY_COLORS.blood }}>{namesOf(players, killers)}</Typography>
       </Box>
       {faro && (

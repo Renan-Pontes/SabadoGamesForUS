@@ -138,7 +138,7 @@ function desiredMusic(): { track: MusicTrack; level: number } | null {
   if (typeof document !== 'undefined' && document.hidden) return null
   const top = musicStack.top()
   if (top.requested) return top.track ? { track: top.track, level: 1 } : null
-  return { track: 'lobby', level: QUIET_LEVEL }
+  return { track: 'natal', level: QUIET_LEVEL }
 }
 
 function pump() {
@@ -274,10 +274,29 @@ export function hushMusic(seconds: number): void {
 export type SpookyVoiceOptions = { pitch?: number; rate?: number }
 
 /**
- * Narração com voz grave e lenta (Web Speech API). A música abaixa enquanto
- * fala. Devolve a função que cancela.
+ * Narração com voz grave e lenta (Web Speech API) — a da Noite do Terror, que
+ * só os jogos "Old" de Halloween ainda usam. A música abaixa enquanto fala.
+ * Devolve a função que cancela.
  */
 export function speakSpooky(text: string, options: SpookyVoiceOptions = {}): () => void {
+  return narrate(text, { pitch: options.pitch ?? 0.45, rate: options.rate ?? 0.8 })
+}
+
+/**
+ * Narração do Natal: o apresentador animado da festa. Tom e velocidade quase
+ * naturais — voz grave e lenta deixava qualquer voz robótica. Com a melhor voz
+ * do navegador (no Edge, as neurais "Natural") soa como gente. A música abaixa
+ * enquanto fala. Devolve a função que cancela.
+ *
+ * Para efeito cômico, use `pitch`/`rate` com moderação (ex.: 1.25 para uma
+ * fala de duende); o grosso da graça vem dos efeitos sonoros e da tela.
+ */
+export function speakFestive(text: string, options: SpookyVoiceOptions = {}): () => void {
+  return narrate(text, { pitch: options.pitch ?? 1.05, rate: options.rate ?? 1.03 })
+}
+
+function narrate(text: string, voiceOptions: { pitch: number; rate: number }): () => void {
+  const options = voiceOptions
   const s = getSoundState()
   if (s.muted || !text.trim()) return () => undefined
   // Chrome só deixa falar depois de algum gesto na página.
@@ -296,8 +315,8 @@ export function speakSpooky(text: string, options: SpookyVoiceOptions = {}): () 
   // Se a voz nunca avisar que terminou, a música volta sozinha.
   const safety = window.setTimeout(release, Math.min(20000, 3000 + text.length * 120))
   const cancel = speak(text, {
-    pitch: options.pitch ?? 0.45,
-    rate: options.rate ?? 0.8,
+    pitch: options.pitch,
+    rate: options.rate,
     onEnd: release,
     onStop: release,
     onError: release,

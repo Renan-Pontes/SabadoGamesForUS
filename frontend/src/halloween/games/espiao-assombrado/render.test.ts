@@ -37,7 +37,7 @@ function draw(state: EspiaoState, viewer: number | null = null, myInput: Record<
   return renderToString(createElement(me ? Phone : Tv, props))
 }
 
-describe('telas do Espião Assombrado em todas as fases', () => {
+describe('telas do Espião de Natal em todas as fases', () => {
   // Semente 4: com 3, 8 e 15 jogadores a partida passa por acusação e última chance.
   it.each([3, 8, 15])(
     'desenha TV e celulares com %i jogadores',
@@ -65,7 +65,7 @@ describe('cenas roteirizadas', () => {
     expect(tv).toContain('Quem começa perguntando')
     // Depois de agir: telas de espera.
     expect(draw(talk, 3, { accuse: 1 })).toContain('Você acusou')
-    expect(draw(talk, 2, { guess: 'cemitério' })).toContain('Chute enviado')
+    expect(draw(talk, 2, { guess: 'presépio' })).toContain('Chute enviado')
   })
 
   it('acusação: TV com placar ao vivo; acusado, acusador e quem vota', () => {
@@ -86,7 +86,7 @@ describe('cenas roteirizadas', () => {
     expect(caught.phase).toBe('last_chance')
     expect(draw(caught)).toContain('PEGO!')
     expect(draw(caught, 1)).toContain('Você foi pego')
-    expect(draw(caught, 1, { guess: 'castelo' })).toContain('Chute enviado')
+    expect(draw(caught, 1, { guess: 'shopping' })).toContain('Chute enviado')
     expect(draw(caught, 3)).toContain('é espião!')
   })
 

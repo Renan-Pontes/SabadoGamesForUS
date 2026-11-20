@@ -5,12 +5,23 @@ import { useAuth } from '../context/useAuth'
 import { useRequireAuth } from '../context/useRequireAuth'
 import { friendlyError, getRoom, joinRoom, sendHeartbeat, setReady } from '../lib/api'
 import { clearStayInLobby, getStayInLobby, saveLastRoom } from '../lib/roomHistory'
-import { gameRoute, getGameColor, getGameMeta } from '../lib/gameCatalog'
+import { gameRoute, getGameColor, getGameMeta, gameName } from '../lib/gameCatalog'
 import type { Player, Room } from '../lib/types'
 import { isHalloweenSlug } from '../halloween/slugs'
-import { AppShell, Ghost, LoadingScreen, MIST, Panel, RoomCode, TutorialOverlay, withAlpha } from '../components/ui'
+import { AppShell, GiftSvg, Snowman, LoadingScreen, MIST, Panel, RoomCode, TutorialOverlay, withAlpha } from '../components/ui'
 import { PlayerRoster } from '../games/ui'
 import { haptic } from '../games/utils'
+import { assignAvatars, ChristmasAvatar, type AvatarInfo } from '../natal/avatars'
+
+/** Recadinho da espera (um por pessoa, sempre o mesmo: sai do id do jogador). */
+const WAITING_TIPS = [
+  'Enquanto isso, ajeite o gorro. 🎅',
+  'Quem chegar por último lava a louça da ceia. 🍽️',
+  'Proibido espiar o celular do vizinho. O Noel está vendo. 👀',
+  'Aproveite para tirar a uva-passa do arroz. 🍚',
+  'Pegue um panetone. Ou dois. Ninguém está contando. 🍞',
+  'Calma: amigo-secreto não é aqui. 🎁',
+]
 
 export default function PlayerController() {
   const { code } = useParams()
@@ -98,7 +109,7 @@ export default function PlayerController() {
     return () => window.clearInterval(interval)
   }, [code, player])
 
-  // Noite do Terror: quem chega pelo QR já entra pronto — com 15 pessoas,
+  // Jogos novos: quem chega pelo QR já entra pronto — com 15 pessoas,
   // alguém sempre esquece de apertar o botão e trava o começo. Uma vez por
   // entrada; quem desmarcar continua desmarcado.
   const autoReadyAsked = useRef(false)
@@ -143,7 +154,7 @@ export default function PlayerController() {
       <AppShell title="SALA NÃO ENCONTRADA" accent="var(--accent-red)" backdropTint={MIST.blood} maxWidth={560} center>
         <Panel accent="var(--accent-red)" highlight>
           <Box sx={{ textAlign: 'center', py: 1 }}>
-            <Box sx={{ fontSize: '3.4rem', lineHeight: 1, mb: 1 }}>🪦</Box>
+            <Box sx={{ fontSize: '3.4rem', lineHeight: 1, mb: 1 }}>🎁</Box>
             <Typography sx={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '1.05rem' }}>
               {joinError}
             </Typography>
@@ -165,19 +176,24 @@ export default function PlayerController() {
   const isLive = room?.status === 'live'
   const tutorial = (room?.state?.tutorial ?? null) as { active: boolean; step: number } | null
   const statusColor = isReady ? 'var(--status-ready)' : 'var(--status-waiting)'
+  // Seu avatar de Natal sai da mesa inteira (igual à TV); só aparece quando
+  // a mesa chegou, para não trocar de bichinho na frente da pessoa.
+  const myAvatar = player ? assignAvatars(players).get(player.id) : undefined
 
   return (
     <AppShell
       title={user?.nickname || 'Jogador'}
-      subtitle={game ? `Mesa de ${meta?.icon ?? ''} ${game.name}` : 'Esperando o host escolher o jogo'}
+      subtitle={game ? `Mesa de ${meta?.icon ?? ''} ${gameName(game)}` : 'Esperando o host escolher o jogo'}
       accent={accent}
       backdropTint={withAlpha(accent, 0.14)}
       maxWidth={640}
       error={error}
       headerRight={<RoomCode code={roomCode} size="sm" accent={accent} label="SALA" />}
     >
+      {myAvatar && <YouAre avatar={myAvatar} name={player?.name || user?.nickname || 'Você'} />}
+
       {/* Status grande — é o que a pessoa checa de relance */}
-      <Panel accent={statusColor} highlight web>
+      <Panel accent={statusColor} highlight snow>
         <Box sx={{ textAlign: 'center', py: 1, position: 'relative' }}>
           <Box
             sx={{
@@ -188,17 +204,17 @@ export default function PlayerController() {
               borderRadius: '50%',
               mb: 1.5,
               border: `2px solid ${statusColor}`,
-              background: isReady ? 'rgba(140, 240, 69, 0.1)' : 'rgba(255, 201, 74, 0.08)',
-              '--pulse-color': isReady ? 'rgba(140, 240, 69, 0.4)' : 'rgba(255, 201, 74, 0.35)',
+              background: isReady ? 'rgba(79, 214, 126, 0.1)' : 'rgba(245, 194, 66, 0.08)',
+              '--pulse-color': isReady ? 'rgba(79, 214, 126, 0.4)' : 'rgba(245, 194, 66, 0.35)',
               animation: 'pulseGlow 2.6s ease-in-out infinite',
             }}
           >
             {isReady ? (
-              <Box aria-hidden className="animate-wobble" sx={{ fontSize: '3.4rem', lineHeight: 1 }}>
-                🎃
+              <Box aria-hidden className="animate-hop" sx={{ lineHeight: 0 }}>
+                <GiftSvg box="#e8394a" ribbon="#f5c242" size={60} />
               </Box>
             ) : (
-              <Ghost size={58} glow="var(--status-waiting)" />
+              <Snowman size={58} glow="var(--status-waiting)" />
             )}
           </Box>
 
@@ -221,6 +237,11 @@ export default function PlayerController() {
                 ? `Agora é com o host. ${readyCount} de ${players.length} na mesa estão prontos.`
                 : `${readyCount} de ${players.length} na mesa já confirmaram.`}
           </Typography>
+          {!isLive && player && (
+            <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic', mt: -1.5, mb: 2.5 }}>
+              {WAITING_TIPS[player.id % WAITING_TIPS.length]}
+            </Typography>
+          )}
 
           <Button
             fullWidth
@@ -293,12 +314,12 @@ export default function PlayerController() {
           players={players}
           currentUserId={user?.id}
           accent={accent}
-          emptyLabel="Você é o primeiro a chegar. Que silêncio assustador..."
+          emptyLabel="Você chegou primeiro! Pode pegar o lugar mais perto do panetone."
           describe={(item) => ({
             ready: item.ready,
             highlight: item.ready,
             status:
-              item.online === false ? 'Sumiu 👻 (offline)' : item.ready ? 'Pronto' : 'Ainda não confirmou',
+              item.online === false ? 'Sumiu ❄️ (offline)' : item.ready ? 'Pronto' : 'Ainda não confirmou',
           })}
         />
       </Panel>
@@ -312,7 +333,7 @@ export default function PlayerController() {
       {meta && game && (
         <TutorialOverlay
           open={Boolean(tutorial?.active)}
-          title={game.name}
+          title={gameName(game)}
           icon={meta.icon}
           pitch={meta.pitch}
           steps={meta.howTo}
@@ -322,5 +343,50 @@ export default function PlayerController() {
         />
       )}
     </AppShell>
+  )
+}
+
+/** "Esse é você na TV": o seu avatar grande, para achar a si mesmo na mesa. */
+function YouAre({ avatar, name }: { avatar: AvatarInfo; name: string }) {
+  return (
+    <Box
+      className="animate-pop-in"
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        mb: 2.5,
+        p: 1.5,
+        pr: 2,
+        borderRadius: 'var(--radius-lg, 20px)',
+        border: `2px solid ${withAlpha(avatar.color, 0.55)}`,
+        background: `linear-gradient(100deg, ${withAlpha(avatar.color, 0.22)}, rgba(6, 16, 31, 0.6) 70%)`,
+        boxShadow: `0 0 26px ${withAlpha(avatar.color, 0.25)}`,
+      }}
+    >
+      <Box sx={{ flexShrink: 0, borderRadius: '50%', boxShadow: `0 0 0 4px ${withAlpha(avatar.color, 0.35)}, 0 10px 24px rgba(0,0,0,0.45)` }}>
+        <ChristmasAvatar avatar={avatar} size={104} animated title={`Seu avatar: ${avatar.label}`} />
+      </Box>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography sx={{ fontSize: '0.72rem', letterSpacing: '0.18em', fontWeight: 800, color: 'var(--text-muted)' }}>
+          ESSE É VOCÊ NA TV
+        </Typography>
+        <Typography
+          sx={{
+            fontFamily: 'var(--font-display)',
+            fontSize: { xs: '1.7rem', sm: '2rem' },
+            lineHeight: 1.05,
+            letterSpacing: '0.03em',
+            color: avatar.color,
+            textShadow: `0 0 16px ${withAlpha(avatar.color, 0.45)}`,
+          }}
+        >
+          {avatar.article === 'a' ? 'A' : 'O'} {avatar.label}
+        </Typography>
+        <Typography noWrap sx={{ color: 'var(--text-secondary)', fontSize: '0.92rem', fontWeight: 700, mt: 0.25 }}>
+          {name}
+        </Typography>
+      </Box>
+    </Box>
   )
 }

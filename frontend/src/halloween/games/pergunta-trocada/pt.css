@@ -1,0 +1,174 @@
+/*
+ * Animações e superfícies da "Pergunta Trocada" (prefixo pt-): a toalha de
+ * mesa xadrez de Natal com barrado de renda, as plaquinhas de lugar que
+ * viram com a resposta, o cartão da pergunta entrando de mola ("boing"),
+ * enfeites balançando, presente sacudindo no rufar e a chuva do fim.
+ */
+
+/* Toalha de mesa: xadrez escocês vermelho e verde com fio dourado. */
+.pt-cloth {
+  position: relative;
+  border-radius: 30px;
+  background-color: #a3172a;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(10, 70, 38, 0.55) 0 14px, transparent 14px 58px, rgba(245, 194, 66, 0.45) 58px 61px, transparent 61px 116px),
+    repeating-linear-gradient(0deg, rgba(10, 70, 38, 0.55) 0 14px, transparent 14px 58px, rgba(245, 194, 66, 0.45) 58px 61px, transparent 61px 116px),
+    radial-gradient(ellipse at 50% 30%, rgba(255, 255, 255, 0.14), transparent 65%),
+    linear-gradient(180deg, #b81d31 0%, #8a0f1f 100%);
+  border: 6px solid #f5c242;
+  outline: 3px dashed rgba(255, 246, 220, 0.75);
+  outline-offset: -16px;
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.55),
+    inset 0 0 60px rgba(0, 0, 0, 0.45);
+}
+/* Barrado de renda embaixo da toalha. */
+.pt-cloth::after {
+  content: '';
+  position: absolute;
+  left: 34px;
+  right: 34px;
+  bottom: -20px;
+  height: 18px;
+  background: radial-gradient(circle at 14px 0, #fff6dc 11px, transparent 12px) repeat-x;
+  background-size: 28px 18px;
+  filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.4));
+  pointer-events: none;
+}
+
+/* Plaquinha de lugar virando para mostrar a resposta. */
+.pt-flip {
+  animation: ptFlip 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--pt-i, 0) * 140ms);
+  transform-origin: 50% 100%;
+}
+@keyframes ptFlip {
+  0% { opacity: 0; transform: perspective(700px) rotateX(-95deg) translateY(-20px); }
+  60% { opacity: 1; transform: perspective(700px) rotateX(12deg); }
+  100% { opacity: 1; transform: perspective(700px) rotateX(0); }
+}
+
+/* O "boing" de mola: entra esticado, amassa e sacode até parar. */
+.pt-boing {
+  display: inline-block;
+  animation: ptBoing 1s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes ptBoing {
+  0% { transform: scale(0.3, 1.7); }
+  30% { transform: scale(1.25, 0.78); }
+  50% { transform: scale(0.9, 1.12); }
+  70% { transform: scale(1.05, 0.96); }
+  85% { transform: scale(0.98, 1.02); }
+  100% { transform: scale(1, 1); }
+}
+
+.pt-swing {
+  transform-origin: 50% 0;
+  animation: ptSwing 2.8s ease-in-out infinite;
+}
+@keyframes ptSwing {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
+}
+
+.pt-bounce {
+  display: inline-block;
+  transform-origin: 50% 100%;
+  animation: ptBounce 1.5s cubic-bezier(0.3, 0.6, 0.4, 1) infinite;
+}
+@keyframes ptBounce {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  35% { transform: translateY(-14%) scale(0.95, 1.05); }
+  55% { transform: translateY(0) scale(1.08, 0.92); }
+  70% { transform: translateY(0) scale(0.98, 1.02); }
+}
+
+.pt-wiggle {
+  display: inline-block;
+  animation: ptWiggle 1.4s ease-in-out infinite;
+}
+@keyframes ptWiggle {
+  0%, 100% { transform: rotate(-7deg); }
+  50% { transform: rotate(7deg); }
+}
+
+/* Envelope/cartão flutuando enquanto todo mundo responde. */
+.pt-float {
+  animation: ptFloat 3s ease-in-out infinite;
+}
+@keyframes ptFloat {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-12px) rotate(3deg); }
+}
+
+/* Presente sacudindo (rufar antes da revelação). */
+.pt-shake {
+  transform-origin: 50% 100%;
+  animation: ptShake 0.42s ease-in-out infinite;
+}
+@keyframes ptShake {
+  0%, 100% { transform: rotate(0) translateY(0); }
+  25% { transform: rotate(-7deg) translateY(-4%); }
+  75% { transform: rotate(7deg) translateY(-4%); }
+}
+
+/* O mais votado pulsando na mesa. */
+.pt-spot {
+  animation: ptSpot 1s ease-in-out infinite;
+}
+@keyframes ptSpot {
+  0%, 100% { box-shadow: 0 0 0 4px #f5c242, 0 0 26px rgba(245, 194, 66, 0.6); }
+  50% { box-shadow: 0 0 0 7px #f5c242, 0 0 52px rgba(245, 194, 66, 0.95); }
+}
+
+.pt-sparkle {
+  animation: ptSparkle 1.9s ease-in-out infinite;
+}
+@keyframes ptSparkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.6) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.15) rotate(45deg); }
+}
+
+/* Texto dourado com brilho passando. */
+.pt-gold {
+  background: linear-gradient(100deg, #ffd56b 0%, #f5c242 30%, #fffbe8 48%, #f5c242 66%, #ffd56b 100%);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: ptShine 3.2s linear infinite;
+}
+@keyframes ptShine {
+  to { background-position: -220% center; }
+}
+
+/* Chuva de presentes e flocos (fim da partida). */
+.pt-fall {
+  position: absolute;
+  top: -12vh;
+  line-height: 1;
+  animation: ptFall var(--pt-dur, 5s) linear var(--pt-delay, 0s) infinite;
+  will-change: transform;
+}
+@keyframes ptFall {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(var(--pt-drift, 0px), 125vh) rotate(var(--pt-spin, 0deg)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pt-flip,
+  .pt-boing,
+  .pt-swing,
+  .pt-bounce,
+  .pt-wiggle,
+  .pt-float,
+  .pt-shake,
+  .pt-spot,
+  .pt-sparkle,
+  .pt-gold {
+    animation: none;
+  }
+  .pt-fall {
+    display: none;
+  }
+}

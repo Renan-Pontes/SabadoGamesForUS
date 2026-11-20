@@ -2,25 +2,26 @@ import type { HalloweenGameMeta } from '../../engine/types'
 
 export const meta: HalloweenGameMeta = {
   slug: 'retrato-assombrado',
-  name: 'Retrato Assombrado',
-  icon: '🎨',
-  tagline: 'Todo mundo desenha. Um não sabe o quê.',
-  pitch: 'Desenhe a palavra sem entregar — e descubra quem está só copiando.',
+  name: 'Retrato de Natal',
+  icon: '🎅',
+  tagline: 'Todo mundo desenha o Natal. Um não faz ideia do quê.',
+  pitch: 'Rabisque a palavra natalina sem entregar — e descubra o duende que está só copiando.',
   howTo: [
-    'Todos veem a categoria; só quem não é impostor vê a palavra.',
+    'Todos veem a categoria; só o impostor fica sem a palavra.',
     'Todo mundo desenha junto no celular, em duas etapas.',
-    'No meio, a TV mostra os desenhos: a chance de o impostor copiar.',
-    'Votem no impostor. Escapou, ganha 2 pontos; pego, ainda chuta a palavra.',
+    'No meio, a TV mostra os desenhos: o impostor aproveita para copiar.',
+    'Votem no impostor na exposição de Natal.',
+    'Escapou, ganha 2 pontos; pego, ainda pode chutar a palavra.',
   ],
   duration: '10-15 min',
   vibe: 'Blefe',
   minPlayers: 3,
   maxPlayers: 15,
   accent: {
-    main: '#34d399',
-    light: '#a7f3d0',
-    glow: 'rgba(52, 211, 153, 0.42)',
-    contrast: '#03150e',
+    main: '#3ee07f',
+    light: '#b6f7cf',
+    glow: 'rgba(62, 224, 127, 0.45)',
+    contrast: '#03190b',
     sigil: '✎',
   },
   options: [
@@ -38,7 +39,7 @@ export const meta: HalloweenGameMeta = {
     {
       key: 'chaos',
       label: 'Rodadas malucas',
-      help: 'De vez em quando, todo mundo (ou ninguém) é impostor.',
+      help: 'De vez em quando, todo mundo (ou ninguém) é impostor. Milagre de Natal!',
       choices: [
         { value: true, label: 'Sim' },
         { value: false, label: 'Não' },
@@ -46,5 +47,6 @@ export const meta: HalloweenGameMeta = {
       default: true,
     },
   ],
-  music: 'party',
+  music: 'jingle',
+  victoryMusic: 'wish',
 }

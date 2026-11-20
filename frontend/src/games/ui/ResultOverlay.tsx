@@ -7,13 +7,13 @@ import Confetti from './Confetti'
 
 export type ResultTone = 'win' | 'lose' | 'neutral' | 'danger'
 
-// Noite do Terror: vitória é abóbora acesa, derrota é sangue, perigo é
-// chama de vela e o neutro é roxo de bruxa.
+// Noite Feliz: vitória é dourado de estrela, derrota é vermelho-Noel (com
+// boneco de neve derretido), perigo é chama de vela e o neutro é azul-gelo.
 const TONES: Record<ResultTone, { color: string; glow: string; sigil: string }> = {
-  win: { color: '#ffa24a', glow: 'rgba(255, 123, 28, 0.5)', sigil: '🏆' },
-  lose: { color: '#ff4d63', glow: 'rgba(224, 33, 58, 0.5)', sigil: '💀' },
-  danger: { color: '#ffc94a', glow: 'rgba(255, 201, 74, 0.45)', sigil: '🔥' },
-  neutral: { color: '#c99bff', glow: 'rgba(139, 63, 217, 0.5)', sigil: '🔮' },
+  win: { color: '#ffd975', glow: 'rgba(245, 194, 66, 0.5)', sigil: '🏆' },
+  lose: { color: '#ff6b78', glow: 'rgba(232, 57, 74, 0.5)', sigil: '🫠' },
+  danger: { color: '#f5c242', glow: 'rgba(245, 194, 66, 0.45)', sigil: '🔥' },
+  neutral: { color: '#a8d8ff', glow: 'rgba(47, 127, 217, 0.5)', sigil: '❄️' },
 }
 
 type ResultOverlayProps = {
@@ -80,7 +80,7 @@ export default function ResultOverlay({
           borderRadius: 'var(--radius-xl)',
           border: `2px solid ${meta.color}`,
           background:
-            'radial-gradient(ellipse 110% 60% at 50% -10%, rgba(139, 63, 217, 0.22), transparent 60%), linear-gradient(165deg, rgba(31, 18, 54, 0.97), rgba(10, 6, 18, 0.98))',
+            'radial-gradient(ellipse 110% 60% at 50% -10%, rgba(47, 127, 217, 0.22), transparent 60%), linear-gradient(165deg, rgba(16, 34, 62, 0.97), rgba(6, 16, 31, 0.98))',
           boxShadow: `0 30px 90px rgba(0,0,0,0.7), 0 0 70px ${meta.glow}`,
           p: { xs: 3.5, md: 5 },
         }}

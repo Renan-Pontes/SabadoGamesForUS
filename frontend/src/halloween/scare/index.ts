@@ -3,20 +3,37 @@ import { clearScareNames, emitScare, setScareNames, suppressScares } from './bus
 import type { ScareKind } from './bus'
 
 /**
- * Sustos de meme da Noite do Terror — a API que os jogos usam.
+ * Efeitos de tela cheia da TV — a API que os jogos usam.
  *
+ * Natal (cômicos, nada de susto):
+ *   triggerScare('festive')                   // um efeito de Natal sorteado
+ *   triggerScare('hohoho', { name: 'Pedro' }) // Papai Noel: "Pedro está na lista dos malcriados"
+ *   triggerScare('blizzard')                  // nevasca, a sala inteira tremendo de frio
+ *   triggerScare('giftRain')                  // chuva de presentes (o grandão é... meia)
+ *   triggerScare('reindeer')                  // rena sem freio atravessa a tela com o trenó
+ *   triggerScare('lightsParty')               // pisca-pisca enlouquecido (e queima o fusível)
+ *   triggerScare('secretSanta', { name })     // rufar + holofote: "o amigo secreto é..."
+ *   triggerScare('elfChoir')                  // coral de duendes cantando Jingle Bells
+ *   triggerScare('zoom', { name: 'Pedro' })   // zoom suspeito no Pedro 🤨📸 (com gorro)
+ *
+ * Noite do Terror (jogos "Old"):
  *   triggerScare()                          // um susto sorteado (~2/3 assustadores, ~1/3 meme)
  *   triggerScare('scary')                   // só os assustadores (animatrônico, rosto, grito, estática)
- *   triggerScare('zoom', { name: 'Pedro' }) // zoom suspeito no Pedro 🤨📸
  *   useSuppressScares(phase === 'reveal')   // segura os sustos aleatórios
  *
  * O overlay é montado uma vez pela camada global (HalloweenLayer). Sustos
- * aleatórios só acontecem na TV, a cada 4–9 minutos.
+ * aleatórios (só na TV, a cada 4–9 minutos) dependem de AUTO_SCARES (season.ts).
  */
 
-export type { ConcreteScare, ScareKind, ScareRequest } from './bus'
+export type { ConcreteScare, FestiveEffect, ScareKind, ScareRequest, XmasEffect } from './bus'
 export {
   AUTO_SCARY_GAP_MS,
+  FESTIVE_EFFECTS,
+  FESTIVE_RANDOM,
+  XMAS_EFFECTS,
+  isFestiveEffect,
+  isXmasEffect,
+  pickFestiveEffect,
   MEME_SCARES,
   RARE_SCARE,
   SCARE_KINDS,

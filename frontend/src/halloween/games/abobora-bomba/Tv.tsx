@@ -1,11 +1,11 @@
 import { memo, useEffect } from 'react'
 import { Box, Typography } from '@mui/material'
-import { playSfx, speakSpooky, useMusic } from '../../audio'
+import { playSfx, speakFestive, useMusic } from '../../audio'
 import { listNames, nameOf } from '../../engine/helpers'
 import type { HPlayer, HalloweenViewProps } from '../../engine/types'
 import { useServerNow } from '../../framework/clockHooks'
 import { triggerScare, useSuppressScares, type ScareKind } from '../../scare'
-import { BigReveal, CandleTimer, CandyRain, PlayerBadge, PumpkinSvg } from '../../ui'
+import { CandleTimer, FESTIVE_ROUND_FONT, PlayerBadge } from '../../ui'
 import {
   ARRIVAL_GRACE_MS,
   BOOM_SECONDS,
@@ -24,36 +24,46 @@ import {
   type AbbState,
 } from './engine'
 import FuseRope from './FuseRope'
+import GiftBox from './GiftBox'
 import { meta } from './meta'
+import { ConfettiRain, PofBurst, PofReveal } from './Pof'
 import {
   BOOM_REVEAL_MS,
   CLOSE_CALL_MS,
   CLOSE_CALL_SHOW_MS,
   TICK_FROM_MS,
+  boomLine,
+  finalLine,
   fuseFraction,
   heartsText,
   heatLabel,
+  moodFor,
+  prizeFor,
   savedText,
   seatPosition,
   secondsOf,
+  shakeLevel,
+  themeLine,
   towardCenter,
   type Point,
 } from './view'
 
 /**
- * TV da Abóbora-Bomba: a mesa em círculo, a abóbora pulando de nome em
- * nome e uma vela-pavio embaixo de cada nome. Só desenha o estado — quem
- * decide passe, BUM e vencedor é o motor. Letras para 3 metros: texto de
- * pelo menos 28 px, títulos de 64 px para cima, vela sempre à vista.
+ * TV do Presente-Bomba: a mesa em círculo, o presente pulando de nome em
+ * nome (tremendo cada vez mais conforme o pavio acaba) e uma vela-pavio
+ * embaixo de cada nome. Só desenha o estado — quem decide passe, POF e
+ * vencedor é o motor. Letras para 3 metros: texto de pelo menos 28 px,
+ * títulos de 64 px para cima, vela sempre à vista.
  */
 
 const ACCENT = meta.accent
+const GOLD = '#ffd166'
 
 export default function Tv({ state, players, now }: HalloweenViewProps<AbbState>) {
-  // Susto aleatório no meio da roda ou do BUM atrapalha: segura até o anúncio do tema.
+  // Efeito aleatório no meio da roda ou do POF atrapalha: segura até o anúncio do tema.
   useSuppressScares(state.over || state.phase === 'play' || state.phase === 'boom')
-  // Depois do BUM, um silêncio de filme; a perseguição volta com o tema novo.
-  useMusic(state.over ? 'victory' : state.phase === 'boom' ? null : 'chase')
+  // Depois do POF, um segundinho de silêncio para a piada; o Jingle Bells volta com o tema novo.
+  useMusic(state.over ? (meta.victoryMusic ?? 'wish') : state.phase === 'boom' ? null : (meta.music ?? 'jingle'))
   useTvSounds(state, players, now)
 
   // "Encerrar" do host põe over = true em qualquer fase: o fim vence tudo.
@@ -62,18 +72,21 @@ export default function Tv({ state, players, now }: HalloweenViewProps<AbbState>
 }
 
 // ---------------------------------------------------------------------------
-// Som e sustos: uma vez por momento, nunca a cada poll
+// Som, voz e efeitos: uma vez por momento, nunca a cada poll
 // ---------------------------------------------------------------------------
 
 function useTvSounds(state: AbbState, players: HPlayer[], now: () => number) {
   const phase = state.over ? 'final' : state.phase
-  const moment = `${state.round}-${phase}`
+  const round = state.round
+  const moment = `${round}-${phase}`
   const victim = phase === 'boom' ? (state.boom?.victim ?? null) : null
   const victimName = victim === null ? '' : nameOf(players, victim)
   const eliminated = phase === 'boom' && Boolean(state.boom?.eliminated)
-  const firstGhost = eliminated && state.roster.filter((id) => !isAlive(state, id)).length === 1
+  const firstOut = eliminated && state.roster.filter((id) => !isAlive(state, id)).length === 1
   const decided = phase === 'boom' && gameDecided(state)
   const themeText = state.theme?.text ?? ''
+  const champs = phase === 'final' ? winners(state) : []
+  const finalText = phase === 'final' ? finalLine(listNames(champs.map((id) => nameOf(players, id))), champs.length) : ''
 
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = []
@@ -81,49 +94,61 @@ function useTvSounds(state: AbbState, players: HPlayer[], now: () => number) {
     const later = (ms: number, run: () => void) => timers.push(setTimeout(run, ms))
 
     if (phase === 'theme') {
-      playSfx('gong', { volume: 0.7 })
-      later(600, () => {
-        stopVoice = speakSpooky(`Tema: ${themeText}`)
+      playSfx('sleigh', { volume: 0.8 })
+      later(700, () => {
+        stopVoice = speakFestive(themeLine(round, themeText))
       })
     } else if (phase === 'play') {
       playSfx('fuse')
     } else if (phase === 'boom' && victim === null) {
-      // O host apagou o pavio: chiado e risada de alívio.
-      playSfx('hiss')
-      playSfx('laugh', { delay: 0.6 })
+      // O host apagou o pavio: "ding" de alívio e brilhinho.
+      playSfx('ding')
+      playSfx('chime', { delay: 0.3 })
+      later(900, () => {
+        stopVoice = speakFestive('Ufa! O host salvou o Natal!')
+      })
     } else if (phase === 'boom') {
-      playSfx('explosion', { volume: 1.3 })
-      playSfx('boom', { volume: 0.9, delay: 0.08 })
-      if (eliminated) {
-        later(1900, () => {
-          stopVoice = speakSpooky(`${victimName} virou fantasma!`)
-        })
-      }
-      // Susto de meme só nos momentos grandes: o primeiro fantasma, o BUM
-      // que decide o jogo e, de vez em quando, o zoom em quem explodiu.
-      const scare: ScareKind | null = firstGhost ? 'pumpkin' : decided ? 'skeletons' : Math.random() < 0.18 ? 'zoom' : null
-      if (scare) later(1300, () => triggerScare(scare, { name: victimName }))
+      // POF: estouro, brilho de purpurina e o trombone triste da vítima.
+      playSfx('pop', { volume: 1.4 })
+      playSfx('boom', { volume: 0.8, delay: 0.05 })
+      playSfx('chime', { volume: 0.9, delay: 0.2 })
+      const sad = playSfx('fail', { volume: 0.8, delay: 1 })
+      later(1000 + Math.round(sad * 1000), () => {
+        stopVoice = speakFestive(boomLine(round, victimName, eliminated))
+      })
+      // Efeito de Natal só nos momentos grandes, depois da tela do POF: o
+      // primeiro boneco de neve ganha nevasca, o POF que decide o jogo chove
+      // presente e, de vez em quando, o zoom 🤨📸 em quem estourou.
+      const effect: ScareKind | null = firstOut ? 'blizzard' : decided ? 'giftRain' : Math.random() < 0.18 ? 'zoom' : null
+      if (effect) later(BOOM_REVEAL_MS + 300, () => triggerScare(effect, { name: victimName }))
     } else if (phase === 'final') {
       playSfx('win')
+      playSfx('sleigh', { delay: 0.8 })
+      later(1600, () => {
+        stopVoice = speakFestive(finalText)
+      })
     }
 
     return () => {
       timers.forEach(clearTimeout)
       stopVoice?.()
     }
-  }, [moment, phase, victim, victimName, eliminated, firstGhost, decided, themeText])
+  }, [moment, phase, round, victim, victimName, eliminated, firstOut, decided, themeText, finalText])
 
-  // Cada passe faz "fuuu" (a abóbora voando).
+  // Cada passe faz "fuuu" (o presente voando) e às vezes um "boing" na chegada.
   const passKey = phase === 'play' && state.passes > 0 ? `${state.round}-${state.passes}` : null
+  const passes = state.passes
   useEffect(() => {
-    if (passKey) playSfx('whoosh', { volume: 0.45 })
-  }, [passKey])
+    if (!passKey) return
+    playSfx('whoosh', { volume: 0.45 })
+    if (passes % 4 === 0) playSfx('boing', { volume: 0.5, delay: 0.3 })
+  }, [passKey, passes])
 
-  // A abóbora esquentou: chiado de pavio mais forte.
+  // O presente esquentou: guizo do trenó e o pavio chiando mais forte.
   const heatKey = phase === 'play' && state.heat > 0 ? `${state.round}-${state.heat}` : null
   useEffect(() => {
     if (!heatKey) return
-    playSfx('hiss', { volume: 0.9 })
+    playSfx('sleigh', { volume: 0.9 })
     playSfx('fuse', { delay: 0.25 })
   }, [heatKey])
 
@@ -135,9 +160,9 @@ function useTvSounds(state: AbbState, players: HPlayer[], now: () => number) {
     const loop = () => {
       const left = fuseEnd - now()
       if (left <= 0) {
-        // Pavio zerado: um "tum" de coração no segundo de suspense antes do BUM
+        // Pavio zerado: um "boing" de "ih…" no segundo de suspense antes do POF
         // (o juiz ainda espera um passe que esteja na rede).
-        playSfx('heartbeat')
+        playSfx('boing', { volume: 0.8 })
         return
       }
       if (left > TICK_FROM_MS) {
@@ -153,7 +178,7 @@ function useTvSounds(state: AbbState, players: HPlayer[], now: () => number) {
 }
 
 // ---------------------------------------------------------------------------
-// Palco: barra de cima, mesa e a explosão
+// Palco: barra de cima, mesa e o POF
 // ---------------------------------------------------------------------------
 
 function Stage({ state, players, now }: { state: AbbState; players: HPlayer[]; now: () => number }) {
@@ -191,7 +216,7 @@ function TopBar({ state, players, now }: { state: AbbState; players: HPlayer[]; 
         <Typography
           sx={{ fontFamily: 'var(--font-numeric)', fontSize: 'clamp(1.8rem, 2.4vw, 2.6rem)', color: 'var(--text-secondary)', letterSpacing: '0.12em', lineHeight: 1 }}
         >
-          RODADA {state.round}/{state.totalRounds}
+          🎁 RODADA {state.round}/{state.totalRounds}
           {state.mode === 'digitar' ? ' · ✍️ DIGITAR' : ''}
         </Typography>
         {play && state.heat > 0 && <HeatBadge key={state.heat} heat={state.heat} />}
@@ -215,15 +240,15 @@ function HeatBadge({ heat }: { heat: number }) {
         px: 2.5,
         py: 0.75,
         borderRadius: 'var(--radius-full)',
-        background: `linear-gradient(90deg, ${ACCENT.main}, var(--blood, #e0213a))`,
-        color: '#fff7ed',
+        background: `linear-gradient(90deg, ${ACCENT.main}, #f59e0b)`,
+        color: '#fff6dc',
         fontWeight: 800,
         fontSize: 'clamp(1.75rem, 2.1vw, 2.3rem)',
         lineHeight: 1.1,
         boxShadow: `0 0 26px ${ACCENT.glow}`,
       }}
     >
-      🔥 A ABÓBORA ESQUENTOU · pavio {heatLabel(heat)}
+      🔥 O PRESENTE ESQUENTOU · pavio {heatLabel(heat)}
     </Box>
   )
 }
@@ -241,7 +266,7 @@ function Table({ state, players, t }: { state: AbbState; players: HPlayer[]; t: 
   const spot = holderIndex >= 0 ? towardCenter(seat, 0.3) : seat
   return (
     <Box sx={{ position: 'relative', flex: 1, minHeight: { xs: 520, lg: 600 } }}>
-      {/* O tampo da mesa */}
+      {/* A toalha da ceia: veludo verde com uma fita dourada cruzando, como um presente. */}
       <Box
         aria-hidden
         sx={{
@@ -251,9 +276,13 @@ function Table({ state, players, t }: { state: AbbState; players: HPlayer[]; t: 
           top: '19%',
           bottom: '19%',
           borderRadius: '120px',
-          background: `radial-gradient(ellipse at center, ${ACCENT.main}26 0%, rgba(40, 16, 60, 0.55) 62%, rgba(10, 6, 18, 0.25) 100%)`,
-          border: `3px solid ${ACCENT.main}40`,
-          boxShadow: 'inset 0 0 90px rgba(0, 0, 0, 0.6)',
+          background: [
+            'linear-gradient(90deg, transparent calc(50% - 22px), rgba(255, 209, 102, 0.1) calc(50% - 22px), rgba(255, 209, 102, 0.1) calc(50% + 22px), transparent calc(50% + 22px))',
+            'linear-gradient(0deg, transparent calc(50% - 22px), rgba(255, 209, 102, 0.07) calc(50% - 22px), rgba(255, 209, 102, 0.07) calc(50% + 22px), transparent calc(50% + 22px))',
+            'radial-gradient(ellipse at center, rgba(31, 157, 85, 0.42) 0%, rgba(14, 70, 48, 0.55) 55%, rgba(6, 16, 31, 0.3) 100%)',
+          ].join(', '),
+          border: `4px dashed rgba(255, 209, 102, 0.45)`,
+          boxShadow: 'inset 0 0 90px rgba(0, 0, 0, 0.45), 0 0 40px rgba(79, 214, 126, 0.15)',
         }}
       />
       <Center state={state} players={players} t={t} />
@@ -274,7 +303,7 @@ function Table({ state, players, t }: { state: AbbState; players: HPlayer[]; t: 
           />
         )
       })}
-      <Pumpkin state={state} spot={spot} t={t} />
+      <Present state={state} spot={spot} t={t} />
     </Box>
   )
 }
@@ -313,14 +342,17 @@ const Seat = memo(function Seat({ state, id, name, x, y, online, compact, t }: S
         maxWidth: compact ? 240 : 320,
       }}
     >
-      <PlayerBadge
-        name={name}
-        size="lg"
-        highlight={holding || exploded}
-        ghost={!alive}
-        offline={alive && !online}
-        acted={state.phase === 'play' && state.acted.includes(id)}
-      />
+      {/* Quem virou boneco de neve fica clarinho e congelado, com ☃️ no crachá. */}
+      <Box sx={{ opacity: alive ? 1 : 0.6, filter: alive ? 'none' : 'saturate(0.2) brightness(1.25)', maxWidth: '100%' }}>
+        <PlayerBadge
+          name={name}
+          size="lg"
+          highlight={holding || exploded}
+          offline={alive && !online}
+          acted={state.phase === 'play' && state.acted.includes(id)}
+          trailing={alive ? undefined : '☃️'}
+        />
+      </Box>
       {alive ? (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography sx={{ fontSize: line, lineHeight: 1, letterSpacing: '-0.04em' }}>
@@ -339,27 +371,28 @@ const Seat = memo(function Seat({ state, id, name, x, y, online, compact, t }: S
               fontSize: line,
               lineHeight: 1,
               minWidth: '2.4ch',
-              color: urgent ? 'var(--blood, #e0213a)' : burning ? ACCENT.light : 'var(--text-secondary)',
+              color: urgent ? ACCENT.main : burning ? GOLD : 'var(--text-secondary)',
             }}
           >
-            {exploded ? '💥' : `${secondsOf(ms)}s`}
+            {exploded ? '🎊' : `${secondsOf(ms)}s`}
           </Typography>
         </Box>
       ) : (
-        <Typography sx={{ fontSize: line, lineHeight: 1, color: 'var(--text-muted)' }}>fantasma</Typography>
+        <Typography sx={{ fontSize: line, lineHeight: 1, color: '#bfe6ff' }}>☃️ boneco de neve</Typography>
       )}
     </Box>
   )
 })
 
-/** A abóbora: pula de assento em assento (transição de posição + pulinho a cada passe). */
-function Pumpkin({ state, spot, t }: { state: AbbState; spot: Point; t: number }) {
+/** O presente: pula de assento em assento (transição de posição + pulinho a cada passe). */
+function Present({ state, spot, t }: { state: AbbState; spot: Point; t: number }) {
   const holder = state.holder
-  const play = state.phase === 'play'
-  const ms = holder === null ? 0 : realMsLeft(state, holder, t)
-  const urgent = play && ms <= TICK_FROM_MS
-  const exploded = state.phase === 'boom' && state.boom?.victim !== null
   if (holder === null) return null
+  const play = state.phase === 'play'
+  const burning = play && t >= holdStartOf(state)
+  const ms = realMsLeft(state, holder, t)
+  const level = shakeLevel(burning, ms)
+  const exploded = state.phase === 'boom' && state.boom?.victim !== null
   return (
     <Box
       aria-hidden
@@ -379,19 +412,20 @@ function Pumpkin({ state, spot, t }: { state: AbbState; spot: Point; t: number }
           animation: 'abbHop 480ms ease-out',
           '@keyframes abbHop': {
             '0%': { transform: 'translateY(0) scale(0.92)' },
-            '45%': { transform: 'translateY(-56px) scale(1.12) rotate(-8deg)' },
+            '45%': { transform: 'translateY(-56px) scale(1.12) rotate(-12deg)' },
             '100%': { transform: 'none' },
           },
         }}
       >
         {exploded ? (
-          <BoomBurst />
+          <PofBurst prize={prizeFor(state.round)} />
         ) : (
-          <PumpkinSvg
-            size={116}
-            face={state.phase === 'boom' ? 'surprised' : urgent ? 'scary' : 'happy'}
+          <GiftBox
+            size={150}
             fuse={play ? fuseFraction(state, holder, t) : null}
-            shake={urgent}
+            lit={burning}
+            mood={state.phase === 'boom' ? 'surprised' : moodFor(level)}
+            shake={level}
           />
         )}
       </Box>
@@ -399,42 +433,8 @@ function Pumpkin({ state, spot, t }: { state: AbbState; spot: Point; t: number }
   )
 }
 
-function BoomBurst() {
-  return (
-    <Box sx={{ position: 'relative', width: 190, height: 190, display: 'grid', placeItems: 'center' }}>
-      <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          borderRadius: '50%',
-          background:
-            'radial-gradient(circle, rgba(255, 247, 194, 0.95) 0%, rgba(255, 123, 28, 0.85) 32%, rgba(224, 33, 58, 0.45) 58%, transparent 72%)',
-          animation: 'abbFlash 1100ms ease-out both',
-          '@keyframes abbFlash': {
-            from: { transform: 'scale(0.2)', opacity: 1 },
-            to: { transform: 'scale(2)', opacity: 0 },
-          },
-        }}
-      />
-      <Box
-        sx={{
-          fontSize: 130,
-          lineHeight: 1,
-          animation: 'abbBurst 700ms cubic-bezier(0.2, 1.4, 0.4, 1) both',
-          '@keyframes abbBurst': {
-            from: { transform: 'scale(0.2) rotate(-25deg)' },
-            to: { transform: 'scale(1) rotate(0deg)' },
-          },
-        }}
-      >
-        💥
-      </Box>
-    </Box>
-  )
-}
-
 // ---------------------------------------------------------------------------
-// O centro da mesa: tema, com quem está a abóbora, placar
+// O centro da mesa: tema, com quem está o presente, placar
 // ---------------------------------------------------------------------------
 
 function Center({ state, players, t }: { state: AbbState; players: HPlayer[]; t: number }) {
@@ -446,7 +446,7 @@ function Center({ state, players, t }: { state: AbbState; players: HPlayer[]; t:
         top: '50%',
         transform: 'translate(-50%, -50%)',
         width: '52%',
-        maxHeight: '50%',
+        maxHeight: '56%',
         overflow: 'hidden',
         zIndex: 1,
         display: 'flex',
@@ -466,8 +466,8 @@ function Center({ state, players, t }: { state: AbbState; players: HPlayer[]; t:
 
 function ThemeLabel() {
   return (
-    <Typography sx={{ fontSize: 'clamp(1.75rem, 2vw, 2.2rem)', letterSpacing: '0.3em', fontWeight: 800, color: ACCENT.main, lineHeight: 1 }}>
-      TEMA
+    <Typography sx={{ fontSize: 'clamp(1.75rem, 2vw, 2.2rem)', letterSpacing: '0.3em', fontWeight: 800, color: GOLD, lineHeight: 1 }}>
+      ✦ TEMA ✦
     </Typography>
   )
 }
@@ -476,14 +476,15 @@ function ThemeCenter({ state, players }: { state: AbbState; players: HPlayer[] }
   return (
     <Box key={state.round} className="animate-pop-in" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
       {state.round >= state.totalRounds && (
-        <Typography className="hw-pulse" sx={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.2rem, 3vw, 3.2rem)', color: 'var(--blood, #e0213a)', lineHeight: 1 }}>
-          ⚠️ ÚLTIMA RODADA
+        <Typography className="hw-pulse" sx={{ fontFamily: FESTIVE_ROUND_FONT, fontWeight: 700, fontSize: 'clamp(2.2rem, 3vw, 3.2rem)', color: ACCENT.main, lineHeight: 1 }}>
+          🔔 ÚLTIMA RODADA
         </Typography>
       )}
       <ThemeLabel />
       <Typography
         sx={{
-          fontWeight: 800,
+          fontFamily: FESTIVE_ROUND_FONT,
+          fontWeight: 700,
           fontSize: 'clamp(3.4rem, 5vw, 6rem)',
           lineHeight: 1.02,
           color: 'var(--text-primary)',
@@ -493,7 +494,7 @@ function ThemeCenter({ state, players }: { state: AbbState; players: HPlayer[] }
         {state.theme.icon} {state.theme.text}
       </Typography>
       <Typography sx={{ fontSize: 'clamp(2rem, 2.6vw, 2.8rem)', color: 'var(--text-secondary)' }}>
-        🎃 começa com <b style={{ color: ACCENT.light }}>{nameOf(players, state.holder)}</b>
+        🎁 começa com <b style={{ color: GOLD }}>{nameOf(players, state.holder)}</b>
       </Typography>
       {state.mode === 'digitar' && (
         <Typography sx={{ fontSize: 'clamp(1.75rem, 2vw, 2.2rem)', color: 'var(--text-muted)' }}>
@@ -505,7 +506,7 @@ function ThemeCenter({ state, players }: { state: AbbState; players: HPlayer[] }
 }
 
 function PlayCenter({ state, players, t }: { state: AbbState; players: HPlayer[]; t: number }) {
-  // A abóbora não pula quem está offline (celular bloqueado não é escudo):
+  // O presente não pula quem está offline (celular bloqueado não é escudo):
   // a TV pede para a mesa chamar a pessoa antes que o pavio acabe.
   const asleep = state.holder !== null && !players.some((player) => player.id === state.holder && player.online)
   // Quem acabou de passar ficou com quase nada de pavio: a TV comemora.
@@ -517,10 +518,10 @@ function PlayCenter({ state, players, t }: { state: AbbState; players: HPlayer[]
   return (
     <>
       <ThemeLabel />
-      <Typography sx={{ fontWeight: 800, fontSize: 'clamp(2.4rem, 3.4vw, 3.8rem)', lineHeight: 1.05 }}>
+      <Typography sx={{ fontFamily: FESTIVE_ROUND_FONT, fontWeight: 700, fontSize: 'clamp(2.2rem, 3vw, 3.4rem)', lineHeight: 1.05, color: 'var(--text-primary)' }}>
         {state.theme.icon} {state.theme.text}
       </Typography>
-      <Typography sx={{ fontSize: 'clamp(1.75rem, 2vw, 2.2rem)', color: 'var(--text-muted)', mt: 1 }}>a abóbora está com</Typography>
+      <Typography sx={{ fontSize: 'clamp(1.75rem, 2vw, 2.2rem)', color: 'var(--text-muted)', mt: 1 }}>o presente está com</Typography>
       <Typography
         key={`${state.round}-${state.passes}`}
         className="animate-pop-in"
@@ -529,25 +530,25 @@ function PlayCenter({ state, players, t }: { state: AbbState; players: HPlayer[]
           fontSize: 'clamp(4rem, 6vw, 6.4rem)',
           lineHeight: 0.95,
           color: ACCENT.main,
-          textShadow: `0 0 28px ${ACCENT.glow}`,
+          textShadow: `0 0 28px ${ACCENT.glow}, 0 3px 0 #2a0509`,
           wordBreak: 'break-word',
         }}
       >
         {nameOf(players, state.holder)}
       </Typography>
       {asleep ? (
-        <Typography className="hw-pulse" sx={{ fontSize: 'clamp(1.9rem, 2.3vw, 2.5rem)', fontWeight: 800, color: 'var(--blood, #e0213a)' }}>
+        <Typography className="hw-pulse" sx={{ fontSize: 'clamp(1.9rem, 2.3vw, 2.5rem)', fontWeight: 800, color: GOLD }}>
           💤 celular apagado — chamem!
         </Typography>
       ) : closeCall && state.mode !== 'digitar' ? (
-        <Typography className="animate-pop-in" sx={{ fontSize: 'clamp(1.9rem, 2.3vw, 2.5rem)', fontWeight: 800, color: ACCENT.light }}>
-          😅 {nameOf(players, state.from)} passou por um fio!
+        <Typography className="animate-pop-in" sx={{ fontSize: 'clamp(1.9rem, 2.3vw, 2.5rem)', fontWeight: 800, color: GOLD }}>
+          😅 {nameOf(players, state.from)} passou por um fio de lã!
         </Typography>
       ) : state.mode === 'digitar' ? (
         <WordTrail state={state} />
       ) : (
         <Typography sx={{ fontSize: 'clamp(1.75rem, 2vw, 2.2rem)', color: 'var(--text-secondary)' }}>
-          fala uma palavra e passa!
+          fala uma palavra e passa rapidinho!
         </Typography>
       )}
     </>
@@ -574,8 +575,8 @@ function WordTrail({ state }: { state: AbbState }) {
             px: 2,
             py: 0.5,
             borderRadius: 'var(--radius-full)',
-            border: `2px solid ${index === 0 ? ACCENT.main : 'var(--border-medium)'}`,
-            background: index === 0 ? `${ACCENT.main}22` : 'transparent',
+            border: `2px solid ${index === 0 ? GOLD : 'var(--border-medium)'}`,
+            background: index === 0 ? 'rgba(255, 209, 102, 0.14)' : 'transparent',
             fontSize: 'clamp(1.75rem, 2vw, 2.2rem)',
             fontWeight: 700,
             opacity: Math.max(0.45, 1 - index * 0.12),
@@ -601,24 +602,26 @@ function BoomCenter({ state, players }: { state: AbbState; players: HPlayer[] })
     <>
       <Typography
         sx={{
-          fontFamily: 'var(--font-display)',
+          fontFamily: FESTIVE_ROUND_FONT,
+          fontWeight: 700,
           fontSize: 'clamp(2.8rem, 4.2vw, 4.6rem)',
           lineHeight: 1,
-          color: boom.victim === null ? 'var(--ghost, #f3eeff)' : 'var(--blood, #e0213a)',
+          color: boom.victim === null ? '#9fe8b8' : ACCENT.main,
+          textShadow: '0 3px 0 rgba(0, 0, 0, 0.5)',
         }}
       >
-        {boom.victim === null ? '🧯 Pavio apagado pelo host' : `💥 ${name} explodiu!`}
+        {boom.victim === null ? '🎅 O host salvou o Natal' : `🎊 POF na mão de ${name}!`}
       </Typography>
       <Typography sx={{ fontSize: 'clamp(1.75rem, 2.1vw, 2.3rem)', color: 'var(--text-secondary)' }}>
         {boom.victim === null
-          ? 'ninguém perde vida nesta rodada'
+          ? 'pavio apagado: ninguém perde vida'
           : boom.eliminated
-            ? 'virou fantasma 👻'
+            ? 'virou boneco de neve ☃️'
             : `perdeu uma vida · ${heartsText(boom.livesLeft, state.maxLives)}`}
         {` · ${boom.passes} ${boom.passes === 1 ? 'passe' : 'passes'}`}
       </Typography>
       {gameDecided(state) && (
-        <Typography sx={{ fontSize: 'clamp(1.9rem, 2.3vw, 2.5rem)', fontWeight: 800, color: ACCENT.light }}>
+        <Typography sx={{ fontSize: 'clamp(1.9rem, 2.3vw, 2.5rem)', fontWeight: 800, color: GOLD }}>
           🏁 Acabou! O placar final já vem.
         </Typography>
       )}
@@ -642,8 +645,8 @@ function StandingRow({ row, name, maxLives, small = false }: { row: AbbStanding;
         px: 2.5,
         py: small ? 0.5 : 1,
         borderRadius: 'var(--radius-lg)',
-        background: row.place === 1 ? `${ACCENT.main}26` : 'rgba(255, 255, 255, 0.04)',
-        border: `2px solid ${row.place === 1 ? ACCENT.main : 'transparent'}`,
+        background: row.place === 1 ? 'rgba(255, 209, 102, 0.16)' : 'rgba(255, 255, 255, 0.05)',
+        border: `2px solid ${row.place === 1 ? GOLD : 'transparent'}`,
         opacity: row.lives > 0 ? 1 : 0.6,
       }}
     >
@@ -661,34 +664,28 @@ function StandingRow({ row, name, maxLives, small = false }: { row: AbbStanding;
   )
 }
 
-/** A explosão em tela cheia, nos primeiros segundos do BUM. */
+/** O POF em tela cheia, nos primeiros segundos da fase. */
 function BoomReveal({ state, players, t }: { state: AbbState; players: HPlayer[]; t: number }) {
   const boom = state.boom
   const startedAt = (state.deadline ?? 0) - BOOM_SECONDS * 1000
   const open = state.phase === 'boom' && boom !== null && t < startedAt + BOOM_REVEAL_MS
   const skipped = boom?.victim === null
   const name = nameOf(players, boom?.victim ?? null)
+  const eliminated = Boolean(boom?.eliminated)
   return (
-    <BigReveal
+    <PofReveal
       open={open}
-      sound={null}
-      tone={skipped ? 'ghost' : boom?.eliminated ? 'blood' : 'pumpkin'}
-      icon={skipped ? '🧯' : '💥'}
-      title={skipped ? 'UFA!' : 'BUM!'}
-      subtitle={
-        skipped
-          ? 'O host apagou o pavio — ninguém perde vida.'
-          : boom?.eliminated
-            ? `${name} virou fantasma! 👻`
-            : `${name} perdeu uma vida`
-      }
+      title={skipped ? 'UFA!' : 'POF!'}
+      prize={skipped ? '🎅' : prizeFor(state.round)}
+      line={skipped ? 'O host apagou o pavio!' : boomLine(state.round, name, eliminated)}
+      subtitle={skipped ? 'Ninguém perde vida nesta rodada.' : eliminated ? `${name} agora só assiste ☃️` : `${name} perdeu uma vida`}
     >
-      {boom && !skipped && !boom.eliminated && (
+      {boom && !skipped && !eliminated && (
         <Typography sx={{ fontSize: { xs: '2.4rem', md: '4rem' }, letterSpacing: '0.08em' }}>
           {heartsText(boom.livesLeft, state.maxLives)}
         </Typography>
       )}
-    </BigReveal>
+    </PofReveal>
   )
 }
 
@@ -705,21 +702,21 @@ function FinalBoard({ state, players }: { state: AbbState; players: HPlayer[] })
   const champTitle = lastStanding ? 'Último de pé' : champs.length > 1 ? 'Sobreviventes' : 'Mais vidas no fim'
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <CandyRain active kind="mixed" count={36} />
+      <ConfettiRain active count={44} />
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.3fr 1fr' }, gap: 3 }}>
         <AwardCard
           icon="🏆"
           title={champTitle}
           names={champs.length ? names(champs) : 'Ninguém sobrou'}
-          detail={champs.length ? 'a abóbora não pegou' : 'a abóbora venceu'}
+          detail={champs.length ? 'o presente nunca estourou na mão' : 'o presente-bomba venceu todo mundo'}
           big
           delay={0}
         />
         <AwardCard
-          icon="💥"
-          title="Explodiu mais"
-          names={worst.ids.length ? names(worst.ids) : 'Ninguém explodiu'}
-          detail={worst.count ? `${worst.count} ${worst.count === 1 ? 'vez' : 'vezes'}` : 'milagre de Halloween'}
+          icon="🎊"
+          title="Ímã de presente-bomba"
+          names={worst.ids.length ? names(worst.ids) : 'Ninguém fez POF'}
+          detail={worst.count ? `${worst.count} ${worst.count === 1 ? 'POF' : 'POFs'} na cara` : 'milagre de Natal'}
           delay={500}
         />
       </Box>
@@ -764,17 +761,19 @@ function AwardCard({
       sx={{
         p: 3,
         borderRadius: 'var(--radius-xl)',
-        border: `3px solid ${ACCENT.main}`,
-        background: 'var(--bg-veil-strong, rgba(10, 6, 18, 0.82))',
-        boxShadow: `0 0 40px ${ACCENT.glow}`,
+        border: `3px solid ${big ? GOLD : ACCENT.main}`,
+        background: big
+          ? 'linear-gradient(160deg, rgba(31, 157, 85, 0.35), rgba(6, 16, 31, 0.88) 60%)'
+          : 'linear-gradient(160deg, rgba(232, 57, 74, 0.32), rgba(6, 16, 31, 0.88) 60%)',
+        boxShadow: `0 0 40px ${big ? 'rgba(255, 209, 102, 0.45)' : ACCENT.glow}`,
         textAlign: 'center',
       }}
     >
       <Typography sx={{ fontSize: 'clamp(3rem, 4vw, 4.4rem)', lineHeight: 1 }}>{icon}</Typography>
-      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.2rem, 3vw, 3.2rem)', color: ACCENT.light, mt: 1 }}>
+      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.2rem, 3vw, 3.2rem)', color: GOLD, mt: 1 }}>
         {title}
       </Typography>
-      <Typography sx={{ fontWeight: 800, fontSize: big ? 'clamp(4rem, 5.4vw, 6rem)' : 'clamp(2.4rem, 3.4vw, 3.8rem)', lineHeight: 1.05, mt: 1 }}>
+      <Typography sx={{ fontFamily: FESTIVE_ROUND_FONT, fontWeight: 700, fontSize: big ? 'clamp(4rem, 5.4vw, 6rem)' : 'clamp(2.4rem, 3.4vw, 3.8rem)', lineHeight: 1.05, mt: 1 }}>
         {names}
       </Typography>
       <Typography sx={{ fontSize: 'clamp(1.75rem, 2vw, 2.2rem)', color: 'var(--text-secondary)', mt: 0.5 }}>{detail}</Typography>

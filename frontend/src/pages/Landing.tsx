@@ -19,7 +19,7 @@ import VisibilityOffRounded from '@mui/icons-material/VisibilityOffRounded'
 import { useAuth } from '../context/useAuth'
 import { roomCodeFromPath, safeNextPath } from '../context/useRequireAuth'
 import { friendlyError } from '../lib/api'
-import { Brand, Ghost, LoadingScreen, MIST, Panel, pageBackdrop } from '../components/ui'
+import { Brand, GiftPile, HangingOrnaments, Snowman, LoadingScreen, MIST, Panel, pageBackdrop } from '../components/ui'
 
 const NICKNAME_MAX = 20
 /** Último apelido usado neste aparelho: quem voltar à festa só aperta "Entrar". */
@@ -84,7 +84,7 @@ export default function Landing() {
     event.preventDefault()
     const trimmed = nickname.trim()
     if (!trimmed) {
-      setGuestError('Escreva um apelido. Até fantasma tem nome. 👻')
+      setGuestError('Escreva um apelido. Até rena tem nome! 🦌')
       return
     }
     const code = cleanCode(roomCode)
@@ -134,10 +134,10 @@ export default function Landing() {
     if (code) navigate(`/tv/${code}`)
   }
 
-  if (isLoading) return <LoadingScreen label="ABRINDO O PORTÃO DO CEMITÉRIO" />
+  if (isLoading) return <LoadingScreen label="ACENDENDO O PISCA-PISCA" />
 
   const guestLabel = guestSubmitting
-    ? 'Abrindo o portão...'
+    ? 'Descendo pela chaminé...'
     : invitedCode
       ? `Entrar na sala ${invitedCode}`
       : 'Entrar na festa'
@@ -153,6 +153,7 @@ export default function Landing() {
         background: pageBackdrop(MIST.pumpkin, MIST.witch),
       }}
     >
+      <HangingOrnaments />
       <Box
         sx={{
           flex: 1,
@@ -170,7 +171,7 @@ export default function Landing() {
           <Brand
             size="hero"
             animated
-            tagline="Jogos de festa na TV, com o celular de controle. Hoje é noite de Halloween."
+            tagline="Jogos de festa na TV, com o celular de controle. Hoje é Noite Feliz!"
           />
         </Box>
 
@@ -185,11 +186,11 @@ export default function Landing() {
           }}
         >
           {/* Entrada rápida: só o apelido */}
-          <Panel accent="var(--pumpkin)" highlight web index={0}>
+          <Panel accent="var(--pumpkin)" highlight snow index={0}>
             <Box component="form" onSubmit={handleGuestSubmit} noValidate sx={{ position: 'relative' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 0.75 }}>
                 <Box sx={{ width: 44, flexShrink: 0, mt: -0.5 }}>
-                  <Ghost size={40} glow="var(--pumpkin)" />
+                  <Snowman size={40} glow="var(--pumpkin)" />
                 </Box>
                 <Typography
                   component="h2"
@@ -228,7 +229,7 @@ export default function Landing() {
               <TextField
                 fullWidth
                 label="Seu apelido"
-                placeholder="Ex.: Drácula da Silva"
+                placeholder="Ex.: Papai Noel da Silva"
                 value={nickname}
                 onChange={(event) => setNickname(event.target.value)}
                 autoFocus
@@ -273,7 +274,7 @@ export default function Landing() {
                 disabled={guestSubmitting}
                 sx={{ mt: 2.25, py: 1.75, fontSize: '1.12rem' }}
               >
-                🎃&nbsp;&nbsp;{guestLabel}
+                🎁&nbsp;&nbsp;{guestLabel}
               </Button>
             </Box>
 
@@ -322,7 +323,7 @@ export default function Landing() {
               </Box>
               <Typography sx={{ color: 'var(--text-secondary)', mb: 2.5, fontSize: '0.92rem' }}>
                 Abra este site no navegador da TV e digite o código da sala. A TV não precisa de conta — ela só
-                assombra.
+                pisca feito árvore de Natal.
               </Typography>
               <Box sx={{ display: 'flex', gap: 1.25 }}>
                 <TextField
@@ -364,14 +365,16 @@ export default function Landing() {
       <Box
         sx={{
           textAlign: 'center',
-          py: 3,
+          pt: 1,
+          pb: 3,
           color: 'var(--text-muted)',
           fontSize: '0.8rem',
           position: 'relative',
           zIndex: 1,
         }}
       >
-        Sábado Games · Noite do Terror 2026 🦇
+        <GiftPile scale={0.8} sx={{ mb: 1.5 }} />
+        Sábado Games · Noite Feliz 2026 🎄
       </Box>
 
       {/* Conta com e-mail: entrar e criar conta no mesmo formulário */}

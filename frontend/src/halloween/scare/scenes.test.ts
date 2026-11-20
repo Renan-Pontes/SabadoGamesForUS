@@ -1,7 +1,7 @@
 import { createElement } from 'react'
 import { renderToString } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { RARE_SCARE, SCARE_KINDS } from './bus'
+import { RARE_SCARE, SCARE_KINDS, XMAS_EFFECTS } from './bus'
 import type { ConcreteScare } from './bus'
 import { PENETRA_CUT_MS, SCARE_DURATION_MS, scareCaption } from './config'
 import ScareScene from './scenes'
@@ -13,7 +13,7 @@ function render(kind: ConcreteScare, reduced: boolean) {
 }
 
 describe('cenas dos sustos', () => {
-  const all: ConcreteScare[] = [...SCARE_KINDS, RARE_SCARE]
+  const all: ConcreteScare[] = [...SCARE_KINDS, RARE_SCARE, ...XMAS_EFFECTS]
 
   it.each(all)('%s: desenha a versão animada e a calma, com legenda', (kind) => {
     expect(render(kind, false)).toContain('hws-out')

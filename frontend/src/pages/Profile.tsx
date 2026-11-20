@@ -7,7 +7,7 @@ import LockRoundedIcon from '@mui/icons-material/LockRounded'
 import { useAuth } from '../context/useAuth'
 import { useRequireAuth } from '../context/useRequireAuth'
 import { friendlyError, updatePassword, updateProfile } from '../lib/api'
-import { AppShell, Cobweb, LoadingScreen, MIST, Panel } from '../components/ui'
+import { AppShell, LoadingScreen, MIST, Panel, SnowCap } from '../components/ui'
 import { avatarColor } from '../games/utils'
 
 const NICKNAME_MAX = 20
@@ -115,13 +115,12 @@ export default function Profile() {
         <Box
           sx={{
             height: 96,
-            background: `linear-gradient(120deg, ${color}55, rgba(139, 63, 217, 0.45), rgba(255, 123, 28, 0.3))`,
+            background: `linear-gradient(120deg, ${color}55, rgba(47, 127, 217, 0.45), rgba(255, 90, 102, 0.3))`,
             position: 'relative',
             overflow: 'hidden',
           }}
         >
-          <Cobweb corner="top-left" size={96} opacity={0.3} color="#0a0612" />
-          <Cobweb corner="top-right" size={96} opacity={0.3} color="#0a0612" spider />
+          <SnowCap height={18} />
           <Box
             aria-hidden
             sx={{
@@ -137,7 +136,7 @@ export default function Profile() {
               lineHeight: 1,
             }}
           >
-            🦇 🎃 🦇
+            ❄️ 🎄 ❄️
           </Box>
         </Box>
 
@@ -151,7 +150,7 @@ export default function Profile() {
               placeItems: 'center',
               fontFamily: 'var(--font-numeric)',
               fontSize: '3rem',
-              color: '#0a0612',
+              color: '#06101f',
               background: `radial-gradient(circle at 32% 28%, ${color}, ${color}b3 70%)`,
               border: '4px solid var(--bg-card)',
               boxShadow: `0 12px 34px rgba(0,0,0,0.5), 0 0 30px ${color}44`,
@@ -174,7 +173,7 @@ export default function Profile() {
             {user?.nickname || 'Jogador'}
           </Typography>
           <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.88rem', fontFamily: 'var(--font-mono)' }}>
-            {user?.isGuest ? 'convidado da Noite do Terror 🎃' : user?.email}
+            {user?.isGuest ? 'convidado da Noite Feliz 🎄' : user?.email}
           </Typography>
         </Box>
       </Panel>
@@ -225,10 +224,10 @@ export default function Profile() {
 
       {user?.isGuest ? (
         /* Convidado não tem senha: no lugar do formulário, o aviso que importa */
-        <Panel title="CONTA DE CONVIDADO" icon="🕯️" accent="var(--neon-cyan)" sx={{ mt: 2.5 }} index={2}>
+        <Panel title="CONTA DE CONVIDADO" icon="🎟️" accent="var(--neon-cyan)" sx={{ mt: 2.5 }} index={2}>
           <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
             Você entrou só com o apelido, sem e-mail nem senha. A conta vive neste aparelho: se sair ou
-            limpar o navegador, ela some feito fantasma — e na próxima vez é só digitar o apelido de novo.
+            limpar o navegador, ela derrete feito boneco de neve — e na próxima vez é só digitar o apelido de novo.
           </Typography>
         </Panel>
       ) : (
@@ -304,7 +303,7 @@ export default function Profile() {
           onClick={handleLogout}
           sx={{ borderWidth: 2 }}
         >
-          {user?.isGuest ? 'Sair (e virar fantasma)' : 'Sair da conta'}
+          {user?.isGuest ? 'Sair (e derreter ☃️)' : 'Sair da conta'}
         </Button>
       </Panel>
     </AppShell>

@@ -46,7 +46,7 @@ function phoneHtml(state: State, id: number): string {
 }
 
 describe('host apertou "Encerrar" no meio', () => {
-  it('cada celular conta o próprio papel (só depois do fim) e a TV revela os assassinos', () => {
+  it('cada celular conta o próprio papel (só depois do fim) e a TV revela os duendes', () => {
     const night = nightOfEight()
     // Antes do fim nenhum papel vale, mesmo que alguém grave o slot na mão.
     const early = { [REVEAL_SLOT]: { 1: { k: night.inputKey, role: 'killer' } } }
@@ -83,7 +83,7 @@ describe('host apertou "Encerrar" no meio', () => {
         options: {},
       }),
     )
-    expect(tv).toContain('Os assassinos eram')
+    expect(tv).toContain('Os duendes eram')
     expect(tv).toContain('Vlad')
     expect(tv).toContain('Mortícia')
   })
@@ -116,7 +116,7 @@ const ALL_PHASES = ['roles', 'night', 'morning', 'day', 'vote', 'verdict', 'end'
  */
 const RENDER_TIMEOUT_MS = 30_000
 
-describe('telas do Cidade Dorme em todas as fases', () => {
+describe('telas do Vila Dorme em todas as fases', () => {
   it.each([5, 8, 15])(
     'desenha TV e celulares com %i jogadores',
     (players) => {

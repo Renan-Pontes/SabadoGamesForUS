@@ -303,7 +303,7 @@ describe('noite', () => {
     expect(cleanNote(42)).toBe('')
     expect(cleanNote(null)).toBe('')
     expect(cleanNote('oi\n\ntudo\tbem?')).toBe('oi tudo bem?')
-    expect(Array.from(cleanNote('🔪'.repeat(500)))).toHaveLength(NOTE_MAX)
+    expect(Array.from(cleanNote('⛄'.repeat(500)))).toHaveLength(NOTE_MAX)
     const night = firstNight(6, SIX)
     const morning = skip(night, { 1: { target: 4, note: 'A'.repeat(5000) } })
     expect(morning.news?.notes[0]).toHaveLength(NOTE_MAX)
@@ -424,7 +424,7 @@ describe('manhã e dia', () => {
     // A narração cita no máximo 3 assombrados (e quantos mais).
     const morning = skip(firstNight(6, SIX), { 1: { target: 4 } })
     const text = narration({ ...morning, news: { ...morning.news!, haunts } }, makePlayers(6))
-    expect(text).toContain('Os fantasmas assombraram Vlad, Mortícia, Gasparzinho e mais 2.')
+    expect(text).toContain('Os bonecos de neve jogaram bola de neve em Vlad, Mortícia, Gasparzinho e mais 2.')
   })
 
   it('dia: "pronto para votar" de todos os vivos online abre a votação; fantasma não conta', () => {
@@ -730,9 +730,9 @@ describe('narração', () => {
   it('manhã com morte, papel, bilhete e assombração', () => {
     const morning = skip(firstNight(6, SIX), { 1: { target: 4, note: 'Quem será o próximo? 😈' } })
     const text = narration(morning, players)
-    expect(text).toContain(`A vítima desta noite foi ${players[3].name}.`)
-    expect(text).toContain('Era um cidadão.')
-    expect(text).toContain('Um bilhete foi encontrado: Quem será o próximo?')
+    expect(text).toContain(`${players[3].name} virou boneco de neve!`)
+    expect(text).toContain('Era um morador da vila.')
+    expect(text).toContain('Um cartãozinho foi encontrado na neve: Quem será o próximo?')
     expect(text).not.toMatch(/\p{Extended_Pictographic}/u)
     expect(tvCue(morning, players)).toMatchObject({ moment: '1-morning', stinger: 'death', scare: null })
   })
@@ -747,7 +747,7 @@ describe('narração', () => {
     const cue = tvCue(caught, players)
     expect(cue.stinger).toBe('caught')
     expect(cue.scare).toMatchObject({ kind: 'zoom', name: players[0].name })
-    expect(cue.speech).toBe(`A cidade expulsou ${players[0].name}. Era assassino!`)
+    expect(cue.speech).toBe(`A vila despachou ${players[0].name} de trenó pro Polo Norte. Era duende travesso!`)
     const end = skip(caught)
     expect(tvCue(end, players)).toMatchObject({ moment: '1-end', stinger: 'city', scare: null })
     // "Encerrar" do host: over sem final.

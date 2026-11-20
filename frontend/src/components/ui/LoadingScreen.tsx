@@ -8,15 +8,14 @@ type LoadingScreenProps = {
 }
 
 /**
- * Tela de carregamento única do app. Antes eram quatro variações de
- * `<Typography>Carregando...</Typography>` soltas.
+ * Tela de carregamento única do app.
  *
- * Em vez de um spinner genérico, um fantasminha flutuando — leva o mesmo
- * tempo e mantém o clima da Noite do Terror.
+ * Em vez de um spinner genérico, um boneco de neve pulando — leva o mesmo
+ * tempo e já entra no clima do Natal.
  */
 export default function LoadingScreen({
   label = 'CARREGANDO',
-  accent = 'var(--neon-purple)',
+  accent = 'var(--accent-gold)',
 }: LoadingScreenProps) {
   return (
     <Box
@@ -30,22 +29,22 @@ export default function LoadingScreen({
       }}
     >
       <Box sx={{ textAlign: 'center' }}>
-        <Box sx={{ position: 'relative', width: 120, height: 150, mx: 'auto', mb: 2 }}>
-          <Ghost glow={accent} />
-          {/* Sombra no chão: encolhe quando o fantasma sobe */}
+        <Box sx={{ position: 'relative', width: 130, height: 170, mx: 'auto', mb: 2 }}>
+          <Snowman glow={accent} />
+          {/* Sombra no chão: encolhe quando o boneco pula */}
           <Box
             aria-hidden
             sx={{
               position: 'absolute',
               left: '50%',
               bottom: 0,
-              width: 70,
+              width: 80,
               height: 10,
-              ml: '-35px',
+              ml: '-40px',
               borderRadius: '50%',
-              background: 'rgba(0, 0, 0, 0.55)',
+              background: 'rgba(0, 0, 0, 0.45)',
               filter: 'blur(3px)',
-              animation: 'pulse 3.2s ease-in-out infinite',
+              animation: 'pulse 2.4s ease-in-out infinite',
             }}
           />
         </Box>
@@ -65,42 +64,66 @@ export default function LoadingScreen({
   )
 }
 
-/** O fantasminha: corpo de lençol com barra ondulada, olhos que piscam e um "ó" de susto. */
-export function Ghost({ glow = 'var(--neon-purple)', size = 120 }: { glow?: string; size?: number }) {
+/**
+ * Boneco de neve: cartola, cachecol vermelho que balança, nariz de cenoura,
+ * bochechas rosadas e olhos que piscam. Pula de leve.
+ */
+export function Snowman({ glow = 'var(--accent-gold)', size = 120 }: { glow?: string; size?: number }) {
   return (
     <Box
       component="svg"
-      viewBox="0 0 120 140"
+      viewBox="0 0 120 150"
       aria-hidden
       sx={{
         width: size,
-        height: (size * 140) / 120,
+        height: (size * 150) / 120,
         display: 'block',
         mx: 'auto',
-        animation: 'ghostFloat 3.2s ease-in-out infinite',
-        filter: `drop-shadow(0 0 18px ${withAlpha(glow, 0.55)})`,
-        '& .ghost-eye': {
+        overflow: 'visible',
+        animation: 'hop 2.4s ease-in-out infinite',
+        transformOrigin: 'bottom center',
+        filter: `drop-shadow(0 0 16px ${withAlpha(glow, 0.45)})`,
+        '& .snow-eye': {
           transformBox: 'fill-box',
           transformOrigin: 'center',
           animation: 'blink 4.2s ease-in-out infinite',
         },
+        '& .snow-scarf-tail': {
+          transformBox: 'fill-box',
+          transformOrigin: 'top center',
+          animation: 'ornamentSwing 1.6s ease-in-out infinite',
+        },
       }}
     >
       <defs>
-        <linearGradient id="ghost-body" x1="0" y1="0" x2="0" y2="1">
+        <radialGradient id="snowman-body" cx="40%" cy="35%" r="70%">
           <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="100%" stopColor="#d9ccf5" />
-        </linearGradient>
+          <stop offset="100%" stopColor="#cfe0f5" />
+        </radialGradient>
       </defs>
-      <path
-        d="M60 8 C28 8 12 32 12 62 L12 124 Q22 112 32 124 Q42 136 52 124 Q60 114 68 124 Q78 136 88 124 Q98 112 108 124 L108 62 C108 32 92 8 60 8 Z"
-        fill="url(#ghost-body)"
-      />
-      <ellipse className="ghost-eye" cx="44" cy="58" rx="7" ry="10" fill="#1a0d2e" />
-      <ellipse className="ghost-eye" cx="76" cy="58" rx="7" ry="10" fill="#1a0d2e" />
-      <ellipse cx="60" cy="86" rx="7" ry="9" fill="#1a0d2e" />
-      <ellipse cx="34" cy="74" rx="6" ry="3.5" fill="#ff9ec4" opacity="0.55" />
-      <ellipse cx="86" cy="74" rx="6" ry="3.5" fill="#ff9ec4" opacity="0.55" />
+      {/* Corpo */}
+      <circle cx="60" cy="112" r="34" fill="url(#snowman-body)" />
+      <circle cx="60" cy="62" r="25" fill="url(#snowman-body)" />
+      {/* Botões */}
+      <circle cx="60" cy="100" r="3.2" fill="#1b2e4d" />
+      <circle cx="60" cy="113" r="3.2" fill="#1b2e4d" />
+      <circle cx="60" cy="126" r="3.2" fill="#1b2e4d" />
+      {/* Cachecol */}
+      <path d="M36 78 Q60 90 84 78 L84 86 Q60 98 36 86 Z" fill="#e8394a" />
+      <path d="M40 80 L44 88 M50 84 L53 92 M66 85 L68 93 M77 82 L79 89" stroke="#ffffff" strokeWidth="2" opacity="0.6" />
+      <path className="snow-scarf-tail" d="M72 86 L80 86 L84 108 L74 108 Z" fill="#c21f33" />
+      {/* Olhos, bochechas e nariz */}
+      <ellipse className="snow-eye" cx="51" cy="57" rx="3.4" ry="4.2" fill="#1b2e4d" />
+      <ellipse className="snow-eye" cx="69" cy="57" rx="3.4" ry="4.2" fill="#1b2e4d" />
+      <ellipse cx="45" cy="67" rx="4.5" ry="2.6" fill="#ff9ec4" opacity="0.7" />
+      <ellipse cx="75" cy="67" rx="4.5" ry="2.6" fill="#ff9ec4" opacity="0.7" />
+      <path d="M59 63 L80 67 L59 68 Z" fill="#ff8a1c" />
+      <path d="M52 73 Q60 78 68 73" stroke="#1b2e4d" strokeWidth="2" fill="none" strokeLinecap="round" />
+      {/* Cartola com fita verde */}
+      <rect x="40" y="36" width="40" height="5" rx="2" fill="#13233f" />
+      <rect x="46" y="14" width="28" height="24" rx="3" fill="#13233f" />
+      <rect x="46" y="30" width="28" height="5" fill="#1f9d55" />
+      <circle cx="70" cy="32.5" r="3" fill="#e8394a" />
     </Box>
   )
 }

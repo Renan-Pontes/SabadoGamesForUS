@@ -4,6 +4,7 @@ import { nameOf } from '../../engine/helpers'
 import type { HalloweenViewProps } from '../../engine/types'
 import { useCountdown, useServerNow } from '../../framework/clockHooks'
 import DrawingBoard from '../../../games/ui/DrawingBoard'
+import { FESTIVE_ROUND_FONT, XMAS_COLORS } from '../../ui'
 import { categoryAt } from './content'
 import {
   COLOR_NAMES,
@@ -22,8 +23,8 @@ import { meta } from './meta'
 import { VERDICT_DELAY_MS, buzz, drawView, graceFor, namesOf, plural, verdictText } from './view'
 
 /**
- * Celular do "Retrato Assombrado": uma ação clara por tela. Primeiro o
- * segredo; depois a prancheta (o desenho fica no slot 'draw' e volta
+ * Celular do "Retrato de Natal" (a sua mão no jogo): uma ação clara por
+ * tela. Primeiro o segredo, numa etiqueta de presente; depois a prancheta (o desenho fica no slot 'draw' e volta
  * sozinho se a tela recarregar); depois os nomes para votar e, para o
  * impostor pego, o campo do chute.
  */
@@ -31,7 +32,7 @@ import { VERDICT_DELAY_MS, buzz, drawView, graceFor, namesOf, plural, verdictTex
 type Props = HalloweenViewProps<State>
 
 const ACCENT = meta.accent
-const BLOOD = 'var(--blood, #e0213a)'
+const RED = 'var(--blood, #e8394a)'
 /** Espessura do traço no celular (espaço 1000×625). */
 const PHONE_STROKE = 9
 
@@ -70,7 +71,7 @@ function Header({ state, now }: { state: State; now: () => number }) {
       </Typography>
       {seconds !== null && (
         <Typography
-          sx={{ fontFamily: 'var(--font-numeric)', fontSize: '1.8rem', lineHeight: 1, color: seconds <= 5 ? BLOOD : ACCENT.main }}
+          sx={{ fontFamily: 'var(--font-numeric)', fontSize: '1.8rem', lineHeight: 1, color: seconds <= 5 ? RED : ACCENT.main }}
         >
           ⏳ {seconds}
         </Typography>
@@ -79,18 +80,29 @@ function Header({ state, now }: { state: State; now: () => number }) {
   )
 }
 
-/** O segredo em uma linha, para lembrar enquanto desenha (mesmo visual para todo mundo). */
+/** Papel creme da etiqueta de presente e a tinta marrom-escura que lê bem nele. */
+const TAG_PAPER = 'linear-gradient(180deg, #fffaf0 0%, #f6e7c8 100%)'
+const TAG_INK = '#2a1608'
+
+/**
+ * O segredo em uma linha, numa etiquetinha de presente, para lembrar
+ * enquanto desenha (mesmo visual para todo mundo: o vizinho que espia a cor
+ * não descobre quem é o impostor).
+ */
 function SecretStrip({ state, mine }: { state: State; mine: Props['mine'] }) {
   const impostor = mine?.role === 'impostor'
   return (
     <Box
       sx={{
-        px: 1.5,
+        pl: 1.5,
+        pr: 1.25,
         py: 0.75,
         mb: 1.25,
-        borderRadius: 'var(--radius-lg)',
-        border: `2px solid ${ACCENT.main}66`,
-        background: 'rgba(255, 255, 255, 0.04)',
+        borderRadius: '6px 12px 12px 6px',
+        borderLeft: `6px solid ${XMAS_COLORS.red}`,
+        background: TAG_PAPER,
+        color: TAG_INK,
+        boxShadow: '0 3px 10px rgba(0, 0, 0, 0.35)',
         display: 'flex',
         alignItems: 'baseline',
         justifyContent: 'space-between',
@@ -98,11 +110,11 @@ function SecretStrip({ state, mine }: { state: State; mine: Props['mine'] }) {
         minWidth: 0,
       }}
     >
-      {/* A palavra quebra linha em vez de virar "Relógio de pên…" — é o que a pessoa desenha. */}
+      {/* A palavra quebra linha em vez de virar "Biscoito de gen…" — é o que a pessoa desenha. */}
       <Typography sx={{ fontWeight: 900, fontSize: '1.2rem', lineHeight: 1.15, minWidth: 0, flex: 1, overflowWrap: 'anywhere' }}>
-        {!mine ? '👀 Olhe a TV' : impostor ? '🤫 Você é o IMPOSTOR' : `🎨 ${mine.word}`}
+        {!mine ? '👀 Olhe a TV' : impostor ? '🤫 Você é o IMPOSTOR' : `🎁 ${mine.word}`}
       </Typography>
-      <Typography noWrap sx={{ color: 'var(--text-muted)', fontSize: '0.85rem', flexShrink: 0, maxWidth: '40%' }}>
+      <Typography noWrap sx={{ color: '#6b4a2a', fontSize: '0.85rem', fontWeight: 700, flexShrink: 0, maxWidth: '40%' }}>
         {categoryAt(state.categoryId).icon} {categoryAt(state.categoryId).name}
       </Typography>
     </Box>
@@ -110,54 +122,99 @@ function SecretStrip({ state, mine }: { state: State; mine: Props['mine'] }) {
 }
 
 // ---------------------------------------------------------------------------
-// show: o segredo
+// show: o segredo, numa etiqueta de presente
 // ---------------------------------------------------------------------------
 
-function SecretPanel({ state, mine, now }: Props) {
+function SecretPanel({ state, me, mine, now }: Props) {
   const category = categoryAt(state.categoryId)
   const impostor = mine?.role === 'impostor'
   return (
     <Box sx={{ textAlign: 'center' }}>
       <Header state={state} now={now} />
+      {/* A etiqueta pendurada no barbante, balançando de leve */}
       <Box
-        className="animate-pop-in"
         sx={{
-          p: 2.5,
-          borderRadius: 'var(--radius-xl)',
-          border: `3px solid ${ACCENT.main}`,
-          background: 'var(--bg-veil-strong, rgba(10, 6, 18, 0.82))',
-          boxShadow: `0 0 30px ${ACCENT.glow}`,
+          position: 'relative',
+          maxWidth: 340,
+          mx: 'auto',
+          mt: 3.5,
+          transformOrigin: '50% -30px',
+          filter: 'drop-shadow(0 10px 18px rgba(0, 0, 0, 0.5))',
+          animation: 'raTag 2.8s ease-in-out infinite alternate',
+          '@keyframes raTag': {
+            from: { transform: 'rotate(-3deg)' },
+            to: { transform: 'rotate(3deg)' },
+          },
+          '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
         }}
       >
-        <Typography sx={{ color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.12em' }}>
-          CATEGORIA: {category.icon} {category.name.toUpperCase()}
-        </Typography>
-        {!mine ? (
-          <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, mt: 2 }}>👀 Olhe a TV</Typography>
-        ) : impostor ? (
-          <>
-            <Typography sx={{ fontSize: '3.4rem', lineHeight: 1, mt: 2 }}>🤫</Typography>
-            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2.3rem', lineHeight: 1.05, color: BLOOD, mt: 1 }}>
-              VOCÊ É O IMPOSTOR
+        <Box
+          aria-hidden
+          sx={{ position: 'absolute', top: -30, left: 'calc(50% - 2px)', width: 4, height: 44, borderRadius: 2, background: XMAS_COLORS.red, zIndex: 2 }}
+        />
+        <Box
+          className="animate-pop-in"
+          sx={{
+            position: 'relative',
+            pt: 4.5,
+            pb: 2,
+            px: 2,
+            color: TAG_INK,
+            background: TAG_PAPER,
+            clipPath: 'polygon(20% 0, 80% 0, 100% 11%, 100% 100%, 0 100%, 0 11%)',
+          }}
+        >
+          {/* O furinho do barbante */}
+          <Box
+            aria-hidden
+            sx={{
+              position: 'absolute',
+              top: 12,
+              left: 'calc(50% - 10px)',
+              width: 20,
+              height: 20,
+              borderRadius: '50%',
+              background: '#0b1a33',
+              border: `3px solid ${XMAS_COLORS.gold}`,
+            }}
+          />
+          <Box sx={{ border: '2px dashed #c9a76a', borderRadius: '10px', px: 1.5, py: 1.75 }}>
+            <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#8a5a2b', letterSpacing: '0.06em' }}>
+              🎁 PARA: {me ? me.name.toUpperCase() : 'VOCÊ'}
             </Typography>
-            <Typography sx={{ mt: 1.5, fontSize: '1.05rem', color: 'var(--text-secondary)' }}>
-              Você não sabe a palavra. Desenhe algo da categoria e copie a galera na espiadinha da TV.
+            <Typography sx={{ mt: 0.5, fontWeight: 700, fontSize: '0.95rem', color: '#6b4a2a' }}>
+              Categoria: {category.icon} {category.name}
             </Typography>
-          </>
-        ) : (
-          <>
-            <Typography sx={{ mt: 2, color: 'var(--text-secondary)', fontWeight: 700 }}>A PALAVRA É</Typography>
-            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2.6rem', lineHeight: 1.05, color: ACCENT.main, wordBreak: 'break-word' }}>
-              {mine.word}
-            </Typography>
-            <Typography sx={{ mt: 1.5, fontSize: '1.05rem', color: 'var(--text-secondary)' }}>
-              Desenhe sem entregar demais: tem impostor copiando!
-            </Typography>
-          </>
-        )}
+            {!mine ? (
+              <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, mt: 2 }}>👀 Olhe a TV</Typography>
+            ) : impostor ? (
+              <>
+                <Typography sx={{ fontSize: '3.4rem', lineHeight: 1, mt: 1.5 }}>🤫</Typography>
+                <Typography sx={{ fontFamily: FESTIVE_ROUND_FONT, fontWeight: 700, fontSize: '2.1rem', lineHeight: 1.05, color: XMAS_COLORS.red, mt: 0.75 }}>
+                  VOCÊ É O IMPOSTOR
+                </Typography>
+                <Typography sx={{ mt: 1.25, fontSize: '1.02rem', fontWeight: 600 }}>
+                  Você não sabe a palavra. Desenhe algo da categoria, copie a galera na espiadinha e finja costume. 🥸
+                </Typography>
+              </>
+            ) : (
+              <>
+                <Typography sx={{ mt: 1.5, fontWeight: 800, color: '#8a5a2b', letterSpacing: '0.1em' }}>A PALAVRA É</Typography>
+                <Typography
+                  sx={{ fontFamily: FESTIVE_ROUND_FONT, fontWeight: 700, fontSize: '2.5rem', lineHeight: 1.05, color: '#c21f33', wordBreak: 'break-word' }}
+                >
+                  {mine.word}
+                </Typography>
+                <Typography sx={{ mt: 1.25, fontSize: '1.02rem', fontWeight: 600 }}>
+                  Desenhe sem entregar demais: tem impostor copiando! 👀
+                </Typography>
+              </>
+            )}
+          </Box>
+        </Box>
       </Box>
-      <Typography sx={{ mt: 2, color: 'var(--text-muted)' }}>
-        {state.impostorCount > 1 ? 'Há 2 impostores na mesa (um não conhece o outro).' : 'Há 1 impostor na mesa.'}
+      <Typography sx={{ mt: 2.5, color: 'var(--text-muted)' }}>
+        {state.impostorCount > 1 ? 'Há 2 impostores na mesa (um não conhece o outro).' : 'Há 1 impostor na mesa.'} Não mostre o celular!
       </Typography>
     </Box>
   )
@@ -228,12 +285,12 @@ function DrawPanel({ state, me, mine, slots, sendSlot, now }: Props) {
 
   const caption =
     state.phase === 'draw1'
-      ? '✏️ Etapa 1 de 2 — desenhe!'
+      ? '✏️ Etapa 1 de 2 — rabisque, artista!'
       : state.phase === 'peek'
         ? '👀 Espiadinha! Olhe os desenhos na TV'
         : state.phase === 'draw2'
           ? '🖌️ Etapa 2 — continue o MESMO desenho'
-          : '🖼️ Olhe a galeria na TV: quem não sabia a palavra?'
+          : '🖼️ Olhe a exposição na TV: quem não sabia a palavra?'
 
   return (
     <Box>
@@ -339,11 +396,11 @@ function InkBar({ strokes }: { strokes: Stroke[] }) {
   return (
     <Box sx={{ mt: 1.25 }}>
       <Box sx={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-        <Box sx={{ height: '100%', width: `${(1 - used) * 100}%`, background: low ? BLOOD : ACCENT.main, transition: 'width 200ms ease' }} />
+        <Box sx={{ height: '100%', width: `${(1 - used) * 100}%`, background: low ? RED : ACCENT.main, transition: 'width 200ms ease' }} />
       </Box>
       {low && (
-        <Typography sx={{ mt: 0.5, fontSize: '0.85rem', color: BLOOD, fontWeight: 700 }}>
-          {used >= 1 ? '🖋️ A tinta acabou! Aperte "Pronto".' : '🖋️ Quase sem tinta…'}
+        <Typography sx={{ mt: 0.5, fontSize: '0.85rem', color: RED, fontWeight: 700 }}>
+          {used >= 1 ? '🖍️ O giz de cera acabou! Aperte "Pronto".' : '🖍️ Quase sem giz de cera…'}
         </Typography>
       )}
     </Box>
@@ -361,8 +418,8 @@ function VotePanel({ state, players, me, mine, myInput, send, now }: Props) {
     <Box>
       <Header state={state} now={now} />
       <SecretStrip state={state} mine={mine} />
-      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2rem', lineHeight: 1.05, mb: 0.5 }}>🗳️ Quem é o impostor?</Typography>
-      <Typography sx={{ color: 'var(--text-secondary)', mb: 1.5 }}>Olhe a galeria na TV e toque num nome.</Typography>
+      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2rem', lineHeight: 1.05, mb: 0.5 }}>🤨 Quem é o impostor?</Typography>
+      <Typography sx={{ color: 'var(--text-secondary)', mb: 1.5 }}>Olhe a exposição na TV e toque num nome.</Typography>
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
         {others.map((id) => {
           const selected = chosen === id
@@ -435,8 +492,8 @@ function RevealPanel({ state, players, me, now }: Props) {
           <Typography sx={{ color: 'var(--text-secondary)', mt: 1 }}>{verdict.detail}</Typography>
           <Box sx={{ mt: 2.5, p: 2, borderRadius: 'var(--radius-lg)', border: '2px solid var(--border-medium)' }}>
             {wasImpostor && reveal.chaos === null && (
-              <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: reveal.caught && reveal.accused === me.id ? BLOOD : ACCENT.main }}>
-                {reveal.caught && reveal.accused === me.id ? 'Pegaram você! 😱' : 'Você escapou! 😈 +2'}
+              <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: reveal.caught && reveal.accused === me.id ? RED : ACCENT.main }}>
+                {reveal.caught && reveal.accused === me.id ? 'Pegaram você! 🫣' : 'Você escapou! 🥸 +2'}
               </Typography>
             )}
             <Typography sx={{ fontWeight: 700 }}>
@@ -444,7 +501,7 @@ function RevealPanel({ state, players, me, now }: Props) {
             </Typography>
             {myVote !== undefined && !wasImpostor && reveal.chaos === null && reveal.impostors.includes(myVote) && (
               <Typography sx={{ color: ACCENT.main, fontWeight: 800, mt: 0.5 }}>
-                🦅 Acertou o impostor{reveal.caught ? '! +1' : ' — mas a mesa não o pegou.'}
+                🔍 Acertou o impostor{reveal.caught ? '! +1' : ' — mas a mesa não o pegou.'}
               </Typography>
             )}
           </Box>
@@ -472,7 +529,7 @@ function GuessPanel({ state, players, me, myInput, send, now }: Props) {
         <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1.9rem', lineHeight: 1.1, mt: 1 }}>
           {nameOf(players, accused)} está tentando adivinhar a palavra…
         </Typography>
-        <Typography sx={{ color: 'var(--text-secondary)', mt: 1 }}>Bico calado! Olhe a TV.</Typography>
+        <Typography sx={{ color: 'var(--text-secondary)', mt: 1 }}>Bico calado, nada de soprar! Olhe a TV.</Typography>
       </Box>
     )
   }
@@ -487,7 +544,7 @@ function GuessPanel({ state, players, me, myInput, send, now }: Props) {
   return (
     <Box>
       <Header state={state} now={now} />
-      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2.1rem', lineHeight: 1.05, color: BLOOD }}>🎯 Pegaram você!</Typography>
+      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2.1rem', lineHeight: 1.05, color: RED }}>🎯 Pegaram você!</Typography>
       <Typography sx={{ mt: 1, fontSize: '1.1rem', fontWeight: 700 }}>Última chance: qual era a palavra? Acertou, leva +2.</Typography>
       <Typography sx={{ mt: 0.5, color: 'var(--text-secondary)' }}>
         Categoria: {categoryAt(state.categoryId).icon} {categoryAt(state.categoryId).name}
@@ -524,7 +581,7 @@ function GuessPanel({ state, players, me, myInput, send, now }: Props) {
               fontSize: '1.15rem',
               textTransform: 'none',
               color: '#fff',
-              background: BLOOD,
+              background: RED,
               '&:hover': { background: '#b91c1c' },
             }}
           >
@@ -562,7 +619,7 @@ function ResultPanel({ state, me, now }: Props) {
           {gained ? `+${gained}` : '+0'}
         </Typography>
         <Typography sx={{ color: 'var(--text-secondary)', mt: 0.5 }}>
-          {gained ? 'Boa! Olhe a TV.' : 'Nada desta vez. Olhe a TV.'}
+          {gained ? 'Boa! Ganhou presente. Olhe a TV.' : 'Só carvão desta vez 🪨. Olhe a TV.'}
         </Typography>
       </Box>
     </Box>
@@ -592,15 +649,15 @@ function FinalPanel({ state, players, me }: Props) {
   const mine = awards.ranking.find((entry) => entry.id === me.id)
   return (
     <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2.4rem', lineHeight: 1 }}>Fim da exposição</Typography>
+      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '2.4rem', lineHeight: 1 }}>🎄 Fim da exposição de Natal</Typography>
       {mine && (
         <Typography sx={{ fontSize: '1.3rem', fontWeight: 700 }}>
           Você ficou em {mine.place}º com {plural(mine.score, 'ponto', 'pontos')}
         </Typography>
       )}
-      <Award icon="🏆" title="Artista da noite" names={awards.champions.length ? namesOf(players, awards.champions) : 'Ninguém'} highlight />
-      <Award icon="🎭" title="Mestre do disfarce" names={awards.disguise.length ? namesOf(players, awards.disguise) : 'Ninguém escapou'} />
-      <Award icon="🦅" title="Olho de lince" names={awards.eagle.length ? namesOf(players, awards.eagle) : 'Ninguém acertou'} />
+      <Award icon="🏆" title="Picasso do Polo Norte" names={awards.champions.length ? namesOf(players, awards.champions) : 'Ninguém'} highlight />
+      <Award icon="🥸" title="Duende disfarçado" names={awards.disguise.length ? namesOf(players, awards.disguise) : 'Ninguém escapou'} />
+      <Award icon="🔍" title="Olho de Papai Noel" names={awards.eagle.length ? namesOf(players, awards.eagle) : 'Ninguém acertou'} />
     </Box>
   )
 }

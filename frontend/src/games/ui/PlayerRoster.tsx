@@ -2,7 +2,8 @@ import type { ReactNode } from 'react'
 import { Box, Typography } from '@mui/material'
 import type { Player } from '../../lib/types'
 import { withAlpha } from '../../components/ui/surfaces'
-import { playerColor, playerInitials, playerLabel } from '../utils'
+import { playerLabel } from '../utils'
+import { ChristmasAvatar, useRosterAvatars } from '../../natal/avatars'
 
 export type PlayerRowInfo = {
   /** Linha secundária: o que a pessoa está fazendo agora. */
@@ -32,7 +33,7 @@ const DENSE_FROM = 9
 /**
  * Lista de jogadores — usada nas telas de host, celular e TV.
  *
- * Com mesa cheia (até 15 na Noite do Terror) uma coluna só passava da altura
+ * Com mesa cheia (até 15 na festa) uma coluna só passava da altura
  * da TV: a partir de 7 pessoas a lista vira grade de colunas de ~230 px. No
  * celular continua uma coluna (não cabe duas), só que mais compacta.
  */
@@ -43,13 +44,16 @@ export default function PlayerRoster({
   describe,
   emptyLabel = 'Ninguém na sala ainda.',
 }: PlayerRosterProps) {
+  // O avatar de Natal de cada um: o mesmo da TV e do celular.
+  const avatarOf = useRosterAvatars(players)
+
   if (players.length === 0) {
     return <Typography sx={{ color: 'var(--text-muted)' }}>{emptyLabel}</Typography>
   }
 
   const grid = players.length >= GRID_FROM
   const dense = players.length >= DENSE_FROM
-  const avatar = dense ? 34 : 40
+  const avatarSize = dense ? 34 : 40
 
   return (
     <Box
@@ -62,7 +66,8 @@ export default function PlayerRoster({
       {players.map((player, index) => {
         const info = describe(player)
         const isSelf = Boolean(currentUserId && player.user?.id === currentUserId)
-        const color = playerColor(player.id)
+        const avatar = avatarOf(player)
+        const color = avatar.color
 
         return (
           <Box
@@ -78,7 +83,7 @@ export default function PlayerRoster({
               borderRadius: 'var(--radius-md)',
               background: info.highlight
                 ? `linear-gradient(100deg, ${withAlpha(accent, 0.14)}, rgba(255,255,255,0.02))`
-                : 'rgba(243, 238, 255, 0.04)',
+                : 'rgba(244, 248, 255, 0.04)',
               border: `1px solid ${
                 info.highlight ? accent : isSelf ? 'rgba(255,255,255,0.18)' : 'transparent'
               }`,
@@ -91,21 +96,23 @@ export default function PlayerRoster({
             <Box
               sx={{
                 position: 'relative',
-                width: avatar,
-                height: avatar,
+                width: avatarSize,
+                height: avatarSize,
                 flexShrink: 0,
                 borderRadius: '50%',
-                display: 'grid',
-                placeItems: 'center',
-                fontFamily: 'var(--font-numeric)',
-                fontSize: dense ? '0.98rem' : '1.1rem',
-                letterSpacing: '0.04em',
-                color: '#0a0612',
-                background: `radial-gradient(circle at 32% 28%, ${color}, ${color}b3 70%)`,
                 boxShadow: info.highlight ? `0 0 16px ${color}` : 'none',
               }}
             >
-              {info.eliminated ? '💀' : playerInitials(player)}
+              <ChristmasAvatar avatar={avatar} size={avatarSize} frozen={info.eliminated} title={avatar.label} />
+              {info.eliminated && (
+                <Box
+                  component="span"
+                  aria-label="fora da rodada"
+                  sx={{ position: 'absolute', left: -4, bottom: -4, fontSize: '1rem', lineHeight: 1 }}
+                >
+                  ☃️
+                </Box>
+              )}
               {info.ready && (
                 <Box
                   aria-hidden
@@ -118,7 +125,7 @@ export default function PlayerRoster({
                     borderRadius: '50%',
                     background: 'var(--status-ready)',
                     border: '2px solid var(--bg-void)',
-                    '--pulse-color': 'rgba(140, 240, 69, 0.6)',
+                    '--pulse-color': 'rgba(79, 214, 126, 0.6)',
                     animation: 'pulseGlow 1.8s ease-in-out infinite',
                   }}
                 />

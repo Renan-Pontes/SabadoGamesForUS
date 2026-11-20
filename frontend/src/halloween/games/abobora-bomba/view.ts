@@ -1,23 +1,90 @@
 import { fuseLeftAt, heatRate, type AbbState } from './engine'
 
 /**
- * Contas pequenas das telas da Abóbora-Bomba (TV e celular). Ficam fora de
- * `Tv.tsx`/`Phone.tsx` porque esses arquivos só exportam o componente.
+ * Contas pequenas e falas das telas do Presente-Bomba (TV e celular). Ficam
+ * fora de `Tv.tsx`/`Phone.tsx` porque esses arquivos só exportam o componente.
  */
 
 /** O tique-taque da TV começa quando o pavio de quem segura chega aqui. */
 export const TICK_FROM_MS = 5000
-/** Quanto tempo a explosão cobre a TV antes do placar aparecer. */
+/** Quanto tempo o POF cobre a TV antes do placar aparecer. */
 export const BOOM_REVEAL_MS = 3600
 /** Passou com menos que isto de pavio: "passou por um fio!" na TV… */
 export const CLOSE_CALL_MS = 1000
 /** …durante os primeiros segundos da posse seguinte. */
 export const CLOSE_CALL_SHOW_MS = 2500
 
-/** ❤️❤️🖤 — ou 👻 para quem virou fantasma. */
+/** ❤️❤️🤍 — ou ☃️ para quem virou boneco de neve. */
 export function heartsText(lives: number, max: number): string {
-  if (lives <= 0) return '👻'
-  return '❤️'.repeat(lives) + '🖤'.repeat(Math.max(0, max - lives))
+  if (lives <= 0) return '☃️'
+  return '❤️'.repeat(lives) + '🤍'.repeat(Math.max(0, max - lives))
+}
+
+/** Cara do presente: feliz, nervoso (pavio no fim) ou em pânico (segundos finais). */
+export type GiftMood = 'happy' | 'nervous' | 'panic' | 'surprised'
+
+/** Quanto o presente treme: 0 parado, 1 tremidinha, 2 tremendo, 3 sacudindo. */
+export function shakeLevel(burning: boolean, msLeft: number): 0 | 1 | 2 | 3 {
+  if (!burning) return 0
+  if (msLeft <= 2500) return 3
+  if (msLeft <= TICK_FROM_MS) return 2
+  return 1
+}
+
+export function moodFor(level: number): GiftMood {
+  return level >= 3 ? 'panic' : level >= 2 ? 'nervous' : 'happy'
+}
+
+function pick<T>(list: readonly T[], index: number): T {
+  return list[((index % list.length) + list.length) % list.length]
+}
+
+const THEME_INTROS = [
+  'Ho ho ho! O tema é',
+  'Atenção, duendes! Tema',
+  'Valendo! O tema é',
+  'Segura o presente! Tema',
+  'Lá vem! O tema é',
+  'Pisca-pisca ligado! Tema',
+] as const
+
+/** O que a TV narra ao anunciar o tema. */
+export function themeLine(round: number, text: string): string {
+  return `${pick(THEME_INTROS, round - 1)}: ${text}!`
+}
+
+const BOOM_LINES: readonly ((name: string) => string)[] = [
+  (name) => `POF! Feliz Natal, ${name}!`,
+  (name) => `Ih, ${name}... era presente de grego!`,
+  (name) => `${name} abriu o presente antes da hora!`,
+  (name) => `Ho ho ho! Sobrou pra ${name}!`,
+  (name) => `${name} ganhou meia de presente. De novo!`,
+  (name) => `Explodiu na mão de ${name}! Ninguém viu nada.`,
+  (name) => `${name} vai passar o Natal cheio de purpurina!`,
+]
+
+const OUT_LINES: readonly ((name: string) => string)[] = [
+  (name) => `${name} virou boneco de neve!`,
+  (name) => `${name} foi pro saco do Papai Noel!`,
+  (name) => `Tchau, ${name}! Agora é enfeite de árvore.`,
+]
+
+/** A piada do POF (TV fala e escreve a mesma frase). */
+export function boomLine(round: number, name: string, eliminated: boolean): string {
+  return eliminated ? pick(OUT_LINES, round - 1)(name) : pick(BOOM_LINES, round - 1)(name)
+}
+
+/** O "presente" que sai de dentro do POF (cada rodada, um mico diferente). */
+const PRIZES = ['🧦', '🥔', '🥦', '🐟', '📎', '🥫', '🧀', '🍌'] as const
+
+export function prizeFor(round: number): string {
+  return pick(PRIZES, round - 1)
+}
+
+/** Fala do fim: quem sobreviveu ao presente-bomba. */
+export function finalLine(names: string, count: number): string {
+  if (count === 0) return 'Feliz Natal! O presente-bomba venceu todo mundo!'
+  return `Feliz Natal! ${names} ${count === 1 ? 'sobreviveu' : 'sobreviveram'} ao presente-bomba!`
 }
 
 /** Segundos inteiros para mostrar (para cima: 0,2 s ainda é "1"). */
@@ -96,7 +163,7 @@ export function seatPosition(index: number, count: number): Point {
   return { x: 50, y: 50 - HALF_H * 100 }
 }
 
-/** Um ponto entre o assento e o centro da mesa (onde a abóbora pousa). */
+/** Um ponto entre o assento e o centro da mesa (onde o presente pousa). */
 export function towardCenter(point: Point, amount: number): Point {
   return { x: point.x + (50 - point.x) * amount, y: point.y + (50 - point.y) * amount }
 }

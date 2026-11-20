@@ -51,7 +51,7 @@ export default function RoomCode({
         py: dims.py,
         borderRadius: 'var(--radius-xl)',
         border: `1px solid ${accent}`,
-        background: `linear-gradient(150deg, ${withAlpha(accent, 0.16)}, rgba(12, 7, 22, 0.78))`,
+        background: `linear-gradient(150deg, ${withAlpha(accent, 0.16)}, rgba(6, 16, 31, 0.78))`,
         boxShadow: `0 0 34px ${withAlpha(accent, 0.18)}`,
       }}
     >

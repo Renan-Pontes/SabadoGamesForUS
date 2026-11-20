@@ -3,12 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Box, Typography } from '@mui/material'
 import { QRCodeSVG } from 'qrcode.react'
 import { friendlyError, getRoom, tvPing } from '../lib/api'
-import { gameRoute, getGameColor, getGameMeta } from '../lib/gameCatalog'
+import { gameRoute, getGameColor, getGameMeta, gameName } from '../lib/gameCatalog'
 import type { Room } from '../lib/types'
 import { useMusic } from '../halloween/audio'
 import { useWakeLock } from '../halloween/framework/wakeLock'
+import { assignAvatars } from '../natal/avatars'
 import {
   Brand,
+  ChristmasTree,
   LoadingScreen,
   MIST,
   Panel,
@@ -41,6 +43,10 @@ function readDeviceId() {
  *
  * Ordem de leitura de longe: QR + código (como entrar), regras do jogo
  * escolhido (o que vai acontecer) e a mesa se enchendo (quem já chegou).
+ *
+ * Natal: o QR vem embrulhado em papel de bengala com laço, e no alto da TV
+ * um pinheiro ganha uma bola (na cor da pessoa) a cada um que entra; com
+ * todo mundo pronto, a estrela acende.
  */
 export default function TvDisplay() {
   const { code } = useParams()
@@ -52,7 +58,7 @@ export default function TvDisplay() {
 
   // Trilha do lobby: a camada de som decide quando pode tocar (a TV precisa
   // de um clique para destravar o áudio — o aviso é dela).
-  useMusic('lobby')
+  useMusic('natal')
   // A TV fica no lobby entre um jogo e outro: notebook ligado nela não pode
   // entrar no descanso de tela.
   useWakeLock(true)
@@ -100,6 +106,9 @@ export default function TvDisplay() {
   const meta = game ? getGameMeta(game.slug) : null
   const readyCount = players.filter((player) => player.ready).length
   const everyoneReady = players.length > 0 && readyCount === players.length
+  // A bola de cada pessoa na árvore é o avatar dela (o mesmo da mesa e do celular).
+  const seatAvatars = assignAvatars(players)
+  const treeAvatars = players.flatMap((player) => seatAvatars.get(player.id) ?? [])
   const tutorial = (room?.state?.tutorial ?? null) as { active: boolean; step: number } | null
   // Sempre uma cadeira vazia a mais (até o máximo do jogo): convida quem falta.
   const capacity = game
@@ -134,6 +143,27 @@ export default function TvDisplay() {
           zIndex: 1,
         }}
       >
+        {/* Pinheiro da sala: uma bola por pessoa. No meio, sem empurrar nada. */}
+        <Box
+          sx={{
+            position: 'absolute',
+            left: '50%',
+            // Abaixo do aviso de som (que fica no alto, no centro).
+            top: 'clamp(40px, 6.5vh, 76px)',
+            transform: 'translateX(-50%)',
+            pointerEvents: 'none',
+            display: 'none',
+            '@media (min-width: 1100px)': { display: 'block' },
+          }}
+        >
+          <ChristmasTree
+            ornaments={treeAvatars.map((avatar) => avatar.color)}
+            avatars={treeAvatars}
+            lit={everyoneReady}
+            height="clamp(64px, 13vh, 170px)"
+          />
+        </Box>
+
         {/* Marca menor em TV baixinha: o espaço é do QR e da mesa */}
         <Box sx={{ pl: { md: 4 }, display: 'none', '@media (min-height: 860px)': { display: 'block' } }}>
           <Brand size="md" />
@@ -163,7 +193,7 @@ export default function TvDisplay() {
                 filter: `drop-shadow(0 0 18px ${withAlpha(accent, 0.45)})`,
               }}
             >
-              {meta?.icon} {game.name}
+              {meta?.icon} {gameName(game)}
             </Typography>
           </Box>
         )}
@@ -200,23 +230,41 @@ export default function TvDisplay() {
             <Box
               className="animate-pop-in"
               sx={{
+                position: 'relative',
                 width: 'clamp(150px, min(31vh, 26vw), 380px)',
                 aspectRatio: '1 / 1',
                 p: 'clamp(6px, 1.1vh, 14px)',
                 borderRadius: 'var(--radius-xl)',
-                background: '#fff7ed',
-                border: '4px solid var(--pumpkin)',
-                boxShadow: '0 0 0 6px rgba(20, 11, 34, 0.9), 0 0 60px rgba(255, 123, 28, 0.45)',
+                // Papel de presente listrado de bengala na borda; o QR fica no branco.
+                border: 'clamp(5px, 0.9vh, 10px) solid transparent',
+                background:
+                  'linear-gradient(#fffdf6, #fffdf6) padding-box, repeating-linear-gradient(45deg, #e8394a 0 14px, #ffffff 14px 26px) border-box',
+                boxShadow: '0 0 0 5px rgba(6, 16, 31, 0.9), 0 0 60px rgba(255, 90, 102, 0.45)',
                 mx: 'auto',
               }}
             >
+              {/* Laço do presente */}
+              <Box
+                aria-hidden
+                className="animate-wobble"
+                sx={{
+                  position: 'absolute',
+                  top: 'clamp(-34px, -4.4vh, -18px)',
+                  right: 'clamp(-30px, -3.6vh, -14px)',
+                  fontSize: 'clamp(2rem, 6vh, 4.4rem)',
+                  lineHeight: 1,
+                  filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.45))',
+                }}
+              >
+                🎀
+              </Box>
               <QRCodeSVG
                 value={joinUrl}
                 size={512}
                 level="M"
                 marginSize={1}
-                fgColor="#140b22"
-                bgColor="#fff7ed"
+                fgColor="#06101f"
+                bgColor="#fffdf6"
                 title={`Entrar na sala ${roomCode}`}
                 style={{ width: '100%', height: '100%', display: 'block' }}
               />
@@ -231,7 +279,7 @@ export default function TvDisplay() {
                 letterSpacing: '0.04em',
                 whiteSpace: 'nowrap',
                 color: 'var(--pumpkin)',
-                textShadow: '0 0 20px rgba(255, 123, 28, 0.5)',
+                textShadow: '0 0 20px rgba(255, 90, 102, 0.5)',
               }}
             >
               📱 ESCANEIE PARA ENTRAR
@@ -277,7 +325,7 @@ export default function TvDisplay() {
                 ? 'PARTIDA ENCERRADA'
                 : everyoneReady
                   ? 'TODOS PRONTOS — O HOST JÁ PODE COMEÇAR'
-                  : 'ESPERANDO A GALERA CHEGAR...'}
+                  : 'ESPERANDO A GALERA CHEGAR... 🛷'}
             </Typography>
 
             {error && (
@@ -301,7 +349,7 @@ export default function TvDisplay() {
                 mb: 'clamp(4px, 0.8vh, 10px)',
               }}
             >
-              COMO JOGAR
+              🎄 COMO JOGAR
             </Typography>
             <Typography
               sx={{
@@ -339,7 +387,7 @@ export default function TvDisplay() {
                       placeItems: 'center',
                       fontFamily: 'var(--font-numeric)',
                       fontSize: 'clamp(1rem, 2.6vh, 1.7rem)',
-                      color: '#0a0612',
+                      color: '#06101f',
                       background: accent,
                       boxShadow: `0 0 16px ${withAlpha(accent, 0.45)}`,
                     }}
@@ -370,7 +418,7 @@ export default function TvDisplay() {
       {meta && game && (
         <TutorialOverlay
           open={Boolean(tutorial?.active)}
-          title={game.name}
+          title={gameName(game)}
           icon={meta.icon}
           pitch={meta.pitch}
           steps={meta.howTo}
@@ -404,7 +452,7 @@ export default function TvDisplay() {
           <Box component="span" sx={{ color: 'var(--text-primary)' }}>
             {players.length}
           </Box>{' '}
-          {players.length === 1 ? 'ALMA' : 'ALMAS'} · {readyCount} {readyCount === 1 ? 'PRONTA' : 'PRONTAS'}
+          {players.length === 1 ? 'DUENDE' : 'DUENDES'} · {readyCount} {readyCount === 1 ? 'PRONTO' : 'PRONTOS'}
         </Typography>
         <SeatGrid players={players} capacity={capacity} variant="tv" />
       </Box>

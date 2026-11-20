@@ -35,8 +35,8 @@ export default function ActionPanel({
         borderRadius: 'var(--radius-xl)',
         border: `1px solid ${lockedReason ? 'rgba(255,255,255,0.1)' : accent}`,
         background: lockedReason
-          ? 'linear-gradient(160deg, rgba(24, 14, 40, 0.9), rgba(12, 7, 22, 0.94))'
-          : `linear-gradient(160deg, ${withAlpha(accent, 0.1)}, rgba(12, 7, 22, 0.95))`,
+          ? 'linear-gradient(160deg, rgba(18, 35, 61, 0.9), rgba(6, 16, 31, 0.94))'
+          : `linear-gradient(160deg, ${withAlpha(accent, 0.1)}, rgba(6, 16, 31, 0.95))`,
         boxShadow: lockedReason ? 'none' : `0 20px 50px rgba(0,0,0,0.45), 0 0 40px ${withAlpha(accent, 0.14)}`,
         p: { xs: 2.5, md: 3 },
         // As duas animações juntas: o `animation` daqui apagava a do
