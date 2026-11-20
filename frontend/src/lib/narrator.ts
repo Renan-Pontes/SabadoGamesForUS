@@ -66,6 +66,43 @@ export function pickVoice(): SpeechSynthesisVoice | null {
   return cachedVoice
 }
 
+/** Onomatopeias que a voz soletra (são efeitos sonoros, não fala). */
+const NOISES: RegExp[] = [
+  /(?<![\p{L}])b+r{2,}\p{L}*/giu, // Brrrr
+  /(?<![\p{L}])(?:r[ôo]|ho)(?:[\s,!.-]+(?:r[ôo]|ho)){1,}(?![\p{L}])/giu, // Rô, rô, rô / Ho ho ho
+  /(?<![\p{L}])h?i(?:[\s,!.-]+h?i){2,}(?![\p{L}])/giu, // hi-hi-hi
+  /(?<![\p{L}])(?:k{3,}|(?:ha){2,}h?|(?:he){2,}h?|(?:rs){2,})(?![\p{L}])/giu, // kkk, hahaha, rsrs
+  /(?<![\p{L}])u+h+u{2,}\p{L}*/giu, // Uhuuu
+  /(?<![\p{L}])(?:a{3,}|o{3,}|e{3,})h*(?![\p{L}])/giu, // Aaaa, Oooo
+]
+
+/**
+ * Deixa o texto bom de ser falado pela voz do navegador:
+ *
+ * - tira emoji e símbolo (o Chrome lê "🎁" como "pacote embrulhado" no meio
+ *   da frase);
+ * - tira onomatopeia ("Brrrr", "Rô rô rô", "Ho ho ho", "hi-hi-hi", "kkk",
+ *   "Uhuuu"): a voz soletra e fica robótica — esses sons são efeito sonoro;
+ * - junta espaços e pontuação que sobraram.
+ *
+ * Devolve '' quando não sobra nada para dizer.
+ */
+export function cleanForSpeech(text: string): string {
+  let out = text
+    // Seletor de variação, junção de emoji e tecla (⃣) saem antes, um por um.
+    .replace(/\u{FE0F}|\u{200D}|\u{20E3}/gu, '')
+    .replace(/[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}]/gu, ' ')
+    .replace(/[★☆✦✧✨❄✔✓✗✘•→←↑↓·]/gu, ' ')
+  for (const pattern of NOISES) out = out.replace(pattern, ' ')
+  out = out
+    .replace(/\s+([,.!?…])/g, '$1')
+    .replace(/[,.!?…]{2,}/g, (match) => (match.includes('?') ? '?' : match.includes('!') ? '!' : match[0]))
+    .replace(/^[\s,.!?…:;-]+/, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+  return /[\p{L}\p{N}]/u.test(out) ? out : ''
+}
+
 export type SpeakOptions = {
   rate?: number
   pitch?: number
@@ -84,8 +121,9 @@ export type SpeakOptions = {
  * Cancela qualquer fala anterior antes de começar: numa troca rápida de passo
  * do tutorial, duas vozes sobrepostas seriam pior do que nenhuma.
  */
-export function speak(text: string, options: SpeakOptions = {}): () => void {
-  if (!canNarrate() || !text.trim()) {
+export function speak(rawText: string, options: SpeakOptions = {}): () => void {
+  const text = cleanForSpeech(rawText)
+  if (!canNarrate() || !text) {
     options.onEnd?.()
     return () => undefined
   }

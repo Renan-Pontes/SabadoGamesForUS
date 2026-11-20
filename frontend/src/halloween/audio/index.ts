@@ -32,6 +32,7 @@ export {
   setMuted,
   setMusicEnabled,
   setRandomScaresEnabled,
+  setVoiceEnabled,
   setSoundRole,
   setVolume,
   subscribeSound,

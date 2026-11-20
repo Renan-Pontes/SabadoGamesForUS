@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Box, Button, FormControlLabel, IconButton, Popover, Slider, Switch, Typography } from '@mui/material'
-import { setMuted, setMusicEnabled, setRandomScaresEnabled, setVolume, useSoundState } from '../audio'
+import { setMuted, setMusicEnabled, setRandomScaresEnabled, setVoiceEnabled, setVolume, useSoundState } from '../audio'
 import { AUTO_SCARES } from '../../season'
 import { FESTIVE_RANDOM, RARE_SCARE, SCARY_RANDOM, triggerScare } from '../scare'
 import { CREEPY_FONT } from '../ui/fonts'
@@ -96,6 +96,10 @@ export default function TvControl() {
           <FormControlLabel
             control={<Switch checked={sound.music} onChange={(_, checked) => setMusicEnabled(checked)} />}
             label="Música"
+          />
+          <FormControlLabel
+            control={<Switch checked={sound.voice} onChange={(_, checked) => setVoiceEnabled(checked)} />}
+            label="Narração (voz)"
           />
           {AUTO_SCARES && (
             <FormControlLabel

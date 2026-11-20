@@ -1,5 +1,31 @@
 import { describe, expect, it } from 'vitest'
-import { bestVoice, scoreVoice } from './narrator'
+import { bestVoice, cleanForSpeech, scoreVoice } from './narrator'
+
+describe('texto falado pela voz do navegador', () => {
+  it('tira onomatopeia que a voz soletraria', () => {
+    expect(cleanForSpeech('Brrrrr! Que friaca!')).toBe('Que friaca!')
+    expect(cleanForSpeech('Rô, rô, rô! Feliz Natal!')).toBe('Feliz Natal!')
+    expect(cleanForSpeech('Ho ho ho! Ana tá na lista!')).toBe('Ana tá na lista!')
+    expect(cleanForSpeech('kkkkk que isso')).toBe('que isso')
+    expect(cleanForSpeech('Uhuuuu! Acertou!')).toBe('Acertou!')
+  })
+
+  it('tira emoji e símbolo (o Chrome lê o nome deles)', () => {
+    expect(cleanForSpeech('🎁 O presente está com a Ana! ✨')).toBe('O presente está com a Ana!')
+    expect(cleanForSpeech('Votem no celular! 🗳️')).toBe('Votem no celular!')
+  })
+
+  it('não mexe em palavra normal que parece onomatopeia', () => {
+    expect(cleanForSpeech('Hoje o Rodrigo honrou a casa.')).toBe('Hoje o Rodrigo honrou a casa.')
+    expect(cleanForSpeech('Ai, que frio!')).toBe('Ai, que frio!')
+    expect(cleanForSpeech('Bravo, Brenda!')).toBe('Bravo, Brenda!')
+  })
+
+  it('sem nada para dizer, devolve vazio', () => {
+    expect(cleanForSpeech('Brrrr! 🥶')).toBe('')
+    expect(cleanForSpeech('🎄🎅')).toBe('')
+  })
+})
 
 const voice = (name: string, lang: string) => ({ name, lang })
 
